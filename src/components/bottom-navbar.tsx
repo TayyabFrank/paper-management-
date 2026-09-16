@@ -13,17 +13,19 @@ const HOME_ICON_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURICom
 </svg>
 `)}`;
 
-// My Docs layered stack icon SVG
-const STACK_ICON_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+// Document icon SVG (clean document outline with folded corner and lines)
+const DOCUMENT_ICON_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-  <polyline points="2 12 12 17 22 12"></polyline>
-  <polyline points="2 17 12 22 22 17"></polyline>
+  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+  <polyline points="14 2 14 8 20 8"></polyline>
+  <line x1="16" y1="13" x2="8" y2="13"></line>
+  <line x1="16" y1="17" x2="8" y2="17"></line>
+  <line x1="10" y1="9" x2="8" y2="9"></line>
 </svg>
 `)}`;
 
-// New Doc document with upward arrow SVG
-const NEW_DOC_ICON_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+// Upload icon SVG (document with upward upload arrow)
+const UPLOAD_ICON_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
   <polyline points="14 2 14 8 20 8"></polyline>
@@ -46,19 +48,26 @@ interface BottomNavbarProps {
   onTabChange: (tab: TabKey) => void;
 }
 
+interface TabItemConfig {
+  key: TabKey;
+  label: string;
+  emoji: string;
+  getIcon: (color: string) => string;
+}
+
 export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
   const insets = useSafeAreaInsets();
-  const { isDark, colors } = useDocuVaultTheme();
+  const { isDark } = useDocuVaultTheme();
 
   const activePillBg = isDark ? '#2563eb' : '#1b3569';
-  const inactiveColor = isDark ? '#718096' : '#94a3b8';
+  const inactiveColor = isDark ? '#94a3b8' : '#64748b';
   const activeLabelColor = isDark ? '#38bdf8' : '#1b3569';
 
-  const tabs: { key: TabKey; label: string; getIcon: (color: string) => string }[] = [
-    { key: 'home', label: 'Home', getIcon: HOME_ICON_SVG },
-    { key: 'docs', label: 'My Docs', getIcon: STACK_ICON_SVG },
-    { key: 'new-doc', label: 'New Doc', getIcon: NEW_DOC_ICON_SVG },
-    { key: 'profile', label: 'Profile', getIcon: PROFILE_ICON_SVG },
+  const tabs: TabItemConfig[] = [
+    { key: 'home', label: 'Home', emoji: '🏠', getIcon: HOME_ICON_SVG },
+    { key: 'docs', label: 'Document', emoji: '📄', getIcon: DOCUMENT_ICON_SVG },
+    { key: 'new-doc', label: 'Upload', emoji: '📤', getIcon: UPLOAD_ICON_SVG },
+    { key: 'profile', label: 'Profile', emoji: '👤', getIcon: PROFILE_ICON_SVG },
   ];
 
   return (
@@ -86,9 +95,9 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
               activeOpacity={0.75}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
-              accessibilityLabel={tab.label}
+              accessibilityLabel={`${tab.label} tab`}
             >
-              {/* Active pill capsule around the icon */}
+              {/* Active pill capsule around the vector icon */}
               <View
                 style={[
                   styles.iconSlot,
@@ -104,15 +113,16 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
                 />
               </View>
 
-              {/* Tab label */}
+              {/* Tab label with compulsory icon + title */}
               <Text
                 style={[
                   styles.tabLabel,
                   { color: labelColor },
                   isActive && styles.activeTabLabel,
                 ]}
+                numberOfLines={1}
               >
-                {tab.label}
+                <Text style={styles.tabEmoji}>{tab.emoji}</Text> {tab.label}
               </Text>
             </TouchableOpacity>
           );
@@ -182,5 +192,8 @@ const styles = StyleSheet.create({
   },
   activeTabLabel: {
     fontWeight: '700',
+  },
+  tabEmoji: {
+    fontSize: 11,
   },
 });

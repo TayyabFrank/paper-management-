@@ -105,7 +105,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             <View style={[styles.actionIconBg, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
               <Text style={{ fontSize: 20 }}>📂</Text>
             </View>
-            <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>📂 My Documents</Text>
+            <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>📄 Document Vault</Text>
             <Text style={[styles.actionTileSub, { color: colors.textSecondary }]}>🔍 View and search all files</Text>
           </TouchableOpacity>
 
@@ -123,7 +123,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             <View style={[styles.actionIconBg, { backgroundColor: isDark ? '#1e293b' : '#f0fdf4' }]}>
               <Text style={{ fontSize: 20 }}>📤</Text>
             </View>
-            <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>📤 Upload New</Text>
+            <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>📤 Upload Document</Text>
             <Text style={[styles.actionTileSub, { color: colors.textSecondary }]}>📄 Scan or upload a doc</Text>
           </TouchableOpacity>
         </View>
