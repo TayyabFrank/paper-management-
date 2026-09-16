@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { DocumentReader, DocumentReaderItem } from './document-reader';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { useDocuments } from '@/context/documents-context';
 import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
 
 // Vector icons as crisp SVG URIs
@@ -325,415 +326,7 @@ export function getDetectedBadgeTextStyle(type: string) {
   }
 }
 
-const INITIAL_DOCUMENTS: DocumentReaderItem[] = [
-  {
-    id: '1',
-    title: 'Annual Tax Forms 2023',
-    subtitle: 'Signed: 10 Jan 2024',
-    type: 'pdf',
-    icon: PDF_BLUE_SVG,
-    fileSize: '1.8 MB',
-    isSigned: true,
-    fullContent: {
-      category: 'Tax & Compliance',
-      date: '10 Jan 2024',
-      authorOrIssuer: 'Payroll & Treasury Division',
-      sections: [
-        {
-          heading: '1. Personal Information & Tax Filing Status',
-          body: 'Employee Name: Liam Thompson | Filing Status: Single or Married Filing Separately | Federal Withholding Elections: Standard Allowance.\nTotal Allowances Claimed: 01. State Tax Code: CA-540 Resident Withholding.',
-        },
-        {
-          heading: '2. Total Compensation & Withholdings Schedule',
-          body: 'Gross Wages & Tips: $148,500.00 | Federal Income Tax Withheld: $27,412.50 | Social Security Wages: $148,500.00 | Social Security Tax Withheld: $9,207.00 | Medicare Wages & Tax: $2,153.25.',
-        },
-        {
-          heading: '3. Digital Certification & Signature Stamp',
-          body: 'Under penalties of perjury, I declare that I have examined this certificate and to the best of my knowledge and belief, it is true, correct, and complete.\nSigned by: Liam Thompson (Digitally authenticated via DocuVault Security Token).',
-        },
-      ],
-    },
-  },
-  {
-    id: '2',
-    title: 'Employment Contract',
-    subtitle: 'Signed: 15 Mar 2021',
-    type: 'pdf',
-    icon: PDF_BLUE_SVG,
-    fileSize: '2.4 MB',
-    isSigned: true,
-    fullContent: {
-      category: 'Legal Agreements',
-      date: '15 Mar 2021',
-      authorOrIssuer: 'Corporate Legal & Talent Acquisition',
-      sections: [
-        {
-          heading: '1. Appointment & Position Duties',
-          body: 'The Employer hereby employs Liam Thompson as Senior Software Engineer. The Employee will report directly to the VP of Engineering and be responsible for enterprise architecture, high-availability distributed systems, and team mentoring.',
-        },
-        {
-          heading: '2. Base Salary & Incentive Compensation',
-          body: 'Employer shall pay Employee an annual base salary of $165,000, payable semi-monthly in accordance with Employer’s normal payroll practices. Employee shall be eligible for an annual performance bonus targeted at 15% of base salary.',
-        },
-        {
-          heading: '3. Paid Time Off (PTO) & Comprehensive Benefits',
-          body: 'Employee is entitled to 24 business days of paid vacation per calendar year, plus 11 recognized corporate holidays. Standard medical, dental, optical, and 401(k) matching benefits commence on day one of employment.',
-        },
-      ],
-    },
-  },
-  {
-    id: '3',
-    title: 'Q4 Performance Review',
-    subtitle: 'Uploaded: 15 Dec 2023',
-    type: 'docx',
-    icon: DOCX_SVG,
-    fileSize: '480 KB',
-    fullContent: {
-      category: 'Performance Management',
-      date: '15 Dec 2023',
-      authorOrIssuer: 'Engineering Leadership Review Board',
-      sections: [
-        {
-          heading: '1. Executive Appraisal Summary',
-          body: 'Overall Evaluation Rating: 4.8 / 5.0 (Exceeds Expectations). Liam demonstrated extraordinary technical craftsmanship throughout 2023, orchestrating the document pipeline overhaul that improved processing throughput by 42%.',
-        },
-        {
-          heading: '2. Core Competencies & Deliverables',
-          body: '• Technical Architecture: 5.0/5.0 - Flawless multi-tenant vault security rollout.\n• Collaboration & Mentorship: 4.7/5.0 - Successfully onboarded 4 new engineers.\n• Strategic Execution: 4.8/5.0 - On-time delivery of all quarterly roadmap commitments.',
-        },
-        {
-          heading: '3. Growth Objectives for 2024',
-          body: 'Lead the next-generation microservices migration and contribute to the cross-team tech radar initiative for AI document parsing.',
-        },
-      ],
-    },
-  },
-  {
-    id: '4',
-    title: 'Health Card Scan',
-    subtitle: 'Uploaded: 01 Nov 2023',
-    type: 'image',
-    icon: IMAGE_DOC_SVG,
-    fileSize: '3.1 MB',
-    previewImage: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&auto=format&fit=crop&q=80',
-    fullContent: {
-      category: 'Medical Insurance',
-      date: '01 Nov 2023',
-      authorOrIssuer: 'BlueCross BlueShield Premier Health',
-      sections: [
-        {
-          heading: 'Verified Health Insurance Record',
-          body: 'Front and back scan verified by Enterprise Benefits Administration. Active across all primary and specialist in-network facilities.',
-        },
-      ],
-      metadata: {
-        'Member Name': 'Liam Thompson',
-        'Member ID': 'BCBS-9840219-X',
-        'Group Number': 'GRP-55420',
-        'Coverage Type': 'PPO Comprehensive Plus',
-        'Primary Care Copay': '$15.00',
-        'Specialist Copay': '$25.00',
-        'Rx BIN': '004336',
-      },
-    },
-  },
-  {
-    id: '5',
-    title: 'Non-Disclosure Agreement',
-    subtitle: 'Signed: 15 Mar 2021',
-    type: 'pdf',
-    icon: PDF_BLUE_SVG,
-    fileSize: '1.2 MB',
-    isSigned: true,
-    fullContent: {
-      category: 'Legal Agreements',
-      date: '15 Mar 2021',
-      authorOrIssuer: 'Enterprise Compliance Office',
-      sections: [
-        {
-          heading: '1. Definition of Proprietary Information',
-          body: 'Includes trade secrets, client records, source code, cryptographic keys, architectural blueprints, patent drafts, and pricing structures disclosed to the Employee during the course of employment.',
-        },
-        {
-          heading: '2. Obligations of Strict Non-Disclosure',
-          body: 'Employee agrees to hold all proprietary materials in strictest confidence and shall not disclose, reproduce, or distribute any confidential technical or financial assets to unauthorized parties during or after employment.',
-        },
-      ],
-    },
-  },
-  {
-    id: '6',
-    title: 'W-2 Form 2023',
-    subtitle: 'Not Uploaded',
-    type: 'pdf',
-    icon: PDF_RED_SVG,
-    fileSize: 'Pending',
-    fullContent: {
-      category: 'Tax Filing Documents',
-      date: 'Pending',
-      authorOrIssuer: 'Internal Revenue Service (IRS)',
-      sections: [
-        {
-          heading: 'Notice of Missing Document',
-          body: 'Your 2023 Form W-2 has not yet been submitted or acknowledged. Please use the upload button to submit your signed Form W-2 for HR audit compliance.',
-        },
-      ],
-    },
-  },
-  {
-    id: '7',
-    title: 'Direct Deposit Form',
-    subtitle: 'Uploaded: 18 Mar 2021',
-    type: 'pdf',
-    icon: PDF_BLUE_SVG,
-    fileSize: '890 KB',
-    isSigned: true,
-    fullContent: {
-      category: 'Banking & Payroll',
-      date: '18 Mar 2021',
-      authorOrIssuer: 'Treasury & Disbursements',
-      sections: [
-        {
-          heading: '1. Primary Deposit Account Allocation',
-          body: 'Financial Institution: Chase Commercial Banking\nAccount Holder: Liam Thompson\nRouting Number: *****4819 | Checking Account: *******3902\nAllocation: 100% Net Pay Deposit.',
-        },
-        {
-          heading: '2. Electronic Funds Authorization',
-          body: 'I hereby authorize Enterprise Document Management Systems LLC to initiate credit entries and adjustments for any credit entries in error to my designated bank account.',
-        },
-      ],
-    },
-  },
-  {
-    id: '8',
-    title: 'Resume',
-    subtitle: 'Uploaded: 01 Mar 2021',
-    type: 'pdf',
-    icon: PDF_RED_SVG,
-    fileSize: '620 KB',
-    isSigned: true,
-    fullContent: {
-      category: 'Employee Dossier',
-      date: '01 Mar 2021',
-      authorOrIssuer: 'Verified Candidate Records',
-      sections: [
-        {
-          heading: 'Liam Thompson - Senior Software Engineer',
-          body: 'San Francisco, CA • l.thompson@enterprise.com • (555) 392-8192\nSpecialized in building high-scale distributed data pipelines, cloud-native document vaults, and cryptographic security primitives.',
-        },
-        {
-          heading: 'Core Technical Proficiencies',
-          body: 'Languages: TypeScript, Go, Python, SQL, Rust.\nFrameworks & Platforms: React, React Native, Node.js, Kubernetes, AWS, Docker.\nStorage & Caching: PostgreSQL, Redis, Apache Kafka, Cassandra.',
-        },
-        {
-          heading: 'Education & Honors',
-          body: 'Bachelor of Science in Computer Science (Cum Laude)\nUniversity of California, Berkeley (2014 - 2018).',
-        },
-      ],
-    },
-  },
-  // ARTICLES
-  {
-    id: '9',
-    title: 'Employee Handbook 2024',
-    subtitle: 'Published: 02 Jan 2024',
-    type: 'article',
-    icon: ARTICLE_DOC_SVG,
-    fileSize: 'Article',
-    fullContent: {
-      category: 'Company Culture & Standards',
-      date: '02 Jan 2024',
-      authorOrIssuer: 'Human Resources & People Operations',
-      sections: [
-        {
-          heading: 'Welcome to Our Collaborative Workplace',
-          body: 'Our mission is to build the world’s most secure enterprise document intelligence platform. This handbook defines our values: transparency, rigorous technical execution, customer privacy, and empathy.',
-        },
-        {
-          heading: 'Working Hours & Flexible Collaboration',
-          body: 'Core collaboration hours are 10:00 AM to 3:00 PM in your local time zone. Beyond core hours, team members have full autonomy to manage their schedules to achieve peak focus and work-life harmony.',
-        },
-        {
-          heading: 'Professional Development & Education Stipends',
-          body: 'Every full-time team member receives an annual $2,500 continuous learning stipend for conferences, technical books, certifications, and university courses.',
-        },
-      ],
-    },
-  },
-  {
-    id: '10',
-    title: 'Remote Work & Security Guidelines',
-    subtitle: 'Published: 14 Nov 2023',
-    type: 'article',
-    icon: ARTICLE_DOC_SVG,
-    fileSize: 'Article',
-    fullContent: {
-      category: 'Information Security',
-      date: '14 Nov 2023',
-      authorOrIssuer: 'Chief Information Security Office (CISO)',
-      sections: [
-        {
-          heading: '1. Multi-Factor Authentication (MFA) Mandate',
-          body: 'Hardware security keys (FIDO2/WebAuthn) or corporate authenticator apps are required for all workspace access. SMS-based 2FA is prohibited for production environments.',
-        },
-        {
-          heading: '2. Device Encryption & Endpoint Protection',
-          body: 'All laptops and workstations must have full-disk encryption enabled (FileVault / BitLocker). Never disable corporate endpoint telemetry or connect via public unsecured Wi-Fi without the corporate WireGuard VPN.',
-        },
-        {
-          heading: '3. Data Retention & Secure Destruction',
-          body: 'Client documents must remain within DocuVault encrypted storage zones and should never be copied to unencrypted local storage or personal cloud drives.',
-        },
-      ],
-    },
-  },
-  {
-    id: '11',
-    title: 'Health & Wellness Benefits Guide',
-    subtitle: 'Published: 01 Oct 2023',
-    type: 'article',
-    icon: ARTICLE_DOC_SVG,
-    fileSize: 'Article',
-    fullContent: {
-      category: 'Employee Wellbeing',
-      date: '01 Oct 2023',
-      authorOrIssuer: 'Total Rewards & Benefits Team',
-      sections: [
-        {
-          heading: 'Comprehensive Healthcare Coverage',
-          body: 'We pay 100% of employee premiums and 85% of dependent premiums across medical, dental, and vision care plans. Health Savings Accounts (HSA) include a $1,200 annual employer contribution.',
-        },
-        {
-          heading: 'Mental Health & Wellness Reimbursements',
-          body: 'Employees have unlimited access to licensed mental health therapy sessions via our digital counseling partner, plus a $75/month wellness subsidy for gym memberships, fitness trackers, or meditation apps.',
-        },
-      ],
-    },
-  },
-  {
-    id: '12',
-    title: 'Code of Conduct & Workplace Ethics',
-    subtitle: 'Published: 15 Sep 2023',
-    type: 'article',
-    icon: ARTICLE_DOC_SVG,
-    fileSize: 'Article',
-    fullContent: {
-      category: 'Governance & Ethics',
-      date: '15 Sep 2023',
-      authorOrIssuer: 'Office of the Ombudsperson',
-      sections: [
-        {
-          heading: 'Zero-Tolerance Policy on Harassment',
-          body: 'We are dedicated to providing a safe, inclusive, and harassment-free work experience for everyone regardless of gender identity, sexual orientation, disability, physical appearance, race, or religion.',
-        },
-        {
-          heading: 'Whistleblower Protections & Anonymous Reporting',
-          body: 'Any employee may report ethical, financial, or safety concerns via our 24/7 confidential integrity hotline without fear of retaliation.',
-        },
-      ],
-    },
-  },
-  // MORE IMAGES
-  {
-    id: '13',
-    title: 'Passport & Identity Verification Scan',
-    subtitle: 'Uploaded: 05 Jan 2022',
-    type: 'image',
-    icon: IMAGE_DOC_SVG,
-    fileSize: '4.2 MB',
-    previewImage: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80',
-    fullContent: {
-      category: 'Identity Verification',
-      date: '05 Jan 2022',
-      authorOrIssuer: 'Department of State / Verified by HR',
-      sections: [
-        {
-          heading: 'Government Issued Identity Document',
-          body: 'Biometric page and identity data validated against I-9 employment eligibility standards.',
-        },
-      ],
-      metadata: {
-        'Document Type': 'U.S. Passport Book',
-        'Document Number': 'USA-99201948',
-        'Nationality': 'United States of America',
-        'Verification Status': 'Confirmed (I-9 Verified)',
-      },
-    },
-  },
-  {
-    id: '14',
-    title: 'Employee Security Badge Scan',
-    subtitle: 'Uploaded: 16 Mar 2021',
-    type: 'image',
-    icon: IMAGE_DOC_SVG,
-    fileSize: '1.9 MB',
-    previewImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=80',
-    fullContent: {
-      category: 'Facility Access',
-      date: '16 Mar 2021',
-      authorOrIssuer: 'Global Security & Facilities Operations',
-      sections: [
-        {
-          heading: 'Smart NFC Campus Credential',
-          body: 'Tier 3 Access Clearance: Primary Engineering Labs, Cloud Data Center Suites, and Executive Boardroom.',
-        },
-      ],
-      metadata: {
-        'Badge ID': 'SEC-4402',
-        'Access Level': 'Level 3 (Engineering & Operations)',
-        'Card Format': 'HID Prox / MIFARE DESFire EV3',
-      },
-    },
-  },
-  {
-    id: '15',
-    title: 'Google Drive Product Roadmap 2026',
-    subtitle: 'Shared: Today',
-    type: 'link',
-    icon: LINK_DOC_SVG,
-    fileSize: 'Drive Link',
-    fullContent: {
-      category: 'Cloud Links & Drive',
-      date: 'Today',
-      authorOrIssuer: 'Product Strategy Leadership',
-      sections: [
-        {
-          heading: 'Enterprise Workspace Cloud Link',
-          body: 'Google Drive Document: https://docs.google.com/document/d/1BxiMVs0XRA5nFMdKvBdBZj_ROADMAP_2026\nAuthorized access for verified team members.',
-        },
-      ],
-      metadata: {
-        'Cloud Service': 'Google Drive / Docs',
-        'Sharing Permission': 'Workspace View & Comment',
-        'Target Audience': 'Engineering & Product Teams',
-      },
-    },
-  },
-  {
-    id: '16',
-    title: 'Annual Financial Projections (Google Sheets)',
-    subtitle: 'Shared: 10 Jan 2024',
-    type: 'link',
-    icon: LINK_DOC_SVG,
-    fileSize: 'Drive Link',
-    fullContent: {
-      category: 'Corporate Finance',
-      date: '10 Jan 2024',
-      authorOrIssuer: 'Finance & Planning Committee',
-      sections: [
-        {
-          heading: 'Live Financial Forecast Model',
-          body: 'Google Sheets: https://docs.google.com/spreadsheets/d/FINANCE_PROJECTIONS_2024\nQuarterly actuals versus budget tracking.',
-        },
-      ],
-      metadata: {
-        'Cloud Service': 'Google Sheets',
-        'Data Sensitivity': 'Internal Confidential',
-      },
-    },
-  },
-];
+const INITIAL_DOCUMENTS: DocumentReaderItem[] = [];
 
 interface DocumentsDashboardProps {
   onBack?: () => void;
@@ -752,7 +345,7 @@ export function DocumentsDashboard({
 }: DocumentsDashboardProps) {
   const router = useRouter();
   const { isDark, colors } = useDocuVaultTheme();
-  const [documents, setDocuments] = useState<DocumentReaderItem[]>(INITIAL_DOCUMENTS);
+  const { documents, addDocument, deleteDocument } = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [readingDoc, setReadingDoc] = useState<DocumentReaderItem | null>(null);
@@ -765,7 +358,7 @@ export function DocumentsDashboard({
   const handleConfirmDelete = () => {
     if (!docToDelete) return;
     const deletedTitle = docToDelete.title;
-    setDocuments((prev) => prev.filter((d) => d.id !== docToDelete.id));
+    deleteDocument(docToDelete.id);
     setDocToDelete(null);
     setUploadNotification(`"${deletedTitle}" deleted successfully.`);
     setTimeout(() => setUploadNotification(null), 3000);
@@ -811,7 +404,7 @@ export function DocumentsDashboard({
         ],
       },
     };
-    setDocuments((prev) => [newDoc, ...prev]);
+    addDocument(newDoc);
     setUploadNotification(`Successfully uploaded "${item.name}"!`);
     setTimeout(() => setUploadNotification(null), 3500);
   };
@@ -843,7 +436,7 @@ export function DocumentsDashboard({
             ],
           },
         };
-        setDocuments([newDoc, ...documents]);
+        addDocument(newDoc);
         setUploadNotification(`Successfully uploaded "${file.name}" as ${detectedType.toUpperCase()}!`);
         setTimeout(() => setUploadNotification(null), 3500);
       };
@@ -876,7 +469,7 @@ export function DocumentsDashboard({
         ],
       },
     };
-    setDocuments([newDoc, ...documents]);
+    addDocument(newDoc);
     setUploadNotification(`Successfully uploaded "${name}"!`);
     setTimeout(() => setUploadNotification(null), 3500);
   };
@@ -1139,99 +732,128 @@ export function DocumentsDashboard({
 
       {/* Document Items List */}
       <View style={styles.docList}>
-        {filteredDocs.map((doc) => (
-          <TouchableOpacity
-            key={doc.id}
+        {filteredDocs.length === 0 ? (
+          <View
             style={[
-              styles.docCard,
+              styles.emptyStateCard,
               {
                 backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e8edf4',
-                shadowColor: isDark ? '#000000' : '#64748b',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
               },
             ]}
-            onPress={() => setReadingDoc(doc)}
-            onLongPress={() => setDocToDelete(doc)}
-            activeOpacity={0.8}
           >
-            <View style={styles.docIconWrapper}>
-              <Image
-                source={{ uri: getDocumentTypeIcon(doc.type, doc.title) }}
-                style={styles.docTypeImage}
-                resizeMode="contain"
-              />
+            <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
+              <Text style={{ fontSize: 36 }}>📂</Text>
             </View>
-
-            <View style={styles.docInfo}>
-              <Text
-                style={[
-                  styles.docTitle,
-                  { color: colors.textPrimary },
-                ]}
-                numberOfLines={1}
-              >
-                {doc.title}
-              </Text>
-              <Text
-                style={[
-                  styles.docSubtitle,
-                  { color: isDark ? '#94a3b8' : '#64748b' },
-                  doc.subtitle === 'Not Uploaded' ? (isDark ? { color: '#64748b' } : styles.notUploadedText) : null,
-                ]}
-              >
-                {doc.subtitle}
-              </Text>
-            </View>
-
-            {/* Actions: Eye (Read), Download, Delete */}
-            <View style={styles.cardActionsRow}>
-              {/* Eye Button: View & Read */}
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => setReadingDoc(doc)}
-                activeOpacity={0.7}
-                accessibilityLabel={`Read ${doc.title}`}
-              >
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Documents Yet</Text>
+            <Text style={[styles.emptySub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+              {searchQuery
+                ? 'No documents match your search.'
+                : 'All mock documents have been removed. Go to the Upload page to upload documents, images, or Google Drive links.'}
+            </Text>
+            <TouchableOpacity
+              style={[styles.emptyActionBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
+              onPress={handleUploadNew}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.emptyActionBtnText}>📤 Go to Upload Page</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          filteredDocs.map((doc) => (
+            <TouchableOpacity
+              key={doc.id}
+              style={[
+                styles.docCard,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e8edf4',
+                  shadowColor: isDark ? '#000000' : '#64748b',
+                },
+              ]}
+              onPress={() => setReadingDoc(doc)}
+              onLongPress={() => setDocToDelete(doc)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.docIconWrapper}>
                 <Image
-                  source={{ uri: isDark ? EYE_ICON_DARK_SVG : EYE_ICON_SVG }}
-                  style={styles.actionBtnIcon}
+                  source={{ uri: getDocumentTypeIcon(doc.type, doc.title) }}
+                  style={styles.docTypeImage}
                   resizeMode="contain"
                 />
-              </TouchableOpacity>
+              </View>
 
-              {/* Download Button: Download file */}
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => {
-                  setUploadNotification(`"${doc.title}" downloaded securely.`);
-                  setTimeout(() => setUploadNotification(null), 3000);
-                }}
-                activeOpacity={0.7}
-                accessibilityLabel={`Download ${doc.title}`}
-              >
-                <Image
-                  source={{ uri: isDark ? DOWNLOAD_ICON_DARK_SVG : DOWNLOAD_ICON_SVG }}
-                  style={styles.actionBtnIcon}
-                  resizeMode="contain"
-                />
-              </TouchableOpacity>
+              <View style={styles.docInfo}>
+                <Text
+                  style={[
+                    styles.docTitle,
+                    { color: colors.textPrimary },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {doc.title}
+                </Text>
+                <Text
+                  style={[
+                    styles.docSubtitle,
+                    { color: isDark ? '#94a3b8' : '#64748b' },
+                    doc.subtitle === 'Not Uploaded' ? (isDark ? { color: '#64748b' } : styles.notUploadedText) : null,
+                  ]}
+                >
+                  {doc.subtitle}
+                </Text>
+              </View>
 
-              {/* Delete Button: Remove document */}
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => setDocToDelete(doc)}
-                activeOpacity={0.7}
-                accessibilityLabel={`Delete ${doc.title}`}
-              >
-                <Image
-                  source={{ uri: TRASH_ICON_SVG }}
-                  style={styles.actionBtnIcon}
-                  resizeMode="contain"
-                />
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        ))}
+              {/* Actions: Eye (Read), Download, Delete */}
+              <View style={styles.cardActionsRow}>
+                {/* Eye Button: View & Read */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => setReadingDoc(doc)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Read ${doc.title}`}
+                >
+                  <Image
+                    source={{ uri: isDark ? EYE_ICON_DARK_SVG : EYE_ICON_SVG }}
+                    style={styles.actionBtnIcon}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+
+                {/* Download Button: Download file */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => {
+                    setUploadNotification(`"${doc.title}" downloaded securely.`);
+                    setTimeout(() => setUploadNotification(null), 3000);
+                  }}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Download ${doc.title}`}
+                >
+                  <Image
+                    source={{ uri: isDark ? DOWNLOAD_ICON_DARK_SVG : DOWNLOAD_ICON_SVG }}
+                    style={styles.actionBtnIcon}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+
+                {/* Delete Button: Remove document */}
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => setDocToDelete(doc)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Delete ${doc.title}`}
+                >
+                  <Image
+                    source={{ uri: TRASH_ICON_SVG }}
+                    style={styles.actionBtnIcon}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
       </View>
 
       {/* Delete Confirmation Modal */}
@@ -1617,5 +1239,51 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#ffffff',
+  },
+  emptyStateCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: 36,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  emptyIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  emptySub: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 18,
+    maxWidth: 290,
+  },
+  emptyActionBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    shadowColor: '#1b3569',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  emptyActionBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

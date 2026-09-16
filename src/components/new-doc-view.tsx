@@ -11,9 +11,12 @@ import {
   Image,
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { useDocuments } from '@/context/documents-context';
 import { TabKey } from './bottom-navbar';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
+import { getDocumentTypeIcon, detectFileType } from './documents-dashboard';
+import { DocumentReaderItem } from './document-reader';
 
 interface NewDocViewProps {
   onDocumentAdded?: () => void;
@@ -73,6 +76,7 @@ const GOOGLE_DRIVE_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 
 export function NewDocView({ onNavigateTab }: NewDocViewProps) {
   const { isDark, colors } = useDocuVaultTheme();
+  const { addDocument } = useDocuments();
   const [driveLink, setDriveLink] = useState('');
   const [documentTitle, setDocumentTitle] = useState('');
   const [documentDescription, setDocumentDescription] = useState('');
@@ -136,15 +140,58 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
       return;
     }
 
+    const isDrive = Boolean(driveLink.trim());
+    const detectedType: 'link' | 'pdf' | 'docx' | 'image' | 'article' | 'other' = isDrive
+      ? 'link'
+      : selectedFile
+      ? detectFileType(selectedFile.name)
+      : 'pdf';
+
+    const newDoc: DocumentReaderItem = {
+      id: Date.now().toString(),
+      title: finalTitle,
+      subtitle: `Uploaded: Today`,
+      type: detectedType,
+      icon: getDocumentTypeIcon(detectedType, finalTitle),
+      fileSize: isDrive ? 'Drive Link' : selectedFile?.size || '1.5 MB',
+      fullContent: {
+        category: isDrive ? 'Cloud Links & Drive' : 'Employee Uploads',
+        date: 'Today',
+        authorOrIssuer: 'Liam Thompson',
+        sections: [
+          {
+            heading: finalTitle,
+            body:
+              documentDescription.trim() ||
+              (isDrive
+                ? `Google Drive URL: ${driveLink}\nVerified and authorized for workspace.`
+                : `Uploaded file: ${finalTitle}\nStored securely in DocuVault.`),
+          },
+        ],
+        metadata: isDrive
+          ? {
+              'Resource Type': 'Google Drive Link',
+              'URL': driveLink,
+              'Admin Notified': 'Yes (Email Dispatched)',
+            }
+          : {
+              'File Name': selectedFile?.name || finalTitle,
+              'Size': selectedFile?.size || '1.5 MB',
+              'Admin Notified': 'Yes (Email Dispatched)',
+            },
+      },
+    };
+
+    addDocument(newDoc);
     setIsUploading(true);
     setTimeout(() => {
       setIsUploading(false);
-      setFeedbackToast(`✓ "${finalTitle || 'Document'}" successfully submitted and dispatched to ADMIN via email!`);
+      setFeedbackToast(`✓ "${finalTitle}" successfully submitted and added to your workspace!`);
       setTimeout(() => {
         setFeedbackToast(null);
         onNavigateTab('docs');
       }, 1500);
-    }, 1200);
+    }, 1000);
   };
 
   return (

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
+import { useDocuments } from '@/context/documents-context';
 import { TabKey } from './bottom-navbar';
 import { ThemeToggleButton } from './theme-toggle-button';
 
@@ -19,6 +20,7 @@ interface HomeDashboardViewProps {
 export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
   const { isDark, colors } = useDocuVaultTheme();
   const { user } = useAuth();
+  const { documents } = useDocuments();
 
   return (
     <ScrollView
@@ -79,7 +81,9 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
               },
             ]}
           >
-            <Text style={[styles.metricNumber, { color: isDark ? '#38bdf8' : '#2563eb' }]}>31</Text>
+            <Text style={[styles.metricNumber, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
+              {documents.length}
+            </Text>
             <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>📁 Total Documents</Text>
           </View>
         </View>
