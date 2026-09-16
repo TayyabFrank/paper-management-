@@ -145,6 +145,67 @@ const MINI_OTHER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+/**
+ * Returns the exact visual icon according to the document or content type.
+ * Automatically handles:
+ * - PDF: PDF_BLUE_SVG
+ * - Image: IMAGE_DOC_SVG
+ * - Article: ARTICLE_DOC_SVG
+ * - Docx: DOCX_SVG
+ */
+export function getDocumentTypeIcon(type: string, title?: string): string {
+  const lowerType = (type || '').toLowerCase();
+  const lowerTitle = (title || '').toLowerCase();
+
+  if (
+    lowerType === 'image' ||
+    /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic)$/i.test(lowerTitle)
+  ) {
+    return IMAGE_DOC_SVG;
+  }
+
+  if (
+    lowerType === 'article' ||
+    /\.(md|txt|rtf|markdown)$/i.test(lowerTitle) ||
+    lowerTitle.includes('handbook') ||
+    lowerTitle.includes('guide') ||
+    lowerTitle.includes('guidelines') ||
+    lowerTitle.includes('ethics') ||
+    lowerTitle.includes('policy')
+  ) {
+    return ARTICLE_DOC_SVG;
+  }
+
+  if (
+    lowerType === 'docx' ||
+    lowerType === 'doc' ||
+    /\.(docx|doc)$/i.test(lowerTitle)
+  ) {
+    return DOCX_SVG;
+  }
+
+  return PDF_BLUE_SVG;
+}
+
+export function detectFileType(fileName: string, mimeType: string = ''): 'pdf' | 'docx' | 'image' | 'article' | 'other' {
+  const lowerName = fileName.toLowerCase();
+  const lowerMime = mimeType.toLowerCase();
+
+  if (lowerMime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic)$/i.test(lowerName)) {
+    return 'image';
+  }
+  if (lowerMime.includes('pdf') || lowerName.endsWith('.pdf')) {
+    return 'pdf';
+  }
+  if (lowerMime.includes('word') || /\.(docx|doc)$/i.test(lowerName)) {
+    return 'docx';
+  }
+  if (lowerMime.includes('text') || /\.(md|txt|rtf|markdown)$/i.test(lowerName)) {
+    return 'article';
+  }
+  return 'pdf';
+}
+
 const INITIAL_DOCUMENTS: DocumentReaderItem[] = [
   {
     id: '1',
@@ -559,15 +620,16 @@ export function DocumentsDashboard({
   const handleWebFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const isImg = file.type.startsWith('image/');
+      const detectedType = detectFileType(file.name, file.type);
+      const isImg = detectedType === 'image';
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         const newDoc: DocumentReaderItem = {
           id: Date.now().toString(),
           title: file.name.replace(/\.[^/.]+$/, ''),
           subtitle: `Uploaded: Today`,
-          type: isImg ? 'image' : 'pdf',
-          icon: isImg ? IMAGE_DOC_SVG : PDF_BLUE_SVG,
+          type: detectedType,
+          icon: getDocumentTypeIcon(detectedType, file.name),
           fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
           previewImage: isImg && uploadEvent.target?.result ? (uploadEvent.target.result as string) : undefined,
           fullContent: {
@@ -577,13 +639,13 @@ export function DocumentsDashboard({
             sections: [
               {
                 heading: 'Uploaded Document Content',
-                body: `File: ${file.name}\nSize: ${(file.size / 1024).toFixed(1)} KB\nUploaded directly via DocuVault portal.`,
+                body: `File: ${file.name}\nType: ${detectedType.toUpperCase()}\nSize: ${(file.size / 1024).toFixed(1)} KB\nStored securely in DocuVault.`,
               },
             ],
           },
         };
         setDocuments([newDoc, ...documents]);
-        setUploadNotification(`Successfully uploaded "${file.name}"!`);
+        setUploadNotification(`Successfully uploaded "${file.name}" as ${detectedType.toUpperCase()}!`);
         setTimeout(() => setUploadNotification(null), 3500);
       };
       if (isImg) {
@@ -594,13 +656,13 @@ export function DocumentsDashboard({
     }
   };
 
-  const simulateNewUpload = (name: string, type: 'image' | 'pdf') => {
+  const simulateNewUpload = (name: string, type: 'image' | 'pdf' | 'article') => {
     const newDoc: DocumentReaderItem = {
       id: Date.now().toString(),
       title: name,
       subtitle: `Uploaded: Just now`,
       type: type,
-      icon: type === 'image' ? IMAGE_DOC_SVG : PDF_BLUE_SVG,
+      icon: getDocumentTypeIcon(type, name),
       fileSize: '2.5 MB',
       previewImage: type === 'image' ? 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80' : undefined,
       fullContent: {
@@ -787,7 +849,11 @@ export function DocumentsDashboard({
             activeOpacity={0.8}
           >
             <View style={styles.docIconWrapper}>
-              <Image source={{ uri: doc.icon }} style={styles.docTypeImage} resizeMode="contain" />
+              <Image
+                source={{ uri: getDocumentTypeIcon(doc.type, doc.title) }}
+                style={styles.docTypeImage}
+                resizeMode="contain"
+              />
             </View>
 
             <View style={styles.docInfo}>
