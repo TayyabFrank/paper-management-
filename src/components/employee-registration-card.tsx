@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { UploadPermissionModal } from './upload-permission-modal';
 
 const DEFAULT_AVATAR_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -64,6 +65,7 @@ export function EmployeeRegistrationCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedModalVisible, setSubmittedModalVisible] = useState(false);
   const [forgotModalVisible, setForgotModalVisible] = useState(false);
+  const [permModalVisible, setPermModalVisible] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -83,17 +85,7 @@ export function EmployeeRegistrationCard({
   };
 
   const handleChoosePhoto = () => {
-    if (Platform.OS === 'web') {
-      if (fileInputRef.current) {
-        fileInputRef.current.click();
-      } else {
-        const random = DEMO_FACES[Math.floor(Math.random() * DEMO_FACES.length)];
-        setFaceImage(random);
-      }
-    } else {
-      const random = DEMO_FACES[Math.floor(Math.random() * DEMO_FACES.length)];
-      setFaceImage(random);
-    }
+    setPermModalVisible(true);
   };
 
   const handleWebFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,7 +202,7 @@ export function EmployeeRegistrationCard({
 
       {/* Card Header Title */}
       <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-        {mode === 'register' ? 'Employee Registration' : 'Sign In to Workspace'}
+        {mode === 'register' ? '📝 Employee Registration' : '🔐 Sign In to Workspace'}
       </Text>
 
       {mode === 'register' ? (
@@ -218,7 +210,7 @@ export function EmployeeRegistrationCard({
         <View style={styles.formContent}>
           {/* Full Name */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>Full Name</Text>
+            <Text style={[styles.label, labelThemeStyle]}>👤 Full Name</Text>
             <TextInput
               style={[styles.input, inputThemeStyle, errors.fullName ? styles.inputError : null]}
               placeholder="John Doe"
@@ -235,7 +227,7 @@ export function EmployeeRegistrationCard({
 
           {/* Work Email */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>Work Email</Text>
+            <Text style={[styles.label, labelThemeStyle]}>✉️ Work Email</Text>
             <TextInput
               style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
               placeholder="name@company.com"
@@ -254,7 +246,7 @@ export function EmployeeRegistrationCard({
 
           {/* Password */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>Password</Text>
+            <Text style={[styles.label, labelThemeStyle]}>🔒 Password</Text>
             <View style={[styles.passwordInputContainer, inputThemeStyle]}>
               <TextInput
                 style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }, errors.password ? styles.inputError : null]}
@@ -285,10 +277,10 @@ export function EmployeeRegistrationCard({
           {/* Face Image */}
           <View style={styles.fieldGroup}>
             <View style={styles.faceLabelRow}>
-              <Text style={[styles.label, labelThemeStyle]}>Face Image</Text>
+              <Text style={[styles.label, labelThemeStyle]}>📷 Face Image</Text>
               {faceImage && (
                 <TouchableOpacity onPress={() => setFaceImage(null)}>
-                  <Text style={styles.removePhotoText}>Remove</Text>
+                  <Text style={styles.removePhotoText}>🗑️ Remove</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -319,7 +311,7 @@ export function EmployeeRegistrationCard({
                     { color: isDark ? '#38bdf8' : '#1b3569' },
                   ]}
                 >
-                  {faceImage ? 'Change Photo' : 'Upload Photo'}
+                  {faceImage ? '🔄 Change Photo' : '🖼️ Upload Photo'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -335,7 +327,7 @@ export function EmployeeRegistrationCard({
             {isSubmitting ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
-              <Text style={styles.primaryButtonText}>Submit for Admin Approval</Text>
+              <Text style={styles.primaryButtonText}>🚀 Submit for Admin Approval</Text>
             )}
           </TouchableOpacity>
 
@@ -343,7 +335,7 @@ export function EmployeeRegistrationCard({
           <View style={styles.footerRow}>
             <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already registered? </Text>
             <TouchableOpacity onPress={() => switchMode('login')} activeOpacity={0.7}>
-              <Text style={[styles.loginLink, linkThemeStyle]}>Login</Text>
+              <Text style={[styles.loginLink, linkThemeStyle]}>🔐 Login</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -352,7 +344,7 @@ export function EmployeeRegistrationCard({
         <View style={styles.formContent}>
           {/* Work Email */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>Work Email</Text>
+            <Text style={[styles.label, labelThemeStyle]}>✉️ Work Email</Text>
             <TextInput
               style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
               placeholder="m.chen@company.com"
@@ -372,13 +364,13 @@ export function EmployeeRegistrationCard({
           {/* Password with Forgot Password? link */}
           <View style={styles.fieldGroup}>
             <View style={styles.passwordHeaderRow}>
-              <Text style={[styles.label, labelThemeStyle]}>Password</Text>
+              <Text style={[styles.label, labelThemeStyle]}>🔒 Password</Text>
               <TouchableOpacity
                 onPress={() => setForgotModalVisible(true)}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.forgotPasswordLink, { color: isDark ? '#38bdf8' : '#3b82f6' }]}>
-                  Forgot Password?
+                  ❓ Forgot Password?
                 </Text>
               </TouchableOpacity>
             </View>
@@ -420,7 +412,7 @@ export function EmployeeRegistrationCard({
             {isSubmitting ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
-              <Text style={styles.primaryButtonText}>Login</Text>
+              <Text style={styles.primaryButtonText}>🔑 Login</Text>
             )}
           </TouchableOpacity>
 
@@ -428,11 +420,22 @@ export function EmployeeRegistrationCard({
           <View style={styles.footerRow}>
             <Text style={[styles.footerText, { color: colors.textSecondary }]}>New to the company? </Text>
             <TouchableOpacity onPress={() => switchMode('register')} activeOpacity={0.7}>
-              <Text style={[styles.loginLink, linkThemeStyle]}>Register as Employee</Text>
+              <Text style={[styles.loginLink, linkThemeStyle]}>📝 Register as Employee</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
+
+      {/* Upload Permission Modal for Face Picture */}
+      <UploadPermissionModal
+        visible={permModalVisible}
+        onClose={() => setPermModalVisible(false)}
+        title="Permission & Upload: Face Picture"
+        onlyImages
+        onUploadSuccess={(item) => {
+          setFaceImage(item.previewImage || item.url || null);
+        }}
+      />
 
       {/* Submission Confirmation Modal */}
       <Modal

@@ -52,9 +52,9 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
           <View style={styles.bannerContent}>
             <View style={styles.bannerBadge}>
               <View style={styles.onlineDot} />
-              <Text style={styles.bannerBadgeText}>ENTERPRISE WORKSPACE ACTIVE</Text>
+              <Text style={styles.bannerBadgeText}>🟢 ENTERPRISE WORKSPACE ACTIVE</Text>
             </View>
-            <Text style={styles.bannerHeading}>Secure Document Vault</Text>
+            <Text style={styles.bannerHeading}>🔒 Secure Document Vault</Text>
             <Text style={styles.bannerDesc}>
               {user.department} • {user.role}
             </Text>
@@ -68,7 +68,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
         </View>
 
         {/* Quick Metrics Grid */}
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Vault Overview</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📊 Vault Overview</Text>
         <View style={styles.metricsGrid}>
           <View
             style={[
@@ -80,7 +80,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             ]}
           >
             <Text style={[styles.metricNumber, { color: isDark ? '#38bdf8' : '#2563eb' }]}>31</Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Total Documents</Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>📁 Total Documents</Text>
           </View>
 
           <View
@@ -93,7 +93,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             ]}
           >
             <Text style={[styles.metricNumber, { color: '#16a34a' }]}>28</Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Verified & Signed</Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>🛡️ Verified & Signed</Text>
           </View>
 
           <View
@@ -106,7 +106,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             ]}
           >
             <Text style={[styles.metricNumber, { color: '#f59e0b' }]}>3</Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Pending Action</Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>⏳ Pending Action</Text>
           </View>
 
           <View
@@ -119,12 +119,12 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             ]}
           >
             <Text style={[styles.metricNumber, { color: isDark ? '#a78bfa' : '#7c3aed' }]}>2.4 GB</Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Storage Used</Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>💾 Storage Used</Text>
           </View>
         </View>
 
         {/* Quick Actions Bar */}
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Quick Actions</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>⚡ Quick Actions</Text>
         <View style={styles.actionsRow}>
           <TouchableOpacity
             style={[
@@ -140,8 +140,8 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             <View style={[styles.actionIconBg, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
               <Text style={{ fontSize: 20 }}>📂</Text>
             </View>
-            <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>My Documents</Text>
-            <Text style={[styles.actionTileSub, { color: colors.textSecondary }]}>View and search all files</Text>
+            <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>📂 My Documents</Text>
+            <Text style={[styles.actionTileSub, { color: colors.textSecondary }]}>🔍 View and search all files</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -158,13 +158,13 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             <View style={[styles.actionIconBg, { backgroundColor: isDark ? '#1e293b' : '#f0fdf4' }]}>
               <Text style={{ fontSize: 20 }}>📤</Text>
             </View>
-            <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>Upload New</Text>
-            <Text style={[styles.actionTileSub, { color: colors.textSecondary }]}>Scan or upload a doc</Text>
+            <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>📤 Upload New</Text>
+            <Text style={[styles.actionTileSub, { color: colors.textSecondary }]}>📄 Scan or upload a doc</Text>
           </TouchableOpacity>
         </View>
 
         {/* Pinned Enterprise Notices */}
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Important Notice</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📢 Important Notice</Text>
         <View
           style={[
             styles.noticeCard,
@@ -176,12 +176,12 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
         >
           <View style={styles.noticeHeader}>
             <View style={styles.noticePill}>
-              <Text style={styles.noticePillText}>ANNUAL COMPLIANCE</Text>
+              <Text style={styles.noticePillText}>📋 ANNUAL COMPLIANCE</Text>
             </View>
-            <Text style={[styles.noticeDate, { color: colors.textSecondary }]}>Due 30 Sep 2026</Text>
+            <Text style={[styles.noticeDate, { color: colors.textSecondary }]}>📅 Due 30 Sep 2026</Text>
           </View>
           <Text style={[styles.noticeTitle, { color: colors.textPrimary }]}>
-            Form W-2 & Annual Tax Certification Pending
+            ⚠️ Form W-2 & Annual Tax Certification Pending
           </Text>
           <Text style={[styles.noticeBody, { color: colors.textSecondary }]}>
             Your 2023 W-2 Form has not been acknowledged yet. Please check your My Docs vault to upload or certify before the compliance audit deadline.
@@ -191,7 +191,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             onPress={() => onNavigateTab('docs')}
             activeOpacity={0.8}
           >
-            <Text style={styles.noticeCtaText}>Review Tax Documents →</Text>
+            <Text style={styles.noticeCtaText}>📋 Review Tax Documents →</Text>
           </TouchableOpacity>
         </View>
       </View>

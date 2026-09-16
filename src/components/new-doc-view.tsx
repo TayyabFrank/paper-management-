@@ -12,6 +12,7 @@ import {
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { TabKey } from './bottom-navbar';
 import { ThemeToggleButton } from './theme-toggle-button';
+import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
 
 interface NewDocViewProps {
   onDocumentAdded?: () => void;
@@ -26,15 +27,35 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
   const [selectedFile, setSelectedFile] = useState<{ name: string; size: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [isPermissionModalVisible, setIsPermissionModalVisible] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handlePickFile = () => {
-    if (Platform.OS === 'web' && fileInputRef.current) {
-      fileInputRef.current.click();
-    } else {
-      setSelectedFile({ name: 'Scanned_Document_2026.pdf', size: '2.4 MB' });
+    setIsPermissionModalVisible(true);
+  };
+
+  const handleModalUploadSuccess = (item: UploadedItemResult) => {
+    setSelectedFile({
+      name: item.name,
+      size: item.size,
+    });
+    if (!title) {
+      setTitle(item.name.replace(/\.[^/.]+$/, ''));
     }
+    // Auto-detect category hint from name
+    const lowerName = item.name.toLowerCase();
+    if (lowerName.includes('tax') || lowerName.includes('w-2') || lowerName.includes('w2')) {
+      setCategory('Tax');
+    } else if (lowerName.includes('legal') || lowerName.includes('nda') || lowerName.includes('contract')) {
+      setCategory('Legal');
+    } else if (lowerName.includes('health') || lowerName.includes('medical') || lowerName.includes('insurance')) {
+      setCategory('Medical');
+    } else if (lowerName.includes('review') || lowerName.includes('appraisal') || lowerName.includes('performance')) {
+      setCategory('Performance');
+    }
+    setSuccessToast(`Selected: "${item.name}"`);
+    setTimeout(() => setSuccessToast(null), 3000);
   };
 
   const handleWebFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,12 +84,12 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
     }, 1200);
   };
 
-  const categories: ('Tax' | 'Legal' | 'Medical' | 'Performance' | 'General')[] = [
-    'General',
-    'Tax',
-    'Legal',
-    'Medical',
-    'Performance',
+  const categoryConfigs: { key: 'Tax' | 'Legal' | 'Medical' | 'Performance' | 'General'; label: string }[] = [
+    { key: 'General', label: '📁 General' },
+    { key: 'Tax', label: '💰 Tax' },
+    { key: 'Legal', label: '⚖️ Legal' },
+    { key: 'Medical', label: '🏥 Medical' },
+    { key: 'Performance', label: '📈 Performance' },
   ];
 
   return (
@@ -80,9 +101,9 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
         {/* Header */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={[styles.heading, { color: colors.textPrimary }]}>Upload New Document</Text>
+            <Text style={[styles.heading, { color: colors.textPrimary }]}>📤 Upload New Document</Text>
             <Text style={[styles.subheading, { color: colors.textSecondary }]}>
-              Securely index documents into your enterprise vault
+              🛡️ Securely index documents into your enterprise vault
             </Text>
           </View>
           <ThemeToggleButton compact showLabel={false} />
@@ -122,14 +143,14 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
             <Text style={{ fontSize: 26 }}>📄</Text>
           </View>
           <Text style={[styles.dropzoneTitle, { color: colors.textPrimary }]}>
-            {selectedFile ? selectedFile.name : 'Tap to Select or Scan File'}
+            {selectedFile ? `📄 ${selectedFile.name}` : '📄 Tap to Select or Scan File'}
           </Text>
           <Text style={[styles.dropzoneSub, { color: colors.textSecondary }]}>
-            {selectedFile ? `File Size: ${selectedFile.size}` : 'Supports PDF, Word (.docx), Scanned Photos & Images'}
+            {selectedFile ? `💾 File Size: ${selectedFile.size}` : 'Supports PDF, Word (.docx), Scanned Photos & Images'}
           </Text>
           <View style={[styles.chooseBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
             <Text style={[styles.chooseBtnText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
-              {selectedFile ? 'Replace File' : 'Browse Files'}
+              {selectedFile ? '🔄 Replace File' : '🔍 Browse Files'}
             </Text>
           </View>
         </TouchableOpacity>
@@ -146,7 +167,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
         >
           {/* Document Title */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: isDark ? '#94a3b8' : '#475569' }]}>Document Title</Text>
+            <Text style={[styles.label, { color: isDark ? '#94a3b8' : '#475569' }]}>🏷️ Document Title</Text>
             <TextInput
               style={[
                 styles.input,
@@ -165,13 +186,13 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
 
           {/* Category Selector */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: isDark ? '#94a3b8' : '#475569' }]}>Category</Text>
+            <Text style={[styles.label, { color: isDark ? '#94a3b8' : '#475569' }]}>🗂️ Category</Text>
             <View style={styles.categoriesRow}>
-              {categories.map((cat) => {
-                const isSelected = category === cat;
+              {categoryConfigs.map((cfg) => {
+                const isSelected = category === cfg.key;
                 return (
                   <TouchableOpacity
-                    key={cat}
+                    key={cfg.key}
                     style={[
                       styles.catChip,
                       {
@@ -183,7 +204,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
                           : (isDark ? '#27354f' : '#e2e8f0'),
                       },
                     ]}
-                    onPress={() => setCategory(cat)}
+                    onPress={() => setCategory(cfg.key)}
                     activeOpacity={0.7}
                   >
                     <Text
@@ -195,7 +216,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
                         },
                       ]}
                     >
-                      {cat}
+                      {cfg.label}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -205,7 +226,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
 
           {/* Optional Notes */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: isDark ? '#94a3b8' : '#475569' }]}>Notes & Description (Optional)</Text>
+            <Text style={[styles.label, { color: isDark ? '#94a3b8' : '#475569' }]}>📝 Notes & Description (Optional)</Text>
             <TextInput
               style={[
                 styles.input,
@@ -241,11 +262,19 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
             {isUploading ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
-              <Text style={styles.submitBtnText}>Store Document in Vault</Text>
+              <Text style={styles.submitBtnText}>📤 Store Document in Vault</Text>
             )}
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Upload Permission Modal */}
+      <UploadPermissionModal
+        visible={isPermissionModalVisible}
+        onClose={() => setIsPermissionModalVisible(false)}
+        title="Upload Document or Photo"
+        onUploadSuccess={handleModalUploadSuccess}
+      />
     </ScrollView>
   );
 }

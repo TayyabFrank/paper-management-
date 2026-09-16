@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { DocumentReader, DocumentReaderItem } from './document-reader';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
 
 // Vector icons as crisp SVG URIs
 const BACK_ARROW_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -672,6 +673,7 @@ export function DocumentsDashboard({
   const [readingDoc, setReadingDoc] = useState<DocumentReaderItem | null>(null);
   const [docToDelete, setDocToDelete] = useState<DocumentReaderItem | null>(null);
   const [uploadNotification, setUploadNotification] = useState<string | null>(null);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -693,11 +695,36 @@ export function DocumentsDashboard({
   };
 
   const handleUploadNew = () => {
-    if (Platform.OS === 'web' && fileInputRef.current) {
-      fileInputRef.current.click();
-    } else {
-      simulateNewUpload('Passport Scan (Uploaded)', 'image');
-    }
+    setUploadModalVisible(true);
+  };
+
+  const handleUploadSuccess = (item: UploadedItemResult) => {
+    const isImg = item.type === 'image';
+    const newDoc: DocumentReaderItem = {
+      id: Date.now().toString(),
+      title: item.name,
+      subtitle: `Uploaded: Today`,
+      type: item.type,
+      icon: getDocumentTypeIcon(item.type, item.name),
+      fileSize: item.size,
+      previewImage: item.previewImage,
+      fullContent: {
+        category: 'Employee Uploads',
+        date: 'Today',
+        authorOrIssuer: employeeName,
+        sections: [
+          {
+            heading: `${item.name} (${item.type.toUpperCase()})`,
+            body: item.url
+              ? `Cloud / Web Resource: ${item.url}\nStored securely in DocuVault with biometric audit trail.`
+              : `Uploaded via secure permissions gateway.\nFile Name: ${item.name}\nSize: ${item.size}\nStatus: Active & Verified.`,
+          },
+        ],
+      },
+    };
+    setDocuments((prev) => [newDoc, ...prev]);
+    setUploadNotification(`Successfully uploaded "${item.name}"!`);
+    setTimeout(() => setUploadNotification(null), 3500);
   };
 
   const handleWebFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -821,7 +848,7 @@ export function DocumentsDashboard({
             onPress={handleUploadNew}
             activeOpacity={0.8}
           >
-            <Text style={styles.uploadHeaderButtonText}>+ Upload</Text>
+            <Text style={styles.uploadHeaderButtonText}>📤 + Upload</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -860,7 +887,7 @@ export function DocumentsDashboard({
               { color: isDark ? '#4ade80' : '#2563eb' },
             ]}
           >
-            Active
+            🟢 Active
           </Text>
         </View>
       </View>
@@ -883,7 +910,7 @@ export function DocumentsDashboard({
         />
         <TextInput
           style={[styles.searchInput, { color: colors.textPrimary }]}
-          placeholder="Search your documents..."
+          placeholder="🔍 Search your documents..."
           placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -914,7 +941,7 @@ export function DocumentsDashboard({
           activeOpacity={0.7}
         >
           <Text style={[styles.statCount, { color: colors.textPrimary }]}>{documents.length}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total Documents</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>📊 All Docs</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -931,7 +958,7 @@ export function DocumentsDashboard({
             <Image source={{ uri: MINI_PDF_SVG }} style={styles.miniTypeIcon} resizeMode="contain" />
             <Text style={[styles.statCount, { color: colors.textPrimary }]}>{pdfCount}</Text>
           </View>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>PDF</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>📄 PDF</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -948,7 +975,7 @@ export function DocumentsDashboard({
             <Image source={{ uri: MINI_DOCX_SVG }} style={styles.miniTypeIcon} resizeMode="contain" />
             <Text style={[styles.statCount, { color: colors.textPrimary }]}>{docxCount}</Text>
           </View>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Doxc</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>📝 DOCX</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -965,7 +992,7 @@ export function DocumentsDashboard({
             <Image source={{ uri: MINI_ARTICLE_SVG }} style={styles.miniTypeIcon} resizeMode="contain" />
             <Text style={[styles.statCount, { color: colors.textPrimary }]}>{articleCount}</Text>
           </View>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Articles</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>📰 Articles</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -982,7 +1009,7 @@ export function DocumentsDashboard({
             <Image source={{ uri: MINI_IMAGE_SVG }} style={styles.miniTypeIcon} resizeMode="contain" />
             <Text style={[styles.statCount, { color: colors.textPrimary }]}>{imageCount}</Text>
           </View>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Images</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>🖼️ Images</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -999,7 +1026,7 @@ export function DocumentsDashboard({
             <Image source={{ uri: MINI_OTHER_SVG }} style={styles.miniTypeIcon} resizeMode="contain" />
             <Text style={[styles.statCount, { color: colors.textPrimary }]}>{otherCount}</Text>
           </View>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Other</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>📁 Other</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -1121,9 +1148,9 @@ export function DocumentsDashboard({
             <View style={styles.deleteIconBadge}>
               <Image source={{ uri: TRASH_ICON_SVG }} style={{ width: 28, height: 28 }} resizeMode="contain" />
             </View>
-            <Text style={[styles.deleteModalTitle, { color: colors.textPrimary }]}>Delete Document?</Text>
+            <Text style={[styles.deleteModalTitle, { color: colors.textPrimary }]}>🗑️ Delete Document?</Text>
             <Text style={[styles.deleteModalBody, { color: colors.textSecondary }]}>
-              Are you sure you want to delete "{docToDelete?.title}"? This document will be permanently removed from your DocuVault.
+              ⚠️ Are you sure you want to delete "{docToDelete?.title}"? This document will be permanently removed from your DocuVault.
             </Text>
 
             <View style={styles.deleteModalActionRow}>
@@ -1135,19 +1162,27 @@ export function DocumentsDashboard({
                 onPress={() => setDocToDelete(null)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.deleteCancelBtnText, { color: isDark ? '#94a3b8' : '#475569' }]}>Cancel</Text>
+                <Text style={[styles.deleteCancelBtnText, { color: isDark ? '#94a3b8' : '#475569' }]}>❌ Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteConfirmBtn}
                 onPress={handleConfirmDelete}
                 activeOpacity={0.8}
               >
-                <Text style={styles.deleteConfirmBtnText}>Delete</Text>
+                <Text style={styles.deleteConfirmBtnText}>🗑️ Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* Multi-Source Upload Permission Modal (Gallery, Browser, Web Link) */}
+      <UploadPermissionModal
+        visible={uploadModalVisible}
+        onClose={() => setUploadModalVisible(false)}
+        title="Upload Document or Photo"
+        onUploadSuccess={handleUploadSuccess}
+      />
 
       {/* Dedicated Full Document / Article / Image Reader */}
       <DocumentReader

@@ -25,7 +25,7 @@ export function EmployeeProfileView() {
       <View style={styles.maxWidthWrapper}>
         {/* Header with Title and Theme Toggle */}
         <View style={styles.headerRow}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Employee Profile</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>👤 Employee Profile</Text>
           <ThemeToggleButton compact showLabel={false} />
         </View>
 
@@ -51,19 +51,19 @@ export function EmployeeProfileView() {
           <View style={styles.badgeRow}>
             <View style={[styles.pillBadge, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#eff6ff' }]}>
               <Text style={[styles.pillBadgeText, { color: isDark ? '#4ade80' : '#2563eb' }]}>
-                Verified Employee
+                🛡️ Verified Employee
               </Text>
             </View>
             <View style={[styles.pillBadge, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
               <Text style={[styles.pillBadgeText, { color: isDark ? '#38bdf8' : '#475569' }]}>
-                {user.employeeId}
+                🪪 {user.employeeId}
               </Text>
             </View>
           </View>
         </View>
 
         {/* Work & Security Details */}
-        <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Enterprise Assignment</Text>
+        <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>🏢 Enterprise Assignment</Text>
         <View
           style={[
             styles.infoCard,
@@ -74,25 +74,25 @@ export function EmployeeProfileView() {
           ]}
         >
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Role / Title</Text>
+            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>💼 Role / Title</Text>
             <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{user.role}</Text>
           </View>
           <View style={[styles.divider, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]} />
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Department</Text>
+            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>🏢 Department</Text>
             <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{user.department}</Text>
           </View>
           <View style={[styles.divider, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]} />
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Security Token</Text>
+            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>🔐 Security Token</Text>
             <Text style={[styles.infoValue, { color: isDark ? '#4ade80' : '#16a34a' }]}>
-              ● Active (SHA-256)
+              🟢 Active (SHA-256)
             </Text>
           </View>
         </View>
 
         {/* Preferences & Settings */}
-        <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Appearance</Text>
+        <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>🎨 Appearance</Text>
         <View
           style={[
             styles.infoCard,
@@ -104,9 +104,9 @@ export function EmployeeProfileView() {
         >
           <View style={styles.themeRow}>
             <View>
-              <Text style={[styles.infoValue, { color: colors.textPrimary }]}>Interface Theme</Text>
+              <Text style={[styles.infoValue, { color: colors.textPrimary }]}>🎨 Interface Theme</Text>
               <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
-                Switch between Light & Dark modes
+                🌓 Switch between Light & Dark modes
               </Text>
             </View>
             <ThemeToggleButton />
@@ -119,7 +119,7 @@ export function EmployeeProfileView() {
           onPress={() => setLogoutModalVisible(true)}
           activeOpacity={0.8}
         >
-          <Text style={styles.logoutBtnText}>Logout from Workspace</Text>
+          <Text style={styles.logoutBtnText}>🚪 Logout from Workspace</Text>
         </TouchableOpacity>
       </View>
 
@@ -141,9 +141,9 @@ export function EmployeeProfileView() {
               },
             ]}
           >
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Sign Out?</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>🚪 Sign Out?</Text>
             <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
-              You will be redirected to the employee login page. You can log back in at any time.
+              ⚠️ You will be redirected to the employee login page. You can log back in at any time.
             </Text>
 
             <View style={styles.modalActions}>
@@ -156,7 +156,7 @@ export function EmployeeProfileView() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.cancelBtnText, { color: isDark ? '#94a3b8' : '#475569' }]}>
-                  Cancel
+                  ❌ Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -167,7 +167,7 @@ export function EmployeeProfileView() {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.confirmLogoutText}>Log Out</Text>
+                <Text style={styles.confirmLogoutText}>🚪 Log Out</Text>
               </TouchableOpacity>
             </View>
           </View>
