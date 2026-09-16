@@ -1,9 +1,11 @@
 import { useDocuments } from '@/context/documents-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import * as DocumentPicker from 'expo-document-picker';
 import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -16,7 +18,6 @@ import { TabKey } from './bottom-navbar';
 import { DocumentReaderItem } from './document-reader';
 import { detectFileType, getDocumentTypeIcon } from './documents-dashboard';
 import { ThemeToggleButton } from './theme-toggle-button';
-import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
 
 interface NewDocViewProps {
   onDocumentAdded?: () => void;
@@ -88,15 +89,61 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
   } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
-  const [isPermissionModalVisible, setIsPermissionModalVisible] = useState(false);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleUploadFromComputer = () => {
-    if (Platform.OS === 'web' && fileInputRef.current) {
-      fileInputRef.current.click();
-    } else {
-      setIsPermissionModalVisible(true);
+  const handleUploadFromDeviceClick = () => {
+    setShowPermissionDialog(true);
+  };
+
+  const handlePermissionDecision = async (allow: boolean) => {
+    setShowPermissionDialog(false);
+    if (!allow) {
+      setFeedbackToast('❌ Permission denied. Device file access was cancelled.');
+      setTimeout(() => setFeedbackToast(null), 3000);
+      return;
+    }
+
+    // Direct access to device file manager
+    try {
+      if (Platform.OS === 'web' && fileInputRef.current) {
+        fileInputRef.current.click();
+      } else {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: '*/*',
+          copyToCacheDirectory: true,
+          multiple: false,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const rawSize = asset.size ?? 0;
+          const formattedSize = rawSize > 0
+            ? rawSize > 1024 * 1024
+              ? `${(rawSize / (1024 * 1024)).toFixed(1)} MB`
+              : `${(rawSize / 1024).toFixed(1)} KB`
+            : '1.2 MB';
+
+          setSelectedFile({
+            name: asset.name,
+            size: formattedSize,
+            fileUrl: asset.uri,
+          });
+
+          if (!documentTitle) {
+            setDocumentTitle(asset.name.replace(/\.[^/.]+$/, ''));
+          }
+
+          setFeedbackToast(`✓ Selected from device: "${asset.name}"`);
+          setTimeout(() => setFeedbackToast(null), 3500);
+        }
+      }
+    } catch (err) {
+      console.warn('File picker error, falling back:', err);
+      if (Platform.OS === 'web' && fileInputRef.current) {
+        fileInputRef.current.click();
+      }
     }
   };
 
@@ -109,33 +156,22 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
       } catch (err) {
         console.warn('Could not create object URL:', err);
       }
+      const rawSize = f.size ?? 0;
+      const formattedSize = rawSize > 1024 * 1024
+        ? `${(rawSize / (1024 * 1024)).toFixed(1)} MB`
+        : `${(rawSize / 1024).toFixed(1)} KB`;
+
       setSelectedFile({
         name: f.name,
-        size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
+        size: formattedSize,
         fileUrl: blobUrl,
       });
       if (!documentTitle) {
         setDocumentTitle(f.name.replace(/\.[^/.]+$/, ''));
       }
-      setFeedbackToast(`Selected file: ${f.name}`);
-      setTimeout(() => setFeedbackToast(null), 3000);
+      setFeedbackToast(`✓ Selected from device: "${f.name}"`);
+      setTimeout(() => setFeedbackToast(null), 3500);
     }
-  };
-
-  const handleModalUploadSuccess = (item: UploadedItemResult) => {
-    setSelectedFile({
-      name: item.name,
-      size: item.size,
-      fileUrl: item.url,
-    });
-    if (!documentTitle) {
-      setDocumentTitle(item.name.replace(/\.[^/.]+$/, ''));
-    }
-    if (item.url) {
-      setDriveLink(item.url);
-    }
-    setFeedbackToast(`Attached: "${item.name}"`);
-    setTimeout(() => setFeedbackToast(null), 3000);
   };
 
   const handleSubmit = () => {
@@ -276,7 +312,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
           type="file"
           ref={fileInputRef as any}
           onChange={handleWebFileChange as any}
-          accept=".pdf,.docx,.doc,.pptx,image/*"
+          accept="*/*"
           style={{ display: 'none' }}
         />
       )}
@@ -348,13 +384,13 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
               />
             </View>
 
-            {/* Upload from Computer Button */}
+            {/* Upload from Device Button */}
             <TouchableOpacity
               style={[
                 styles.uploadComputerBtn,
                 { backgroundColor: isDark ? '#2563eb' : '#1b3569' },
               ]}
-              onPress={handleUploadFromComputer}
+              onPress={handleUploadFromDeviceClick}
               activeOpacity={0.85}
             >
               <Image
@@ -362,16 +398,53 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
                 style={styles.uploadArrowIcon}
                 resizeMode="contain"
               />
-              <Text style={styles.uploadComputerBtnText}>Upload Your Deveice</Text>
+              <Text style={styles.uploadComputerBtnText}>Upload Your Device</Text>
             </TouchableOpacity>
 
-            {/* Drag Files Text & Supported Types */}
-            <Text style={[styles.dragNotice, { color: colors.textPrimary }]}>
-              {selectedFile ? `Attached: ${selectedFile.name} (${selectedFile.size})` : 'Drag files or click below to browse'}
-            </Text>
-            <Text style={[styles.supportedTypesNotice, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              Supported file types: PDF, DOCX, PPTX. Max size: 50MB.
-            </Text>
+            {/* Selected File Card or Browsing Prompt */}
+            {selectedFile ? (
+              <View
+                style={[
+                  styles.selectedFileCard,
+                  {
+                    backgroundColor: isDark ? '#1e293b' : '#f0fdf4',
+                    borderColor: isDark ? '#3b82f6' : '#86efac',
+                  },
+                ]}
+              >
+                <View style={styles.selectedFileInfo}>
+                  <Text style={styles.selectedFileIcon}>📄</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[styles.selectedFileName, { color: colors.textPrimary }]}
+                      numberOfLines={1}
+                    >
+                      {selectedFile.name}
+                    </Text>
+                    <Text style={[styles.selectedFileSize, { color: isDark ? '#94a3b8' : '#166534' }]}>
+                      {selectedFile.size} • Ready for upload
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={[styles.removeFileBtn, { backgroundColor: isDark ? '#334155' : '#e2e8f0' }]}
+                  onPress={() => setSelectedFile(null)}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Clear selected file"
+                >
+                  <Text style={[styles.removeFileText, { color: isDark ? '#f87171' : '#dc2626' }]}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <Text style={[styles.dragNotice, { color: colors.textPrimary }]}>
+                  Click above to choose from device storage
+                </Text>
+                <Text style={[styles.supportedTypesNotice, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                  Supports all document & media formats: PDF, DOCX, PPTX, TXT, Images.
+                </Text>
+              </>
+            )}
 
             {/* OR Divider Line */}
             <View style={styles.orDividerRow}>
@@ -507,13 +580,84 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
         </View>
       </View>
 
-      {/* Multi-Source Permission Modal (Gallery, Browser, Link) */}
-      <UploadPermissionModal
-        visible={isPermissionModalVisible}
-        onClose={() => setIsPermissionModalVisible(false)}
-        title="Upload Document or Photo"
-        onUploadSuccess={handleModalUploadSuccess}
-      />
+      {/* Device Storage Permission Modal (Yes / No) */}
+      <Modal
+        visible={showPermissionDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => handlePermissionDecision(false)}
+      >
+        <View style={styles.permOverlay}>
+          <View
+            style={[
+              styles.permCard,
+              {
+                backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                borderColor: isDark ? '#334155' : '#e2e8f0',
+              },
+            ]}
+          >
+            {/* Icon Header */}
+            <View
+              style={[
+                styles.permIconBadge,
+                {
+                  backgroundColor: isDark ? '#0f172a' : '#eff6ff',
+                  borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                },
+              ]}
+            >
+              <Text style={{ fontSize: 32 }}>📁</Text>
+            </View>
+
+            <Text style={[styles.permHeading, { color: colors.textPrimary }]}>
+              Device Storage Access
+            </Text>
+
+            <Text style={[styles.permDescription, { color: isDark ? '#cbd5e1' : '#475569' }]}>
+              Allow DocuVault to access files on this device so you can browse your file manager and manually select documents to upload?
+            </Text>
+
+            <Text style={[styles.permSecurityNote, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+              🔒 Only the specific document you manually select will be imported.
+            </Text>
+
+            {/* Yes / No Action Buttons */}
+            <View style={styles.permBtnRow}>
+              <TouchableOpacity
+                style={[
+                  styles.permDenyBtn,
+                  {
+                    backgroundColor: isDark ? '#334155' : '#f1f5f9',
+                    borderColor: isDark ? '#475569' : '#cbd5e1',
+                  },
+                ]}
+                onPress={() => handlePermissionDecision(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.permDenyBtnText, { color: isDark ? '#f1f5f9' : '#475569' }]}>
+                  ✕ No / Deny
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.permAllowBtn,
+                  {
+                    backgroundColor: isDark ? '#2563eb' : '#1b3569',
+                  },
+                ]}
+                onPress={() => handlePermissionDecision(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.permAllowBtnText}>
+                  ✓ Yes / Allow
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -766,5 +910,130 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 10,
     lineHeight: 16,
+  },
+  selectedFileCard: {
+    marginTop: 14,
+    marginBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    gap: 12,
+    width: '100%',
+  },
+  selectedFileInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  selectedFileIcon: {
+    fontSize: 24,
+  },
+  selectedFileName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  selectedFileSize: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 3,
+  },
+  removeFileBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeFileText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  permOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    zIndex: 9999,
+  },
+  permCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  permIconBadge: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    marginBottom: 16,
+  },
+  permHeading: {
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  permDescription: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  permSecurityNote: {
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  permBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+  },
+  permDenyBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  permDenyBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  permAllowBtn: {
+    flex: 1.25,
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1b3569',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  permAllowBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
