@@ -11,6 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useDocuVaultTheme } from '@/context/theme-context';
 
 const DEFAULT_AVATAR_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -53,6 +54,7 @@ export function EmployeeRegistrationCard({
   onLoginSuccess,
 }: EmployeeRegistrationCardProps) {
   const router = useRouter();
+  const { isDark, colors } = useDocuVaultTheme();
   const [mode, setMode] = useState<'register' | 'login'>(initialMode);
   const [fullName, setFullName] = useState('');
   const [workEmail, setWorkEmail] = useState('');
@@ -174,8 +176,27 @@ export function EmployeeRegistrationCard({
     }, 2000);
   };
 
+  // Dynamic theme styles
+  const cardThemeStyle = {
+    backgroundColor: isDark ? '#111827' : '#ebf1f8',
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.09)' : '#d7e1ee',
+    shadowColor: isDark ? '#000000' : '#1e3a8a',
+  };
+  const labelThemeStyle = { color: isDark ? '#94a3b8' : '#556882' };
+  const inputThemeStyle = {
+    backgroundColor: isDark ? '#162033' : '#f1f5fa',
+    borderColor: isDark ? '#27354f' : '#c6d4e4',
+    color: isDark ? '#f8fafc' : '#1e293b',
+  };
+  const placeholderColor = isDark ? '#64748b' : '#94a3b8';
+  const primaryBtnStyle = {
+    backgroundColor: isDark ? '#2563eb' : '#1b3569',
+    shadowColor: isDark ? '#38bdf8' : '#1b3569',
+  };
+  const linkThemeStyle = { color: isDark ? '#38bdf8' : '#1e40af' };
+
   return (
-    <View style={styles.cardContainer}>
+    <View style={[styles.cardContainer, cardThemeStyle]}>
       {/* Hidden file input for web upload */}
       {Platform.OS === 'web' && (
         <input
@@ -188,7 +209,7 @@ export function EmployeeRegistrationCard({
       )}
 
       {/* Card Header Title */}
-      <Text style={styles.cardTitle}>
+      <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
         {mode === 'register' ? 'Employee Registration' : 'Sign In to Workspace'}
       </Text>
 
@@ -197,11 +218,11 @@ export function EmployeeRegistrationCard({
         <View style={styles.formContent}>
           {/* Full Name */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Full Name</Text>
+            <Text style={[styles.label, labelThemeStyle]}>Full Name</Text>
             <TextInput
-              style={[styles.input, errors.fullName ? styles.inputError : null]}
+              style={[styles.input, inputThemeStyle, errors.fullName ? styles.inputError : null]}
               placeholder="John Doe"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={placeholderColor}
               value={fullName}
               onChangeText={(text) => {
                 setFullName(text);
@@ -214,11 +235,11 @@ export function EmployeeRegistrationCard({
 
           {/* Work Email */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Work Email</Text>
+            <Text style={[styles.label, labelThemeStyle]}>Work Email</Text>
             <TextInput
-              style={[styles.input, errors.workEmail ? styles.inputError : null]}
+              style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
               placeholder="name@company.com"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={placeholderColor}
               value={workEmail}
               onChangeText={(text) => {
                 setWorkEmail(text);
@@ -233,12 +254,12 @@ export function EmployeeRegistrationCard({
 
           {/* Password */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.passwordInputContainer}>
+            <Text style={[styles.label, labelThemeStyle]}>Password</Text>
+            <View style={[styles.passwordInputContainer, inputThemeStyle]}>
               <TextInput
-                style={[styles.passwordInput, errors.password ? styles.inputError : null]}
+                style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }, errors.password ? styles.inputError : null]}
                 placeholder="Enter password"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={placeholderColor}
                 value={password}
                 onChangeText={(text) => {
                   setPassword(text);
@@ -264,7 +285,7 @@ export function EmployeeRegistrationCard({
           {/* Face Image */}
           <View style={styles.fieldGroup}>
             <View style={styles.faceLabelRow}>
-              <Text style={styles.label}>Face Image</Text>
+              <Text style={[styles.label, labelThemeStyle]}>Face Image</Text>
               {faceImage && (
                 <TouchableOpacity onPress={() => setFaceImage(null)}>
                   <Text style={styles.removePhotoText}>Remove</Text>
@@ -272,8 +293,8 @@ export function EmployeeRegistrationCard({
               )}
             </View>
 
-            <View style={styles.faceUploadBox}>
-              <View style={styles.avatarCircle}>
+            <View style={[styles.faceUploadBox, inputThemeStyle]}>
+              <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#28364e' : '#cbd5e1' }]}>
                 <Image
                   source={faceImage ? { uri: faceImage } : { uri: DEFAULT_AVATAR_SVG }}
                   style={styles.avatarImage}
@@ -282,11 +303,22 @@ export function EmployeeRegistrationCard({
               </View>
 
               <TouchableOpacity
-                style={styles.uploadButton}
+                style={[
+                  styles.uploadButton,
+                  {
+                    backgroundColor: isDark ? '#1e293b' : '#f1f5fa',
+                    borderColor: isDark ? '#38bdf8' : '#1b3569',
+                  },
+                ]}
                 onPress={handleChoosePhoto}
                 activeOpacity={0.8}
               >
-                <Text style={styles.uploadButtonText}>
+                <Text
+                  style={[
+                    styles.uploadButtonText,
+                    { color: isDark ? '#38bdf8' : '#1b3569' },
+                  ]}
+                >
                   {faceImage ? 'Change Photo' : 'Upload Photo'}
                 </Text>
               </TouchableOpacity>
@@ -295,7 +327,7 @@ export function EmployeeRegistrationCard({
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={[styles.primaryButton, primaryBtnStyle]}
             onPress={handleSubmit}
             disabled={isSubmitting}
             activeOpacity={0.85}
@@ -309,22 +341,22 @@ export function EmployeeRegistrationCard({
 
           {/* Footer toggle */}
           <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Already registered? </Text>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already registered? </Text>
             <TouchableOpacity onPress={() => switchMode('login')} activeOpacity={0.7}>
-              <Text style={styles.loginLink}>Login</Text>
+              <Text style={[styles.loginLink, linkThemeStyle]}>Login</Text>
             </TouchableOpacity>
           </View>
         </View>
       ) : (
-        /* SIGN IN TO WORKSPACE FORM (EXACT SCREENSHOT DESIGN) */
+        /* SIGN IN TO WORKSPACE FORM */
         <View style={styles.formContent}>
           {/* Work Email */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Work Email</Text>
+            <Text style={[styles.label, labelThemeStyle]}>Work Email</Text>
             <TextInput
-              style={[styles.input, errors.workEmail ? styles.inputError : null]}
+              style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
               placeholder="m.chen@company.com"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={placeholderColor}
               value={workEmail}
               onChangeText={(text) => {
                 setWorkEmail(text);
@@ -340,20 +372,22 @@ export function EmployeeRegistrationCard({
           {/* Password with Forgot Password? link */}
           <View style={styles.fieldGroup}>
             <View style={styles.passwordHeaderRow}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={[styles.label, labelThemeStyle]}>Password</Text>
               <TouchableOpacity
                 onPress={() => setForgotModalVisible(true)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
+                <Text style={[styles.forgotPasswordLink, { color: isDark ? '#38bdf8' : '#3b82f6' }]}>
+                  Forgot Password?
+                </Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.passwordInputContainer}>
+            <View style={[styles.passwordInputContainer, inputThemeStyle]}>
               <TextInput
-                style={[styles.passwordInput, errors.password ? styles.inputError : null]}
+                style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }, errors.password ? styles.inputError : null]}
                 placeholder="••••••••••"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={placeholderColor}
                 value={password}
                 onChangeText={(text) => {
                   setPassword(text);
@@ -378,7 +412,7 @@ export function EmployeeRegistrationCard({
 
           {/* Login Button */}
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={[styles.primaryButton, primaryBtnStyle]}
             onPress={handleSubmit}
             disabled={isSubmitting}
             activeOpacity={0.85}
@@ -392,9 +426,9 @@ export function EmployeeRegistrationCard({
 
           {/* Footer: New to the company? Register as Employee */}
           <View style={styles.footerRow}>
-            <Text style={styles.footerText}>New to the company? </Text>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>New to the company? </Text>
             <TouchableOpacity onPress={() => switchMode('register')} activeOpacity={0.7}>
-              <Text style={styles.loginLink}>Register as Employee</Text>
+              <Text style={[styles.loginLink, linkThemeStyle]}>Register as Employee</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -408,21 +442,30 @@ export function EmployeeRegistrationCard({
         onRequestClose={handleReset}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalDialog}>
+          <View
+            style={[
+              styles.modalDialog,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'transparent',
+                borderWidth: isDark ? 1 : 0,
+              },
+            ]}
+          >
             <View style={styles.successIconCircle}>
               <Text style={styles.checkmarkText}>✓</Text>
             </View>
-            <Text style={styles.modalTitle}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
               {mode === 'register' ? 'Registration Submitted!' : 'Welcome Back!'}
             </Text>
-            <Text style={styles.modalBody}>
+            <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
               {mode === 'register'
                 ? `Your application for ${fullName || 'Employee'} (${workEmail}) has been sent for administrator approval. You will receive an email once approved.`
                 : `Successfully authenticated as ${workEmail || 'm.chen@company.com'}. Redirecting to your workspace...`}
             </Text>
 
             <TouchableOpacity
-              style={styles.modalButton}
+              style={[styles.modalButton, primaryBtnStyle]}
               onPress={handleReset}
               activeOpacity={0.8}
             >
@@ -440,15 +483,28 @@ export function EmployeeRegistrationCard({
         onRequestClose={() => setForgotModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalDialog}>
-            <Text style={styles.modalTitle}>Reset Password</Text>
-            <Text style={styles.modalBody}>
+          <View
+            style={[
+              styles.modalDialog,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'transparent',
+                borderWidth: isDark ? 1 : 0,
+              },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Reset Password</Text>
+            <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
               Enter your work email address and we'll send you instructions to reset your password.
             </Text>
             <TextInput
-              style={[styles.input, { width: '100%', marginBottom: 16 }]}
+              style={[
+                styles.input,
+                inputThemeStyle,
+                { width: '100%', marginBottom: 16 },
+              ]}
               placeholder="name@company.com"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={placeholderColor}
               value={forgotEmail}
               onChangeText={setForgotEmail}
               keyboardType="email-address"
@@ -461,13 +517,21 @@ export function EmployeeRegistrationCard({
             ) : null}
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
               <TouchableOpacity
-                style={[styles.modalButton, { flex: 1, backgroundColor: '#e2e8f0' }]}
+                style={[
+                  styles.modalButton,
+                  {
+                    flex: 1,
+                    backgroundColor: isDark ? '#1f293d' : '#e2e8f0',
+                  },
+                ]}
                 onPress={() => setForgotModalVisible(false)}
               >
-                <Text style={{ color: '#475569', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+                <Text style={{ color: isDark ? '#94a3b8' : '#475569', fontWeight: '600', fontSize: 14 }}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, { flex: 1 }]}
+                style={[styles.modalButton, primaryBtnStyle, { flex: 1 }]}
                 onPress={handleSendResetLink}
               >
                 <Text style={styles.modalButtonText}>Send Link</Text>

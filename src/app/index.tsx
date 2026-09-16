@@ -11,8 +11,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DocuVaultLogo } from '@/components/docuvault-logo';
 import { EmployeeRegistrationCard } from '@/components/employee-registration-card';
 import { DocumentsDashboard } from '@/components/documents-dashboard';
+import { ThemeToggleButton } from '@/components/theme-toggle-button';
+import { useDocuVaultTheme } from '@/context/theme-context';
 
 export default function HomeScreen() {
+  const { isDark, colors } = useDocuVaultTheme();
   const [screen, setScreen] = useState<'register' | 'login' | 'dashboard'>('register');
   const [employeeProfile, setEmployeeProfile] = useState<{
     name: string;
@@ -26,8 +29,11 @@ export default function HomeScreen() {
 
   if (screen === 'dashboard') {
     return (
-      <SafeAreaView style={styles.dashboardSafeArea}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+      <SafeAreaView style={[styles.dashboardSafeArea, { backgroundColor: colors.background }]}>
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={colors.background}
+        />
         <ScrollView
           contentContainerStyle={styles.dashboardScrollContent}
           showsVerticalScrollIndicator={false}
@@ -44,12 +50,20 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f4f7fb" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
       >
+        {/* Top Floating Header with Theme Toggle */}
+        <View style={styles.topThemeBar}>
+          <ThemeToggleButton />
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -84,20 +98,27 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f4f7fb',
   },
   dashboardSafeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   keyboardContainer: {
     flex: 1,
+  },
+  topThemeBar: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
+    zIndex: 10,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 20,
     paddingHorizontal: 16,
   },
   dashboardScrollContent: {

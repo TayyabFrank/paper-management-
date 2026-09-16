@@ -12,10 +12,19 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { DocumentReader, DocumentReaderItem } from './document-reader';
+import { ThemeToggleButton } from './theme-toggle-button';
+import { useDocuVaultTheme } from '@/context/theme-context';
 
 // Vector icons as crisp SVG URIs
 const BACK_ARROW_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="19" y1="12" x2="5" y2="12"></line>
+  <polyline points="12 19 5 12 12 5"></polyline>
+</svg>
+`)}`;
+
+const BACK_ARROW_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f8fafc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
   <line x1="19" y1="12" x2="5" y2="12"></line>
   <polyline points="12 19 5 12 12 5"></polyline>
 </svg>
@@ -42,10 +51,31 @@ const FILTER_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+const FILTER_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="4" y1="21" x2="4" y2="14"></line>
+  <line x1="4" y1="10" x2="4" y2="3"></line>
+  <line x1="12" y1="21" x2="12" y2="12"></line>
+  <line x1="12" y1="8" x2="12" y2="3"></line>
+  <line x1="20" y1="21" x2="20" y2="16"></line>
+  <line x1="20" y1="12" x2="20" y2="3"></line>
+  <line x1="1" y1="14" x2="7" y2="14"></line>
+  <line x1="9" y1="8" x2="15" y2="8"></line>
+  <line x1="17" y1="16" x2="23" y2="16"></line>
+</svg>
+`)}`;
+
 const EYE_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
   <path d="M2 12C2 12 5.5 5.5 12 5.5C18.5 5.5 22 12 22 12C22 12 18.5 18.5 12 18.5C5.5 18.5 2 12 2 12Z" stroke="#718096" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
   <circle cx="12" cy="12" r="3.6" fill="#718096"/>
+</svg>
+`)}`;
+
+const EYE_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <path d="M2 12C2 12 5.5 5.5 12 5.5C18.5 5.5 22 12 22 12C22 12 18.5 18.5 12 18.5C5.5 18.5 2 12 2 12Z" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="12" cy="12" r="3.6" fill="#94a3b8"/>
 </svg>
 `)}`;
 
@@ -619,6 +649,7 @@ export function DocumentsDashboard({
   employeeAvatar = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
 }: DocumentsDashboardProps) {
   const router = useRouter();
+  const { isDark, colors } = useDocuVaultTheme();
   const [documents, setDocuments] = useState<DocumentReaderItem[]>(INITIAL_DOCUMENTS);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -733,7 +764,7 @@ export function DocumentsDashboard({
   const otherCount = documents.filter((d) => d.type === 'other').length;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Hidden file input for web document/image upload */}
       {Platform.OS === 'web' && (
         <input
@@ -754,48 +785,99 @@ export function DocumentsDashboard({
 
       {/* Top Header */}
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton} activeOpacity={0.7}>
-          <Image source={{ uri: BACK_ARROW_SVG }} style={styles.backIcon} resizeMode="contain" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Documents</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton} activeOpacity={0.7}>
+            <Image
+              source={{ uri: isDark ? BACK_ARROW_DARK_SVG : BACK_ARROW_SVG }}
+              style={styles.backIcon}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>My Documents</Text>
+        </View>
 
-        <TouchableOpacity
-          style={styles.uploadHeaderButton}
-          onPress={handleUploadNew}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.uploadHeaderButtonText}>+ Upload</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {/* Theme Toggle Button */}
+          <ThemeToggleButton compact showLabel={false} />
+
+          <TouchableOpacity
+            style={[styles.uploadHeaderButton, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
+            onPress={handleUploadNew}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.uploadHeaderButtonText}>+ Upload</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Employee Profile Card */}
-      <View style={styles.profileCard}>
+      <View
+        style={[
+          styles.profileCard,
+          {
+            backgroundColor: isDark ? '#111827' : '#ffffff',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+            shadowColor: isDark ? '#000000' : '#0f172a',
+          },
+        ]}
+      >
         <Image
           source={{ uri: employeeAvatar }}
           style={styles.profileAvatar}
           resizeMode="cover"
         />
         <View style={styles.profileDetails}>
-          <Text style={styles.profileName}>{employeeName}</Text>
-          <Text style={styles.profileEmail}>{employeeEmail}</Text>
+          <Text style={[styles.profileName, { color: colors.textPrimary }]}>{employeeName}</Text>
+          <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{employeeEmail}</Text>
         </View>
-        <View style={styles.activeBadge}>
-          <Text style={styles.activeBadgeText}>Active</Text>
+        <View
+          style={[
+            styles.activeBadge,
+            {
+              backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#eff6ff',
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.activeBadgeText,
+              { color: isDark ? '#4ade80' : '#2563eb' },
+            ]}
+          >
+            Active
+          </Text>
         </View>
       </View>
 
       {/* Search Input Bar */}
-      <View style={styles.searchContainer}>
-        <Image source={{ uri: SEARCH_ICON_SVG }} style={styles.searchIcon} resizeMode="contain" />
+      <View
+        style={[
+          styles.searchContainer,
+          {
+            backgroundColor: isDark ? '#111827' : '#ffffff',
+            borderColor: isDark ? '#27354f' : '#e2e8f0',
+            shadowColor: isDark ? '#000000' : '#0f172a',
+          },
+        ]}
+      >
+        <Image
+          source={{ uri: SEARCH_ICON_SVG }}
+          style={[styles.searchIcon, { tintColor: isDark ? '#64748b' : '#94a3b8' }]}
+          resizeMode="contain"
+        />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.textPrimary }]}
           placeholder="Search your documents..."
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
         <TouchableOpacity style={styles.filterButton} activeOpacity={0.7}>
-          <Image source={{ uri: FILTER_ICON_SVG }} style={styles.filterIcon} resizeMode="contain" />
+          <Image
+            source={{ uri: isDark ? FILTER_ICON_DARK_SVG : FILTER_ICON_SVG }}
+            style={styles.filterIcon}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
       </View>
 
@@ -806,72 +888,102 @@ export function DocumentsDashboard({
         contentContainerStyle={styles.statsContainer}
       >
         <TouchableOpacity
-          style={[styles.statItem, activeCategory === 'all' ? styles.statItemActive : null]}
+          style={[
+            styles.statItem,
+            activeCategory === 'all'
+              ? (isDark ? { backgroundColor: '#1e293b' } : styles.statItemActive)
+              : null,
+          ]}
           onPress={() => setActiveCategory('all')}
           activeOpacity={0.7}
         >
-          <Text style={styles.statCount}>{documents.length}</Text>
-          <Text style={styles.statLabel}>Total Documents</Text>
+          <Text style={[styles.statCount, { color: colors.textPrimary }]}>{documents.length}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total Documents</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.statItem, activeCategory === 'pdf' ? styles.statItemActive : null]}
+          style={[
+            styles.statItem,
+            activeCategory === 'pdf'
+              ? (isDark ? { backgroundColor: '#1e293b' } : styles.statItemActive)
+              : null,
+          ]}
           onPress={() => setActiveCategory('pdf')}
           activeOpacity={0.7}
         >
           <View style={styles.statTopRow}>
             <Image source={{ uri: MINI_PDF_SVG }} style={styles.miniTypeIcon} resizeMode="contain" />
-            <Text style={styles.statCount}>{pdfCount}</Text>
+            <Text style={[styles.statCount, { color: colors.textPrimary }]}>{pdfCount}</Text>
           </View>
-          <Text style={styles.statLabel}>PDF</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>PDF</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.statItem, activeCategory === 'docx' ? styles.statItemActive : null]}
+          style={[
+            styles.statItem,
+            activeCategory === 'docx'
+              ? (isDark ? { backgroundColor: '#1e293b' } : styles.statItemActive)
+              : null,
+          ]}
           onPress={() => setActiveCategory('docx')}
           activeOpacity={0.7}
         >
           <View style={styles.statTopRow}>
             <Image source={{ uri: MINI_DOCX_SVG }} style={styles.miniTypeIcon} resizeMode="contain" />
-            <Text style={styles.statCount}>{docxCount}</Text>
+            <Text style={[styles.statCount, { color: colors.textPrimary }]}>{docxCount}</Text>
           </View>
-          <Text style={styles.statLabel}>Doxc</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Doxc</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.statItem, activeCategory === 'article' ? styles.statItemActive : null]}
+          style={[
+            styles.statItem,
+            activeCategory === 'article'
+              ? (isDark ? { backgroundColor: '#1e293b' } : styles.statItemActive)
+              : null,
+          ]}
           onPress={() => setActiveCategory('article')}
           activeOpacity={0.7}
         >
           <View style={styles.statTopRow}>
             <Image source={{ uri: MINI_ARTICLE_SVG }} style={styles.miniTypeIcon} resizeMode="contain" />
-            <Text style={styles.statCount}>{articleCount}</Text>
+            <Text style={[styles.statCount, { color: colors.textPrimary }]}>{articleCount}</Text>
           </View>
-          <Text style={styles.statLabel}>Articles</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Articles</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.statItem, activeCategory === 'image' ? styles.statItemActive : null]}
+          style={[
+            styles.statItem,
+            activeCategory === 'image'
+              ? (isDark ? { backgroundColor: '#1e293b' } : styles.statItemActive)
+              : null,
+          ]}
           onPress={() => setActiveCategory('image')}
           activeOpacity={0.7}
         >
           <View style={styles.statTopRow}>
             <Image source={{ uri: MINI_IMAGE_SVG }} style={styles.miniTypeIcon} resizeMode="contain" />
-            <Text style={styles.statCount}>{imageCount}</Text>
+            <Text style={[styles.statCount, { color: colors.textPrimary }]}>{imageCount}</Text>
           </View>
-          <Text style={styles.statLabel}>Images</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Images</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.statItem, activeCategory === 'other' ? styles.statItemActive : null]}
+          style={[
+            styles.statItem,
+            activeCategory === 'other'
+              ? (isDark ? { backgroundColor: '#1e293b' } : styles.statItemActive)
+              : null,
+          ]}
           onPress={() => setActiveCategory('other')}
           activeOpacity={0.7}
         >
           <View style={styles.statTopRow}>
             <Image source={{ uri: MINI_OTHER_SVG }} style={styles.miniTypeIcon} resizeMode="contain" />
-            <Text style={styles.statCount}>{otherCount}</Text>
+            <Text style={[styles.statCount, { color: colors.textPrimary }]}>{otherCount}</Text>
           </View>
-          <Text style={styles.statLabel}>Other</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Other</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -880,7 +992,14 @@ export function DocumentsDashboard({
         {filteredDocs.map((doc) => (
           <TouchableOpacity
             key={doc.id}
-            style={styles.docCard}
+            style={[
+              styles.docCard,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e8edf4',
+                shadowColor: isDark ? '#000000' : '#64748b',
+              },
+            ]}
             onPress={() => setReadingDoc(doc)}
             onLongPress={() => setDocToDelete(doc)}
             activeOpacity={0.8}
@@ -894,13 +1013,20 @@ export function DocumentsDashboard({
             </View>
 
             <View style={styles.docInfo}>
-              <Text style={styles.docTitle} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.docTitle,
+                  { color: colors.textPrimary },
+                ]}
+                numberOfLines={1}
+              >
                 {doc.title}
               </Text>
               <Text
                 style={[
                   styles.docSubtitle,
-                  doc.subtitle === 'Not Uploaded' ? styles.notUploadedText : null,
+                  { color: isDark ? '#94a3b8' : '#64748b' },
+                  doc.subtitle === 'Not Uploaded' ? (isDark ? { color: '#64748b' } : styles.notUploadedText) : null,
                 ]}
               >
                 {doc.subtitle}
@@ -914,7 +1040,11 @@ export function DocumentsDashboard({
               activeOpacity={0.7}
               accessibilityLabel="Read Document"
             >
-              <Image source={{ uri: EYE_ICON_SVG }} style={styles.eyeIcon} resizeMode="contain" />
+              <Image
+                source={{ uri: isDark ? EYE_ICON_DARK_SVG : EYE_ICON_SVG }}
+                style={styles.eyeIcon}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
           </TouchableOpacity>
         ))}
@@ -928,22 +1058,34 @@ export function DocumentsDashboard({
         onRequestClose={() => setDocToDelete(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.deleteDialog}>
+          <View
+            style={[
+              styles.deleteDialog,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'transparent',
+                borderWidth: isDark ? 1 : 0,
+              },
+            ]}
+          >
             <View style={styles.deleteIconBadge}>
               <Image source={{ uri: TRASH_ICON_SVG }} style={{ width: 28, height: 28 }} resizeMode="contain" />
             </View>
-            <Text style={styles.deleteModalTitle}>Delete Document?</Text>
-            <Text style={styles.deleteModalBody}>
+            <Text style={[styles.deleteModalTitle, { color: colors.textPrimary }]}>Delete Document?</Text>
+            <Text style={[styles.deleteModalBody, { color: colors.textSecondary }]}>
               Are you sure you want to delete "{docToDelete?.title}"? This document will be permanently removed from your DocuVault.
             </Text>
 
             <View style={styles.deleteModalActionRow}>
               <TouchableOpacity
-                style={styles.deleteCancelBtn}
+                style={[
+                  styles.deleteCancelBtn,
+                  { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' },
+                ]}
                 onPress={() => setDocToDelete(null)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.deleteCancelBtnText}>Cancel</Text>
+                <Text style={[styles.deleteCancelBtnText, { color: isDark ? '#94a3b8' : '#475569' }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteConfirmBtn}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, Image } from 'react-native';
+import { useDocuVaultTheme } from '@/context/theme-context';
 
 // Crisp SVG data URI for the DocuVault vault/building emblem
 const VAULT_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -21,17 +22,31 @@ interface DocuVaultLogoProps {
 }
 
 export function DocuVaultLogo({ subtitle }: DocuVaultLogoProps) {
+  const { isDark, colors } = useDocuVaultTheme();
+
   return (
     <View style={styles.container}>
-      <View style={styles.iconBadge}>
+      <View
+        style={[
+          styles.iconBadge,
+          {
+            backgroundColor: isDark ? '#1e3a8a' : '#1b3569',
+            shadowColor: isDark ? '#38bdf8' : '#1b3569',
+            borderColor: isDark ? 'rgba(56, 189, 248, 0.35)' : 'transparent',
+            borderWidth: isDark ? 1.5 : 0,
+          },
+        ]}
+      >
         <Image
           source={{ uri: VAULT_ICON_SVG }}
           style={styles.iconImage}
           resizeMode="contain"
         />
       </View>
-      <Text style={styles.brandTitle}>DocuVault</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      <Text style={[styles.brandTitle, { color: colors.textPrimary }]}>DocuVault</Text>
+      {subtitle ? (
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+      ) : null}
     </View>
   );
 }
@@ -47,14 +62,12 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 16,
-    backgroundColor: '#1b3569',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1b3569',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
     marginBottom: 14,
   },
   iconImage: {
@@ -62,10 +75,9 @@ const styles = StyleSheet.create({
     height: 32,
   },
   brandTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#1a2333',
-    letterSpacing: -0.3,
+    fontSize: 27,
+    fontWeight: '800',
+    letterSpacing: -0.4,
     fontFamily: Platform.select({
       ios: 'System',
       android: 'Roboto',
@@ -73,11 +85,11 @@ const styles = StyleSheet.create({
     }),
   },
   subtitle: {
-    fontSize: 15,
-    color: '#64748b',
+    fontSize: 14.5,
     marginTop: 6,
     textAlign: 'center',
     fontWeight: '400',
     letterSpacing: -0.1,
   },
 });
+

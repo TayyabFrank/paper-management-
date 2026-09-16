@@ -11,17 +11,27 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { DocuVaultLogo } from '@/components/docuvault-logo';
 import { EmployeeRegistrationCard } from '@/components/employee-registration-card';
+import { ThemeToggleButton } from '@/components/theme-toggle-button';
+import { useDocuVaultTheme } from '@/context/theme-context';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { isDark, colors } = useDocuVaultTheme();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f4f7fb" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
       >
+        <View style={styles.topThemeBar}>
+          <ThemeToggleButton />
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -36,6 +46,9 @@ export default function LoginScreen() {
                   router.push('/');
                 }
               }}
+              onLoginSuccess={() => {
+                router.push('/dashboard');
+              }}
             />
           </View>
         </ScrollView>
@@ -47,16 +60,24 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f4f7fb',
   },
   keyboardContainer: {
     flex: 1,
+  },
+  topThemeBar: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
+    zIndex: 10,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 20,
     paddingHorizontal: 16,
   },
   innerContainer: {
@@ -65,3 +86,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+

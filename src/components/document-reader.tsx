@@ -11,9 +11,18 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { getDocumentTypeIcon, getDetectedBadgeStyle, getDetectedBadgeTextStyle } from './documents-dashboard';
+import { ThemeToggleButton } from './theme-toggle-button';
+import { useDocuVaultTheme } from '@/context/theme-context';
 
 const BACK_ARROW_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="19" y1="12" x2="5" y2="12"></line>
+  <polyline points="12 19 5 12 12 5"></polyline>
+</svg>
+`)}`;
+
+const BACK_ARROW_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f8fafc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
   <line x1="19" y1="12" x2="5" y2="12"></line>
   <polyline points="12 19 5 12 12 5"></polyline>
 </svg>
@@ -27,8 +36,24 @@ const DOWNLOAD_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+const DOWNLOAD_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+  <polyline points="7 10 12 15 17 10"></polyline>
+  <line x1="12" y1="15" x2="12" y2="3"></line>
+</svg>
+`)}`;
+
 const PRINT_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b3569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+  <rect x="6" y="14" width="12" height="8"></rect>
+</svg>
+`)}`;
+
+const PRINT_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <polyline points="6 9 6 2 18 2 18 9"></polyline>
   <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
   <rect x="6" y="14" width="12" height="8"></rect>
@@ -63,6 +88,7 @@ interface DocumentReaderProps {
 }
 
 export function DocumentReader({ document, onClose }: DocumentReaderProps) {
+  const { isDark, colors } = useDocuVaultTheme();
   const [currentPage, setCurrentPage] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -81,12 +107,24 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
 
   return (
     <Modal visible={!!document} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: isDark ? '#0b0f19' : '#f1f5f9' }]}>
         {/* Top Navigation Bar */}
-        <View style={styles.navbar}>
+        <View
+          style={[
+            styles.navbar,
+            {
+              backgroundColor: isDark ? '#111827' : '#ffffff',
+              borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+            },
+          ]}
+        >
           <TouchableOpacity onPress={onClose} style={styles.backBtn} activeOpacity={0.7}>
-            <Image source={{ uri: BACK_ARROW_SVG }} style={styles.navIcon} resizeMode="contain" />
-            <Text style={styles.backBtnText}>Documents</Text>
+            <Image
+              source={{ uri: isDark ? BACK_ARROW_DARK_SVG : BACK_ARROW_SVG }}
+              style={styles.navIcon}
+              resizeMode="contain"
+            />
+            <Text style={[styles.backBtnText, { color: colors.textPrimary }]}>Documents</Text>
           </TouchableOpacity>
 
           <View style={styles.navTitleContainer}>
@@ -96,29 +134,51 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                 style={{ width: 22, height: 22 }}
                 resizeMode="contain"
               />
-              <Text style={styles.navDocTitle} numberOfLines={1}>
+              <Text style={[styles.navDocTitle, { color: colors.textPrimary }]} numberOfLines={1}>
                 {document.title}
               </Text>
             </View>
-            <Text style={styles.navDocSub}>
+            <Text style={[styles.navDocSub, { color: colors.textSecondary }]}>
               Auto-detected: {document.type.toUpperCase()} • {document.fileSize || 'Vault Encrypted'}
             </Text>
           </View>
 
           <View style={styles.navActions}>
+            <ThemeToggleButton compact showLabel={false} />
+
             <TouchableOpacity
-              style={styles.actionIconButton}
+              style={[
+                styles.actionIconButton,
+                {
+                  backgroundColor: isDark ? '#1f293d' : '#eff6ff',
+                  borderColor: isDark ? '#38bdf8' : '#bfdbfe',
+                },
+              ]}
               onPress={() => showNotice('Document downloaded securely!')}
               activeOpacity={0.7}
             >
-              <Image source={{ uri: DOWNLOAD_ICON_SVG }} style={styles.actionIcon} resizeMode="contain" />
+              <Image
+                source={{ uri: isDark ? DOWNLOAD_ICON_DARK_SVG : DOWNLOAD_ICON_SVG }}
+                style={styles.actionIcon}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.actionIconButton}
+              style={[
+                styles.actionIconButton,
+                {
+                  backgroundColor: isDark ? '#1f293d' : '#eff6ff',
+                  borderColor: isDark ? '#38bdf8' : '#bfdbfe',
+                },
+              ]}
               onPress={() => showNotice('Preparing document for print...')}
               activeOpacity={0.7}
             >
-              <Image source={{ uri: PRINT_ICON_SVG }} style={styles.actionIcon} resizeMode="contain" />
+              <Image
+                source={{ uri: isDark ? PRINT_ICON_DARK_SVG : PRINT_ICON_SVG }}
+                style={styles.actionIcon}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -130,33 +190,44 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
         )}
 
         {/* Main Document Content ScrollView */}
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { backgroundColor: isDark ? '#0b0f19' : '#f1f5f9' }]}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.containerMaxWidth}>
             {/* ARTICLE READER */}
             {isArticle ? (
-              <View style={styles.articleCard}>
+              <View
+                style={[
+                  styles.articleCard,
+                  {
+                    backgroundColor: isDark ? '#131d31' : '#ffffff',
+                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                  },
+                ]}
+              >
                 <View style={styles.articleHeader}>
                   <View style={styles.articleTag}>
                     <Text style={styles.articleTagText}>OFFICIAL WORKSPACE ARTICLE</Text>
                   </View>
-                  <Text style={styles.articleTitle}>{document.title}</Text>
-                  <Text style={styles.articleMeta}>
+                  <Text style={[styles.articleTitle, { color: colors.textPrimary }]}>{document.title}</Text>
+                  <Text style={[styles.articleMeta, { color: colors.textSecondary }]}>
                     Published by {document.fullContent?.authorOrIssuer || 'HR Operations'} • {document.fullContent?.date || document.subtitle} • 4 min read
                   </Text>
                 </View>
 
-                <View style={styles.articleDivider} />
+                <View style={[styles.articleDivider, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]} />
 
                 {document.fullContent?.sections.map((sec, idx) => (
                   <View key={idx} style={styles.articleSection}>
-                    {sec.heading && <Text style={styles.articleHeading}>{sec.heading}</Text>}
-                    <Text style={styles.articleParagraph}>{sec.body}</Text>
+                    {sec.heading && <Text style={[styles.articleHeading, { color: colors.textPrimary }]}>{sec.heading}</Text>}
+                    <Text style={[styles.articleParagraph, { color: isDark ? '#cbd5e1' : '#334155' }]}>{sec.body}</Text>
                   </View>
                 ))}
 
-                <View style={styles.acknowledgementBox}>
-                  <Text style={styles.ackTitle}>Employee Acknowledgement</Text>
-                  <Text style={styles.ackBody}>
+                <View style={[styles.acknowledgementBox, { backgroundColor: isDark ? '#16233b' : '#f8fafc', borderColor: isDark ? '#273854' : '#e2e8f0' }]}>
+                  <Text style={[styles.ackTitle, { color: colors.textPrimary }]}>Employee Acknowledgement</Text>
+                  <Text style={[styles.ackBody, { color: colors.textSecondary }]}>
                     By clicking acknowledge, you confirm that you have read, understood, and agree to abide by the contents of this document.
                   </Text>
                   <TouchableOpacity
@@ -175,30 +246,38 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
               </View>
             ) : isImage ? (
               /* IMAGE VIEWER */
-              <View style={styles.imageCard}>
+              <View
+                style={[
+                  styles.imageCard,
+                  {
+                    backgroundColor: isDark ? '#131d31' : '#ffffff',
+                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                  },
+                ]}
+              >
                 <View style={styles.imageHeaderRow}>
                   <View>
-                    <Text style={styles.imageTitle}>{document.title}</Text>
-                    <Text style={styles.imageSub}>{document.subtitle}</Text>
+                    <Text style={[styles.imageTitle, { color: colors.textPrimary }]}>{document.title}</Text>
+                    <Text style={[styles.imageSub, { color: colors.textSecondary }]}>{document.subtitle}</Text>
                   </View>
                   <View style={styles.zoomControls}>
                     <TouchableOpacity
-                      style={styles.zoomBtn}
+                      style={[styles.zoomBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
                       onPress={() => setZoomLevel(Math.max(1, zoomLevel - 0.2))}
                     >
-                      <Text style={styles.zoomBtnText}>-</Text>
+                      <Text style={[styles.zoomBtnText, { color: colors.textPrimary }]}>-</Text>
                     </TouchableOpacity>
-                    <Text style={styles.zoomLevelText}>{Math.round(zoomLevel * 100)}%</Text>
+                    <Text style={[styles.zoomLevelText, { color: colors.textPrimary }]}>{Math.round(zoomLevel * 100)}%</Text>
                     <TouchableOpacity
-                      style={styles.zoomBtn}
+                      style={[styles.zoomBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
                       onPress={() => setZoomLevel(Math.min(2, zoomLevel + 0.2))}
                     >
-                      <Text style={styles.zoomBtnText}>+</Text>
+                      <Text style={[styles.zoomBtnText, { color: colors.textPrimary }]}>+</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
-                <View style={styles.imageFrame}>
+                <View style={[styles.imageFrame, { backgroundColor: isDark ? '#0b0f19' : '#0f172a' }]}>
                   <Image
                     source={{
                       uri:
@@ -211,12 +290,12 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                 </View>
 
                 {document.fullContent?.metadata && (
-                  <View style={styles.metaTable}>
-                    <Text style={styles.metaTableHeader}>Extracted Card Data</Text>
+                  <View style={[styles.metaTable, { backgroundColor: isDark ? '#16233b' : '#f8fafc', borderColor: isDark ? '#273854' : '#e2e8f0' }]}>
+                    <Text style={[styles.metaTableHeader, { color: colors.textPrimary }]}>Extracted Card Data</Text>
                     {Object.entries(document.fullContent.metadata).map(([k, v]) => (
-                      <View key={k} style={styles.metaRow}>
-                        <Text style={styles.metaKey}>{k}:</Text>
-                        <Text style={styles.metaVal}>{v}</Text>
+                      <View key={k} style={[styles.metaRow, { borderBottomColor: isDark ? '#22324e' : '#e2e8f0' }]}>
+                        <Text style={[styles.metaKey, { color: colors.textSecondary }]}>{k}:</Text>
+                        <Text style={[styles.metaVal, { color: colors.textPrimary }]}>{v}</Text>
                       </View>
                     ))}
                   </View>
@@ -224,33 +303,41 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
               </View>
             ) : (
               /* PDF / FORM / CONTRACT PAPER VIEWER */
-              <View style={styles.paperDocument}>
+              <View
+                style={[
+                  styles.paperDocument,
+                  {
+                    backgroundColor: isDark ? '#131d31' : '#ffffff',
+                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1',
+                  },
+                ]}
+              >
                 {/* Formal Letterhead */}
                 <View style={styles.paperHeader}>
                   <View>
-                    <Text style={styles.paperCompany}>DOCUVAULT ENTERPRISE SYSTEMS</Text>
-                    <Text style={styles.paperOrgDept}>Corporate Records & Human Resources</Text>
+                    <Text style={[styles.paperCompany, { color: colors.textPrimary }]}>DOCUVAULT ENTERPRISE SYSTEMS</Text>
+                    <Text style={[styles.paperOrgDept, { color: colors.textSecondary }]}>Corporate Records & Human Resources</Text>
                   </View>
-                  <View style={styles.docIdBadge}>
-                    <Text style={styles.docIdText}>REF: DV-2024-#{document.id}829</Text>
+                  <View style={[styles.docIdBadge, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
+                    <Text style={[styles.docIdText, { color: isDark ? '#38bdf8' : '#475569' }]}>REF: DV-2024-#{document.id}829</Text>
                   </View>
                 </View>
 
-                <View style={styles.paperDivider} />
+                <View style={[styles.paperDivider, { backgroundColor: isDark ? '#1e293b' : '#e2e8f0' }]} />
 
                 {/* Document Main Heading */}
-                <Text style={styles.paperTitle}>{document.title}</Text>
-                <Text style={styles.paperDate}>Effective Date: {document.subtitle.replace('Signed: ', '').replace('Uploaded: ', '')}</Text>
+                <Text style={[styles.paperTitle, { color: colors.textPrimary }]}>{document.title}</Text>
+                <Text style={[styles.paperDate, { color: colors.textSecondary }]}>Effective Date: {document.subtitle.replace('Signed: ', '').replace('Uploaded: ', '')}</Text>
 
                 {/* Digital Verification Seal */}
                 {document.isSigned && (
-                  <View style={styles.verifiedSignatureSeal}>
+                  <View style={[styles.verifiedSignatureSeal, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.12)' : '#f0fdf4', borderColor: isDark ? '#166534' : '#bbf7d0' }]}>
                     <View style={styles.sealIconCircle}>
                       <Text style={styles.sealCheckmark}>✓</Text>
                     </View>
                     <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.sealTitle}>CERTIFIED DIGITAL SIGNATURE</Text>
-                      <Text style={styles.sealDesc}>
+                      <Text style={[styles.sealTitle, { color: isDark ? '#4ade80' : '#15803d' }]}>CERTIFIED DIGITAL SIGNATURE</Text>
+                      <Text style={[styles.sealDesc, { color: isDark ? '#86efac' : '#166534' }]}>
                         Signed by Liam Thompson (SSN: ***-**-8492). Cryptographic SHA-256 Hash Verified.
                       </Text>
                     </View>
@@ -261,48 +348,56 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                 {document.fullContent?.sections ? (
                   document.fullContent.sections.map((sec, idx) => (
                     <View key={idx} style={styles.paperSection}>
-                      {sec.heading && <Text style={styles.paperHeading}>{sec.heading}</Text>}
-                      <Text style={styles.paperParagraph}>{sec.body}</Text>
+                      {sec.heading && <Text style={[styles.paperHeading, { color: colors.textPrimary }]}>{sec.heading}</Text>}
+                      <Text style={[styles.paperParagraph, { color: isDark ? '#cbd5e1' : '#334155' }]}>{sec.body}</Text>
                     </View>
                   ))
                 ) : (
                   <View style={styles.paperSection}>
-                    <Text style={styles.paperHeading}>Document Summary & Details</Text>
-                    <Text style={styles.paperParagraph}>{document.contentSnippet || 'Standard verified enterprise document.'}</Text>
+                    <Text style={[styles.paperHeading, { color: colors.textPrimary }]}>Document Summary & Details</Text>
+                    <Text style={[styles.paperParagraph, { color: isDark ? '#cbd5e1' : '#334155' }]}>{document.contentSnippet || 'Standard verified enterprise document.'}</Text>
                   </View>
                 )}
 
                 {/* Sign-off & Footer Table */}
-                <View style={styles.signatureBlock}>
+                <View style={[styles.signatureBlock, { borderTopColor: isDark ? '#1e293b' : '#e2e8f0' }]}>
                   <View style={styles.sigColumn}>
-                    <Text style={styles.sigLabel}>Authorized Signer</Text>
-                    <Text style={styles.sigName}>Liam Thompson</Text>
-                    <Text style={styles.sigRole}>Senior Software Engineer</Text>
+                    <Text style={[styles.sigLabel, { color: isDark ? '#64748b' : '#94a3b8' }]}>Authorized Signer</Text>
+                    <Text style={[styles.sigName, { color: colors.textPrimary }]}>Liam Thompson</Text>
+                    <Text style={[styles.sigRole, { color: colors.textSecondary }]}>Senior Software Engineer</Text>
                   </View>
                   <View style={styles.sigColumn}>
-                    <Text style={styles.sigLabel}>Corporate Reviewer</Text>
-                    <Text style={styles.sigName}>Sarah Jenkins, J.D.</Text>
-                    <Text style={styles.sigRole}>VP, Legal & Compliance</Text>
+                    <Text style={[styles.sigLabel, { color: isDark ? '#64748b' : '#94a3b8' }]}>Corporate Reviewer</Text>
+                    <Text style={[styles.sigName, { color: colors.textPrimary }]}>Sarah Jenkins, J.D.</Text>
+                    <Text style={[styles.sigRole, { color: colors.textSecondary }]}>VP, Legal & Compliance</Text>
                   </View>
                 </View>
 
                 {/* Page Navigation */}
-                <View style={styles.pageFooterRow}>
-                  <Text style={styles.pageNumber}>Page {currentPage} of 2</Text>
+                <View style={[styles.pageFooterRow, { borderTopColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
+                  <Text style={[styles.pageNumber, { color: colors.textSecondary }]}>Page {currentPage} of 2</Text>
                   <View style={styles.pageNavBtns}>
                     <TouchableOpacity
-                      style={[styles.pageBtn, currentPage === 1 ? styles.pageBtnDisabled : null]}
+                      style={[
+                        styles.pageBtn,
+                        { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' },
+                        currentPage === 1 ? styles.pageBtnDisabled : null,
+                      ]}
                       onPress={() => setCurrentPage(1)}
                       disabled={currentPage === 1}
                     >
-                      <Text style={styles.pageBtnText}>Prev</Text>
+                      <Text style={[styles.pageBtnText, { color: isDark ? '#94a3b8' : '#475569' }]}>Prev</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.pageBtn, currentPage === 2 ? styles.pageBtnDisabled : null]}
+                      style={[
+                        styles.pageBtn,
+                        { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' },
+                        currentPage === 2 ? styles.pageBtnDisabled : null,
+                      ]}
                       onPress={() => setCurrentPage(2)}
                       disabled={currentPage === 2}
                     >
-                      <Text style={styles.pageBtnText}>Next</Text>
+                      <Text style={[styles.pageBtnText, { color: isDark ? '#94a3b8' : '#475569' }]}>Next</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
