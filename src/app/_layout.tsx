@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { DocuVaultThemeProvider, useDocuVaultTheme } from '@/context/theme-context';
+import { AuthProvider } from '@/context/auth-context';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 
 SplashScreen.preventAutoHideAsync();
@@ -20,9 +21,12 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <DocuVaultThemeProvider>
-      <RootNavigator />
-    </DocuVaultThemeProvider>
+    <AuthProvider>
+      <DocuVaultThemeProvider>
+        <RootNavigator />
+      </DocuVaultThemeProvider>
+    </AuthProvider>
   );
 }
+
 
