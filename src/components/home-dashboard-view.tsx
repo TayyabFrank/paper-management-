@@ -82,45 +82,6 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             <Text style={[styles.metricNumber, { color: isDark ? '#38bdf8' : '#2563eb' }]}>31</Text>
             <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>📁 Total Documents</Text>
           </View>
-
-          <View
-            style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-              },
-            ]}
-          >
-            <Text style={[styles.metricNumber, { color: '#16a34a' }]}>28</Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>🛡️ Verified & Signed</Text>
-          </View>
-
-          <View
-            style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-              },
-            ]}
-          >
-            <Text style={[styles.metricNumber, { color: '#f59e0b' }]}>3</Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>⏳ Pending Action</Text>
-          </View>
-
-          <View
-            style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-              },
-            ]}
-          >
-            <Text style={[styles.metricNumber, { color: isDark ? '#a78bfa' : '#7c3aed' }]}>2.4 GB</Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>💾 Storage Used</Text>
-          </View>
         </View>
 
         {/* Quick Actions Bar */}
