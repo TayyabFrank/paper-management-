@@ -10,6 +10,7 @@ import {
   Modal,
   SafeAreaView,
 } from 'react-native';
+import { getDocumentTypeIcon, getDetectedBadgeStyle, getDetectedBadgeTextStyle } from './documents-dashboard';
 
 const BACK_ARROW_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -89,10 +90,19 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           </TouchableOpacity>
 
           <View style={styles.navTitleContainer}>
-            <Text style={styles.navDocTitle} numberOfLines={1}>
-              {document.title}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Image
+                source={{ uri: getDocumentTypeIcon(document.type, document.title) }}
+                style={{ width: 22, height: 22 }}
+                resizeMode="contain"
+              />
+              <Text style={styles.navDocTitle} numberOfLines={1}>
+                {document.title}
+              </Text>
+            </View>
+            <Text style={styles.navDocSub}>
+              Auto-detected: {document.type.toUpperCase()} • {document.fileSize || 'Vault Encrypted'}
             </Text>
-            <Text style={styles.navDocSub}>{document.type.toUpperCase()} • {document.fileSize || 'Encrypted'}</Text>
           </View>
 
           <View style={styles.navActions}>

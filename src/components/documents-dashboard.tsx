@@ -206,6 +206,36 @@ export function detectFileType(fileName: string, mimeType: string = ''): 'pdf' |
   return 'pdf';
 }
 
+export function getDetectedBadgeStyle(type: string) {
+  switch (type.toLowerCase()) {
+    case 'pdf':
+      return { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' };
+    case 'image':
+      return { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' };
+    case 'article':
+      return { backgroundColor: '#fefce8', borderColor: '#fef08a' };
+    case 'docx':
+      return { backgroundColor: '#f5f3ff', borderColor: '#ddd6fe' };
+    default:
+      return { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' };
+  }
+}
+
+export function getDetectedBadgeTextStyle(type: string) {
+  switch (type.toLowerCase()) {
+    case 'pdf':
+      return { color: '#1d4ed8' };
+    case 'image':
+      return { color: '#15803d' };
+    case 'article':
+      return { color: '#a16207' };
+    case 'docx':
+      return { color: '#6d28d9' };
+    default:
+      return { color: '#475569' };
+  }
+}
+
 const INITIAL_DOCUMENTS: DocumentReaderItem[] = [
   {
     id: '1',
@@ -860,14 +890,21 @@ export function DocumentsDashboard({
               <Text style={styles.docTitle} numberOfLines={1}>
                 {doc.title}
               </Text>
-              <Text
-                style={[
-                  styles.docSubtitle,
-                  doc.subtitle === 'Not Uploaded' ? styles.notUploadedText : null,
-                ]}
-              >
-                {doc.subtitle}
-              </Text>
+              <View style={styles.subtitleRow}>
+                <Text
+                  style={[
+                    styles.docSubtitle,
+                    doc.subtitle === 'Not Uploaded' ? styles.notUploadedText : null,
+                  ]}
+                >
+                  {doc.subtitle}
+                </Text>
+                <View style={[styles.detectedTypeBadge, getDetectedBadgeStyle(doc.type)]}>
+                  <Text style={[styles.detectedTypeBadgeText, getDetectedBadgeTextStyle(doc.type)]}>
+                    {doc.type.toUpperCase()}
+                  </Text>
+                </View>
+              </View>
             </View>
 
             <View style={styles.cardActionsRow}>
@@ -1149,7 +1186,23 @@ const styles = StyleSheet.create({
   docSubtitle: {
     fontSize: 12,
     color: '#64748b',
+  },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginTop: 3,
+  },
+  detectedTypeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  detectedTypeBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
   notUploadedText: {
     color: '#94a3b8',
