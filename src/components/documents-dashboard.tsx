@@ -106,6 +106,52 @@ const TRASH_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+function ActionIcon({ type, isDark }: { type: 'eye' | 'trash'; isDark: boolean }) {
+  if (Platform.OS === 'web') {
+    if (type === 'eye') {
+      const strokeColor = isDark ? '#94a3b8' : '#64748b';
+      return (
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ display: 'block' } as any}
+        >
+          <path d="M2 12C2 12 5.5 5.5 12 5.5C18.5 5.5 22 12 22 12C22 12 18.5 18.5 12 18.5C5.5 18.5 2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3.5" fill={strokeColor} />
+        </svg>
+      );
+    }
+    if (type === 'trash') {
+      return (
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#ef4444"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ display: 'block' } as any}
+        >
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="11" x2="10" y2="17" />
+          <line x1="14" y1="11" x2="14" y2="17" />
+        </svg>
+      );
+    }
+  }
+
+  return <Text style={{ fontSize: 18 }}>{type === 'eye' ? '👁️' : '🗑️'}</Text>;
+}
+
 // Document Type Badges matching screenshot
 const PDF_BLUE_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46" fill="none">
@@ -354,6 +400,15 @@ export function DocumentsDashboard({
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleDeleteDoc = (doc: DocumentReaderItem, e?: any) => {
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
+    deleteDocument(doc.id);
+    setUploadNotification(`🗑️ "${doc.title}" deleted.`);
+    setTimeout(() => setUploadNotification(null), 3000);
+  };
 
   const handleConfirmDelete = () => {
     if (!docToDelete) return;
@@ -804,51 +859,32 @@ export function DocumentsDashboard({
                 </Text>
               </View>
 
-              {/* Actions: Eye (Read), Download, Delete */}
+              {/* Actions: Right side shows exactly two icons: Eye (Read) and Delete */}
               <View style={styles.cardActionsRow}>
                 {/* Eye Button: View & Read */}
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => setReadingDoc(doc)}
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    setReadingDoc(doc);
+                  }}
                   activeOpacity={0.7}
                   accessibilityLabel={`Read ${doc.title}`}
                 >
-                  <Image
-                    source={{ uri: isDark ? EYE_ICON_DARK_SVG : EYE_ICON_SVG }}
-                    style={styles.actionBtnIcon}
-                    resizeMode="contain"
-                  />
+                  <ActionIcon type="eye" isDark={isDark} />
                 </TouchableOpacity>
 
-                {/* Download Button: Download file */}
+                {/* Delete Button: Delete document */}
                 <TouchableOpacity
                   style={styles.actionBtn}
-                  onPress={() => {
-                    setUploadNotification(`"${doc.title}" downloaded securely.`);
-                    setTimeout(() => setUploadNotification(null), 3000);
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    handleDeleteDoc(doc, e);
                   }}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`Download ${doc.title}`}
-                >
-                  <Image
-                    source={{ uri: isDark ? DOWNLOAD_ICON_DARK_SVG : DOWNLOAD_ICON_SVG }}
-                    style={styles.actionBtnIcon}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
-
-                {/* Delete Button: Remove document */}
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => setDocToDelete(doc)}
                   activeOpacity={0.7}
                   accessibilityLabel={`Delete ${doc.title}`}
                 >
-                  <Image
-                    source={{ uri: TRASH_ICON_SVG }}
-                    style={styles.actionBtnIcon}
-                    resizeMode="contain"
-                  />
+                  <ActionIcon type="trash" isDark={isDark} />
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>

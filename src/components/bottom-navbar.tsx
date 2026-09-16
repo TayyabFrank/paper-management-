@@ -55,6 +55,100 @@ interface TabItemConfig {
   getIcon: (color: string) => string;
 }
 
+function NavbarTabIcon({
+  tabKey,
+  color,
+  fallbackEmoji,
+}: {
+  tabKey: TabKey;
+  color: string;
+  fallbackEmoji: string;
+}) {
+  if (Platform.OS === 'web') {
+    if (tabKey === 'home') {
+      return (
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ display: 'block' } as any}
+        >
+          <path d="M3 10.5L12 3L21 10.5V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V10.5Z" />
+          <path d="M9 21V14C9 13.4477 9.44772 13 10 13H14C14.5523 13 15 13.4477 15 14V21" />
+        </svg>
+      );
+    }
+    if (tabKey === 'docs') {
+      return (
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ display: 'block' } as any}
+        >
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <line x1="10" y1="9" x2="8" y2="9" />
+        </svg>
+      );
+    }
+    if (tabKey === 'new-doc') {
+      return (
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ display: 'block' } as any}
+        >
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <polyline points="9 14 12 11 15 14" />
+          <line x1="12" y1="11" x2="12" y2="19" />
+        </svg>
+      );
+    }
+    if (tabKey === 'profile') {
+      return (
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ display: 'block' } as any}
+        >
+          <circle cx="12" cy="12" r="9.5" />
+          <circle cx="12" cy="9" r="3.2" />
+          <path d="M6.8 18.2C7.8 15.6 9.8 14.5 12 14.5C14.2 14.5 16.2 15.6 17.2 18.2" />
+        </svg>
+      );
+    }
+  }
+
+  // Native Mobile fallback
+  return <Text style={{ fontSize: 19 }}>{fallbackEmoji}</Text>;
+}
+
 export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useDocuVaultTheme();
@@ -106,10 +200,10 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
                     : styles.inactiveIconSlot,
                 ]}
               >
-                <Image
-                  source={{ uri: tab.getIcon(iconColor) }}
-                  style={styles.icon}
-                  resizeMode="contain"
+                <NavbarTabIcon
+                  tabKey={tab.key}
+                  color={iconColor}
+                  fallbackEmoji={tab.emoji}
                 />
               </View>
 
