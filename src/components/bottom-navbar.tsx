@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
@@ -52,17 +51,18 @@ interface BottomNavbarProps {
 interface TabItemConfig {
   key: TabKey;
   label: string;
+  emoji: string;
   getIcon: (color: string) => string;
 }
 
 function NavbarTabIcon({
   tabKey,
   color,
-  getIconUri,
+  fallbackEmoji,
 }: {
   tabKey: TabKey;
   color: string;
-  getIconUri: (color: string) => string;
+  fallbackEmoji: string;
 }) {
   if (Platform.OS === 'web') {
     if (tabKey === 'home') {
@@ -145,14 +145,8 @@ function NavbarTabIcon({
     }
   }
 
-  // Native Mobile (Android & iOS) vector icon
-  return (
-    <ExpoImage
-      source={{ uri: getIconUri(color) }}
-      style={{ width: 22, height: 22 }}
-      contentFit="contain"
-    />
-  );
+  // Native Mobile fallback
+  return <Text style={{ fontSize: 19 }}>{fallbackEmoji}</Text>;
 }
 
 export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
@@ -164,10 +158,10 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
   const activeLabelColor = isDark ? '#38bdf8' : '#1b3569';
 
   const tabs: TabItemConfig[] = [
-    { key: 'home', label: 'Home', getIcon: HOME_ICON_SVG },
-    { key: 'docs', label: 'Document', getIcon: DOCUMENT_ICON_SVG },
-    { key: 'new-doc', label: 'Upload', getIcon: UPLOAD_ICON_SVG },
-    { key: 'profile', label: 'Profile', getIcon: PROFILE_ICON_SVG },
+    { key: 'home', label: 'Home', emoji: '🏠', getIcon: HOME_ICON_SVG },
+    { key: 'docs', label: 'Document', emoji: '📄', getIcon: DOCUMENT_ICON_SVG },
+    { key: 'new-doc', label: 'Upload', emoji: '📤', getIcon: UPLOAD_ICON_SVG },
+    { key: 'profile', label: 'Profile', emoji: '👤', getIcon: PROFILE_ICON_SVG },
   ];
 
   return (
@@ -209,7 +203,7 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
                 <NavbarTabIcon
                   tabKey={tab.key}
                   color={iconColor}
-                  getIconUri={tab.getIcon}
+                  fallbackEmoji={tab.emoji}
                 />
               </View>
 
