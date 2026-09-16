@@ -8,6 +8,7 @@ import {
   ScrollView,
   Platform,
   Image,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { DocumentReader, DocumentReaderItem } from './document-reader';
@@ -45,6 +46,15 @@ const EYE_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none">
   <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   <circle cx="12" cy="12" r="3.5" stroke="#64748b" stroke-width="2"/>
+</svg>
+`)}`;
+
+const TRASH_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="3 6 5 6 21 6"></polyline>
+  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+  <line x1="10" y1="11" x2="10" y2="17"></line>
+  <line x1="14" y1="11" x2="14" y2="17"></line>
 </svg>
 `)}`;
 
@@ -516,9 +526,19 @@ export function DocumentsDashboard({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [readingDoc, setReadingDoc] = useState<DocumentReaderItem | null>(null);
+  const [docToDelete, setDocToDelete] = useState<DocumentReaderItem | null>(null);
   const [uploadNotification, setUploadNotification] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleConfirmDelete = () => {
+    if (!docToDelete) return;
+    const deletedTitle = docToDelete.title;
+    setDocuments((prev) => prev.filter((d) => d.id !== docToDelete.id));
+    setDocToDelete(null);
+    setUploadNotification(`"${deletedTitle}" deleted successfully.`);
+    setTimeout(() => setUploadNotification(null), 3000);
+  };
 
   const handleBack = () => {
     if (onBack) {
@@ -784,16 +804,67 @@ export function DocumentsDashboard({
               </Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={() => setReadingDoc(doc)}
-              activeOpacity={0.7}
-            >
-              <Image source={{ uri: EYE_ICON_SVG }} style={styles.eyeIcon} resizeMode="contain" />
-            </TouchableOpacity>
+            <View style={styles.cardActionsRow}>
+              {/* Eye button: Opens complete document to read */}
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setReadingDoc(doc)}
+                activeOpacity={0.7}
+                accessibilityLabel="Read Document"
+              >
+                <Image source={{ uri: EYE_ICON_SVG }} style={styles.eyeIcon} resizeMode="contain" />
+              </TouchableOpacity>
+
+              {/* Delete button: Removes document from DocuVault */}
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => setDocToDelete(doc)}
+                activeOpacity={0.7}
+                accessibilityLabel="Delete Document"
+              >
+                <Image source={{ uri: TRASH_ICON_SVG }} style={styles.trashIcon} resizeMode="contain" />
+              </TouchableOpacity>
+            </View>
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={!!docToDelete}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDocToDelete(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.deleteDialog}>
+            <View style={styles.deleteIconBadge}>
+              <Image source={{ uri: TRASH_ICON_SVG }} style={{ width: 28, height: 28 }} resizeMode="contain" />
+            </View>
+            <Text style={styles.deleteModalTitle}>Delete Document?</Text>
+            <Text style={styles.deleteModalBody}>
+              Are you sure you want to delete "{docToDelete?.title}"? This document will be permanently removed from your DocuVault.
+            </Text>
+
+            <View style={styles.deleteModalActionRow}>
+              <TouchableOpacity
+                style={styles.deleteCancelBtn}
+                onPress={() => setDocToDelete(null)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.deleteCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteConfirmBtn}
+                onPress={handleConfirmDelete}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.deleteConfirmBtnText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Dedicated Full Document / Article / Image Reader */}
       <DocumentReader
@@ -1017,11 +1088,99 @@ const styles = StyleSheet.create({
   notUploadedText: {
     color: '#94a3b8',
   },
+  cardActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   eyeButton: {
     padding: 8,
+    borderRadius: 8,
   },
   eyeIcon: {
     width: 22,
     height: 22,
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  trashIcon: {
+    width: 20,
+    height: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  deleteDialog: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  deleteIconBadge: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  deleteModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  deleteModalBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  deleteModalActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  deleteCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  deleteConfirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#dc2626',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteConfirmBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });
