@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 const DEFAULT_AVATAR_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -34,15 +35,25 @@ const EYE_OFF_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
-// Sample demo face avatars for quick testing if file picker isn't preferred
 const DEMO_FACES = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
 ];
 
-export function EmployeeRegistrationCard() {
-  const [mode, setMode] = useState<'register' | 'login'>('register');
+interface EmployeeRegistrationCardProps {
+  initialMode?: 'register' | 'login';
+  onModeChange?: (mode: 'register' | 'login') => void;
+  onLoginSuccess?: (user?: { name: string; email: string; avatar?: string }) => void;
+}
+
+export function EmployeeRegistrationCard({
+  initialMode = 'register',
+  onModeChange,
+  onLoginSuccess,
+}: EmployeeRegistrationCardProps) {
+  const router = useRouter();
+  const [mode, setMode] = useState<'register' | 'login'>(initialMode);
   const [fullName, setFullName] = useState('');
   const [workEmail, setWorkEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,21 +61,34 @@ export function EmployeeRegistrationCard() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedModalVisible, setSubmittedModalVisible] = useState(false);
+  const [forgotModalVisible, setForgotModalVisible] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const switchMode = (newMode: 'register' | 'login') => {
+    setMode(newMode);
+    setErrors({});
+    if (onModeChange) {
+      onModeChange(newMode);
+    }
+  };
 
   const handleChoosePhoto = () => {
     if (Platform.OS === 'web') {
       if (fileInputRef.current) {
         fileInputRef.current.click();
       } else {
-        // Fallback demo image
         const random = DEMO_FACES[Math.floor(Math.random() * DEMO_FACES.length)];
         setFaceImage(random);
       }
     } else {
-      // Demo image selection on native if image-picker not attached
       const random = DEMO_FACES[Math.floor(Math.random() * DEMO_FACES.length)];
       setFaceImage(random);
     }
@@ -96,7 +120,11 @@ export function EmployeeRegistrationCard() {
       if (!password.trim()) newErrors.password = 'Password is required';
       else if (password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     } else {
-      if (!workEmail.trim()) newErrors.workEmail = 'Work Email is required';
+      if (!workEmail.trim()) {
+        newErrors.workEmail = 'Work Email is required';
+      } else if (!/\S+@\S+\.\S+/.test(workEmail)) {
+        newErrors.workEmail = 'Please enter a valid work email';
+      }
       if (!password.trim()) newErrors.password = 'Password is required';
     }
 
@@ -110,8 +138,20 @@ export function EmployeeRegistrationCard() {
 
     setTimeout(() => {
       setIsSubmitting(false);
-      setSubmittedModalVisible(true);
-    }, 1000);
+      if (mode === 'login') {
+        if (onLoginSuccess) {
+          onLoginSuccess({
+            name: workEmail ? workEmail.split('@')[0].replace('.', ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : 'Liam Thompson',
+            email: workEmail || 'l.thompson@enterprise.com',
+            avatar: faceImage || undefined,
+          });
+        } else {
+          router.push('/dashboard');
+        }
+      } else {
+        setSubmittedModalVisible(true);
+      }
+    }, 700);
   };
 
   const handleReset = () => {
@@ -122,6 +162,16 @@ export function EmployeeRegistrationCard() {
       setPassword('');
       setFaceImage(null);
     }
+  };
+
+  const handleSendResetLink = () => {
+    if (!forgotEmail.trim()) return;
+    setForgotSent(true);
+    setTimeout(() => {
+      setForgotSent(false);
+      setForgotModalVisible(false);
+      setForgotEmail('');
+    }, 2000);
   };
 
   return (
@@ -139,13 +189,13 @@ export function EmployeeRegistrationCard() {
 
       {/* Card Header Title */}
       <Text style={styles.cardTitle}>
-        {mode === 'register' ? 'Employee Registration' : 'Employee Login'}
+        {mode === 'register' ? 'Employee Registration' : 'Sign In to Workspace'}
       </Text>
 
-      {/* Mode Switch Helper */}
       {mode === 'register' ? (
+        /* REGISTRATION FORM */
         <View style={styles.formContent}>
-          {/* Full Name Field */}
+          {/* Full Name */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Full Name</Text>
             <TextInput
@@ -162,7 +212,7 @@ export function EmployeeRegistrationCard() {
             {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
           </View>
 
-          {/* Work Email Field */}
+          {/* Work Email */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Work Email</Text>
             <TextInput
@@ -181,15 +231,12 @@ export function EmployeeRegistrationCard() {
             {errors.workEmail ? <Text style={styles.errorText}>{errors.workEmail}</Text> : null}
           </View>
 
-          {/* Password Field */}
+          {/* Password */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Password</Text>
             <View style={styles.passwordInputContainer}>
               <TextInput
-                style={[
-                  styles.passwordInput,
-                  errors.password ? styles.inputError : null,
-                ]}
+                style={[styles.passwordInput, errors.password ? styles.inputError : null]}
                 placeholder="Enter password"
                 placeholderTextColor="#94a3b8"
                 value={password}
@@ -214,7 +261,7 @@ export function EmployeeRegistrationCard() {
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
           </View>
 
-          {/* Face Image Field */}
+          {/* Face Image */}
           <View style={styles.fieldGroup}>
             <View style={styles.faceLabelRow}>
               <Text style={styles.label}>Face Image</Text>
@@ -226,7 +273,6 @@ export function EmployeeRegistrationCard() {
             </View>
 
             <View style={styles.faceUploadBox}>
-              {/* Avatar circle */}
               <View style={styles.avatarCircle}>
                 <Image
                   source={faceImage ? { uri: faceImage } : { uri: DEFAULT_AVATAR_SVG }}
@@ -235,7 +281,6 @@ export function EmployeeRegistrationCard() {
                 />
               </View>
 
-              {/* Upload button */}
               <TouchableOpacity
                 style={styles.uploadButton}
                 onPress={handleChoosePhoto}
@@ -248,7 +293,7 @@ export function EmployeeRegistrationCard() {
             </View>
           </View>
 
-          {/* Primary Action Button */}
+          {/* Submit Button */}
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={handleSubmit}
@@ -265,19 +310,20 @@ export function EmployeeRegistrationCard() {
           {/* Footer toggle */}
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>Already registered? </Text>
-            <TouchableOpacity onPress={() => setMode('login')} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => switchMode('login')} activeOpacity={0.7}>
               <Text style={styles.loginLink}>Login</Text>
             </TouchableOpacity>
           </View>
         </View>
       ) : (
-        /* Login Mode Form */
+        /* SIGN IN TO WORKSPACE FORM (EXACT SCREENSHOT DESIGN) */
         <View style={styles.formContent}>
+          {/* Work Email */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Work Email</Text>
             <TextInput
               style={[styles.input, errors.workEmail ? styles.inputError : null]}
-              placeholder="name@company.com"
+              placeholder="m.chen@company.com"
               placeholderTextColor="#94a3b8"
               value={workEmail}
               onChangeText={(text) => {
@@ -286,19 +332,27 @@ export function EmployeeRegistrationCard() {
               }}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
             />
             {errors.workEmail ? <Text style={styles.errorText}>{errors.workEmail}</Text> : null}
           </View>
 
+          {/* Password with Forgot Password? link */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Password</Text>
+            <View style={styles.passwordHeaderRow}>
+              <Text style={styles.label}>Password</Text>
+              <TouchableOpacity
+                onPress={() => setForgotModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.passwordInputContainer}>
               <TextInput
-                style={[
-                  styles.passwordInput,
-                  errors.password ? styles.inputError : null,
-                ]}
-                placeholder="Enter password"
+                style={[styles.passwordInput, errors.password ? styles.inputError : null]}
+                placeholder="••••••••••"
                 placeholderTextColor="#94a3b8"
                 value={password}
                 onChangeText={(text) => {
@@ -322,6 +376,7 @@ export function EmployeeRegistrationCard() {
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
           </View>
 
+          {/* Login Button */}
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={handleSubmit}
@@ -331,20 +386,21 @@ export function EmployeeRegistrationCard() {
             {isSubmitting ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
-              <Text style={styles.primaryButtonText}>Log In</Text>
+              <Text style={styles.primaryButtonText}>Login</Text>
             )}
           </TouchableOpacity>
 
+          {/* Footer: New to the company? Register as Employee */}
           <View style={styles.footerRow}>
-            <Text style={styles.footerText}>New employee? </Text>
-            <TouchableOpacity onPress={() => setMode('register')} activeOpacity={0.7}>
-              <Text style={styles.loginLink}>Register here</Text>
+            <Text style={styles.footerText}>New to the company? </Text>
+            <TouchableOpacity onPress={() => switchMode('register')} activeOpacity={0.7}>
+              <Text style={styles.loginLink}>Register as Employee</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      {/* Submission Success Confirmation Modal */}
+      {/* Submission Confirmation Modal */}
       <Modal
         visible={submittedModalVisible}
         transparent={true}
@@ -362,7 +418,7 @@ export function EmployeeRegistrationCard() {
             <Text style={styles.modalBody}>
               {mode === 'register'
                 ? `Your application for ${fullName || 'Employee'} (${workEmail}) has been sent for administrator approval. You will receive an email once approved.`
-                : `You are logged in as ${workEmail}.`}
+                : `Successfully authenticated as ${workEmail || 'm.chen@company.com'}. Redirecting to your workspace...`}
             </Text>
 
             <TouchableOpacity
@@ -370,8 +426,53 @@ export function EmployeeRegistrationCard() {
               onPress={handleReset}
               activeOpacity={0.8}
             >
-              <Text style={styles.modalButtonText}>Done</Text>
+              <Text style={styles.modalButtonText}>Continue</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        visible={forgotModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setForgotModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalDialog}>
+            <Text style={styles.modalTitle}>Reset Password</Text>
+            <Text style={styles.modalBody}>
+              Enter your work email address and we'll send you instructions to reset your password.
+            </Text>
+            <TextInput
+              style={[styles.input, { width: '100%', marginBottom: 16 }]}
+              placeholder="name@company.com"
+              placeholderTextColor="#94a3b8"
+              value={forgotEmail}
+              onChangeText={setForgotEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {forgotSent ? (
+              <Text style={{ color: '#16a34a', fontSize: 13, marginBottom: 12, fontWeight: '500' }}>
+                Reset instructions sent to your email!
+              </Text>
+            ) : null}
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity
+                style={[styles.modalButton, { flex: 1, backgroundColor: '#e2e8f0' }]}
+                onPress={() => setForgotModalVisible(false)}
+              >
+                <Text style={{ color: '#475569', fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, { flex: 1 }]}
+                onPress={handleSendResetLink}
+              >
+                <Text style={styles.modalButtonText}>Send Link</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -417,6 +518,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#556882',
     letterSpacing: -0.1,
+  },
+  passwordHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  forgotPasswordLink: {
+    fontSize: 13,
+    color: '#3b82f6',
+    fontWeight: '500',
   },
   faceLabelRow: {
     flexDirection: 'row',
@@ -596,10 +707,10 @@ const styles = StyleSheet.create({
   modalButton: {
     backgroundColor: '#1b3569',
     paddingVertical: 12,
-    paddingHorizontal: 36,
+    paddingHorizontal: 24,
     borderRadius: 8,
-    width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   modalButtonText: {
     color: '#ffffff',

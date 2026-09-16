@@ -16,7 +16,11 @@ const VAULT_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
-export function DocuVaultLogo() {
+interface DocuVaultLogoProps {
+  subtitle?: string;
+}
+
+export function DocuVaultLogo({ subtitle }: DocuVaultLogoProps) {
   return (
     <View style={styles.container}>
       <View style={styles.iconBadge}>
@@ -27,6 +31,7 @@ export function DocuVaultLogo() {
         />
       </View>
       <Text style={styles.brandTitle}>DocuVault</Text>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -66,5 +71,13 @@ const styles = StyleSheet.create({
       android: 'Roboto',
       default: 'sans-serif',
     }),
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#64748b',
+    marginTop: 6,
+    textAlign: 'center',
+    fontWeight: '400',
+    letterSpacing: -0.1,
   },
 });
