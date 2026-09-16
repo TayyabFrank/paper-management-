@@ -50,6 +50,7 @@ export default function HomeScreen() {
             >
               <DocumentsDashboard
                 onBack={() => setActiveTab('home')}
+                onNavigateNewDoc={() => setActiveTab('new-doc')}
                 employeeName={user.name}
                 employeeEmail={user.email}
                 employeeAvatar={user.avatar}

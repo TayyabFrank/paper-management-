@@ -13,7 +13,7 @@ import { useDocuVaultTheme } from '@/context/theme-context';
 
 export interface UploadedItemResult {
   name: string;
-  type: 'pdf' | 'docx' | 'image' | 'article' | 'other';
+  type: 'pdf' | 'docx' | 'image' | 'article' | 'link' | 'other';
   size: string;
   url?: string;
   previewImage?: string;

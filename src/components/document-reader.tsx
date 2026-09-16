@@ -64,7 +64,7 @@ export interface DocumentReaderItem {
   id: string;
   title: string;
   subtitle: string;
-  type: 'pdf' | 'docx' | 'image' | 'article' | 'other';
+  type: 'pdf' | 'docx' | 'image' | 'article' | 'link' | 'other';
   icon: string;
   fileSize?: string;
   isSigned?: boolean;
