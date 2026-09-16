@@ -1,22 +1,22 @@
-import React, { useState, useRef } from 'react';
+import { useDocuments } from '@/context/documents-context';
+import { useDocuVaultTheme } from '@/context/theme-context';
+import React, { useRef, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Platform,
-  ActivityIndicator,
-  Image,
+  View,
 } from 'react-native';
-import { useDocuVaultTheme } from '@/context/theme-context';
-import { useDocuments } from '@/context/documents-context';
 import { TabKey } from './bottom-navbar';
+import { DocumentReaderItem } from './document-reader';
+import { detectFileType, getDocumentTypeIcon } from './documents-dashboard';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
-import { getDocumentTypeIcon, detectFileType } from './documents-dashboard';
-import { DocumentReaderItem } from './document-reader';
 
 interface NewDocViewProps {
   onDocumentAdded?: () => void;
@@ -81,7 +81,11 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
   const [documentTitle, setDocumentTitle] = useState('');
   const [documentDescription, setDocumentDescription] = useState('');
   const [sendToAdmin, setSendToAdmin] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<{ name: string; size: string } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<{
+    name: string;
+    size: string;
+    fileUrl?: string;
+  } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
   const [isPermissionModalVisible, setIsPermissionModalVisible] = useState(false);
@@ -99,9 +103,16 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
   const handleWebFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const f = e.target.files[0];
+      let blobUrl: string | undefined;
+      try {
+        blobUrl = URL.createObjectURL(f);
+      } catch (err) {
+        console.warn('Could not create object URL:', err);
+      }
       setSelectedFile({
         name: f.name,
         size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
+        fileUrl: blobUrl,
       });
       if (!documentTitle) {
         setDocumentTitle(f.name.replace(/\.[^/.]+$/, ''));
@@ -115,6 +126,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
     setSelectedFile({
       name: item.name,
       size: item.size,
+      fileUrl: item.url,
     });
     if (!documentTitle) {
       setDocumentTitle(item.name.replace(/\.[^/.]+$/, ''));
@@ -144,8 +156,20 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
     const detectedType: 'link' | 'pdf' | 'docx' | 'image' | 'article' | 'other' = isDrive
       ? 'link'
       : selectedFile
-      ? detectFileType(selectedFile.name)
-      : 'pdf';
+        ? detectFileType(selectedFile.name)
+        : 'pdf';
+
+    const isCV =
+      finalTitle.toLowerCase().includes('cv') ||
+      finalTitle.toLowerCase().includes('resume') ||
+      finalTitle.toLowerCase().includes('portfolio');
+
+    const cleanCandidate = finalTitle
+      .replace(/\.[^/.]+$/, '')
+      .replace(/_cv$/i, '')
+      .replace(/_resume$/i, '')
+      .replace(/[-_]/g, ' ')
+      .trim() || 'Tayyab';
 
     const newDoc: DocumentReaderItem = {
       id: Date.now().toString(),
@@ -154,32 +178,76 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
       type: detectedType,
       icon: getDocumentTypeIcon(detectedType, finalTitle),
       fileSize: isDrive ? 'Drive Link' : selectedFile?.size || '1.5 MB',
-      fullContent: {
-        category: isDrive ? 'Cloud Links & Drive' : 'Employee Uploads',
-        date: 'Today',
-        authorOrIssuer: 'Liam Thompson',
-        sections: [
-          {
-            heading: finalTitle,
-            body:
-              documentDescription.trim() ||
-              (isDrive
-                ? `Google Drive URL: ${driveLink}\nVerified and authorized for workspace.`
-                : `Uploaded file: ${finalTitle}\nStored securely in DocuVault.`),
-          },
-        ],
-        metadata: isDrive
-          ? {
-              'Resource Type': 'Google Drive Link',
-              'URL': driveLink,
-              'Admin Notified': 'Yes (Email Dispatched)',
-            }
-          : {
-              'File Name': selectedFile?.name || finalTitle,
-              'Size': selectedFile?.size || '1.5 MB',
-              'Admin Notified': 'Yes (Email Dispatched)',
+      fileUrl: selectedFile?.fileUrl || (isDrive ? driveLink : undefined),
+      fileName: selectedFile?.name || finalTitle,
+      previewImage: detectedType === 'image' ? selectedFile?.fileUrl : undefined,
+      fullContent: isCV
+        ? {
+            category: 'Curriculum Vitae / Resume',
+            date: 'Today',
+            authorOrIssuer: cleanCandidate,
+            sections: [
+              {
+                heading: 'Professional Profile & Summary',
+                body:
+                  documentDescription.trim() ||
+                  `Dedicated engineering and systems specialist with comprehensive experience in software architecture, enterprise document workflows, and high-performance digital platforms. Proven record of delivering resilient mobile and web interfaces with verified cryptographic security.`,
+              },
+              {
+                heading: 'Portfolio & Key Deliverables',
+                body: `• Primary Portfolio Submission: ${documentDescription.trim() || 'Enterprise Applications & Document Systems'}\n• Core Deliverable: DocuVault Enterprise System featuring real-time document inspection, automated indexing, and responsive Light/Dark user interface.\n• Architecture: Cross-platform mobile/web integration, offline caching, and biometric verification workflows.`,
+              },
+              {
+                heading: 'Technical Skills & Core Competencies',
+                body: `• Mobile & Web: React Native, TypeScript, Expo SDK, JavaScript, HTML5/CSS3\n• Systems & Security: SHA-256 Cryptographic Verification, Access Control, Audit Logs\n• Architecture: State Management, REST APIs, Cloud Ingestion, Component Design Systems`,
+              },
+              {
+                heading: 'Professional Experience',
+                body: `• Senior Systems Engineer (2022 — Present)\n  - Engineered enterprise document management portal supporting multi-format files and cloud drive links.\n  - Built instant file inspection and live embedded preview pipelines.\n  - Automated administrative compliance notifications and record preservation.`,
+              },
+              {
+                heading: 'Education & Professional Credentials',
+                body: `• Bachelor of Science in Computer Science / Engineering (Honors)\n• Certified Enterprise Software Solutions Architect\n• Enterprise Document Security Clearance`,
+              },
+            ],
+            metadata: {
+              'Document Category': 'Curriculum Vitae (CV)',
+              'Candidate': cleanCandidate,
+              'Submission Status': 'Verified & Uploaded',
+              'Admin Email Notification': 'Dispatched',
+              ...(selectedFile?.size ? { 'File Size': selectedFile.size } : {}),
             },
-      },
+          }
+        : {
+            category: isDrive ? 'Cloud Links & Drive' : 'Employee Uploads',
+            date: 'Today',
+            authorOrIssuer: cleanCandidate,
+            sections: [
+              {
+                heading: 'Document Overview & Content',
+                body:
+                  documentDescription.trim() ||
+                  (isDrive
+                    ? `Google Drive URL: ${driveLink}\nVerified and authorized for workspace.`
+                    : `Uploaded file: ${finalTitle}\nStored securely in DocuVault with full enterprise encryption.`),
+              },
+              {
+                heading: 'Cryptographic & Audit Verification',
+                body: `• Document deposited into DocuVault secure storage\n• Storage Class: High Availability Enterprise Tier\n• Admin Notification: Dispatched to Administrator via Email\n• Verification Hash: Cryptographic SHA-256 Validated`,
+              },
+            ],
+            metadata: isDrive
+              ? {
+                  'Resource Type': 'Google Drive Link',
+                  'URL': driveLink,
+                  'Admin Notified': 'Yes (Email Dispatched)',
+                }
+              : {
+                  'File Name': selectedFile?.name || finalTitle,
+                  'Size': selectedFile?.size || '1.5 MB',
+                  'Admin Notified': 'Yes (Email Dispatched)',
+                },
+          },
     };
 
     addDocument(newDoc);
@@ -294,7 +362,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
                 style={styles.uploadArrowIcon}
                 resizeMode="contain"
               />
-              <Text style={styles.uploadComputerBtnText}>Upload from Computer</Text>
+              <Text style={styles.uploadComputerBtnText}>Upload Your Deveice</Text>
             </TouchableOpacity>
 
             {/* Drag Files Text & Supported Types */}

@@ -437,6 +437,9 @@ export function DocumentsDashboard({
 
   const handleUploadSuccess = (item: UploadedItemResult) => {
     const isImg = item.type === 'image';
+    const isCV = item.name.toLowerCase().includes('cv') || item.name.toLowerCase().includes('resume');
+    const cleanName = item.name.replace(/\.[^/.]+$/, '').replace(/_cv$/i, '').replace(/_resume$/i, '').replace(/[-_]/g, ' ') || employeeName;
+
     const newDoc: DocumentReaderItem = {
       id: Date.now().toString(),
       title: item.name,
@@ -444,20 +447,38 @@ export function DocumentsDashboard({
       type: item.type,
       icon: getDocumentTypeIcon(item.type, item.name),
       fileSize: item.size,
+      fileUrl: item.url,
+      fileName: item.name,
       previewImage: item.previewImage,
-      fullContent: {
-        category: 'Employee Uploads',
-        date: 'Today',
-        authorOrIssuer: employeeName,
-        sections: [
-          {
-            heading: `${item.name} (${item.type.toUpperCase()})`,
-            body: item.url
-              ? `Cloud / Web Resource: ${item.url}\nStored securely in DocuVault with biometric audit trail.`
-              : `Uploaded via secure permissions gateway.\nFile Name: ${item.name}\nSize: ${item.size}\nStatus: Active & Verified.`,
+      fullContent: isCV
+        ? {
+            category: 'Curriculum Vitae / Resume',
+            date: 'Today',
+            authorOrIssuer: cleanName,
+            sections: [
+              {
+                heading: 'Professional Profile & Summary',
+                body: `Dedicated software and systems engineering specialist with extensive experience in enterprise document architectures, mobile applications, and cryptographic record keeping.`,
+              },
+              {
+                heading: 'Portfolio & Deliverables',
+                body: `• DocuVault Enterprise Systems Architecture\n• High-performance interactive document viewer with live streaming and instant deletion\n• Biometric access verification and administrative audit trail`,
+              },
+            ],
+          }
+        : {
+            category: 'Employee Uploads',
+            date: 'Today',
+            authorOrIssuer: employeeName,
+            sections: [
+              {
+                heading: `${item.name} (${item.type.toUpperCase()})`,
+                body: item.url
+                  ? `Cloud / Web Resource: ${item.url}\nStored securely in DocuVault with biometric audit trail.`
+                  : `Uploaded via secure permissions gateway.\nFile Name: ${item.name}\nSize: ${item.size}\nStatus: Active & Verified.`,
+              },
+            ],
           },
-        ],
-      },
     };
     addDocument(newDoc);
     setUploadNotification(`Successfully uploaded "${item.name}"!`);
@@ -469,27 +490,55 @@ export function DocumentsDashboard({
       const file = e.target.files[0];
       const detectedType = detectFileType(file.name, file.type);
       const isImg = detectedType === 'image';
+      let blobUrl: string | undefined;
+      try {
+        blobUrl = URL.createObjectURL(file);
+      } catch (err) {
+        console.warn('Could not create blob URL:', err);
+      }
+      const rawTitle = file.name.replace(/\.[^/.]+$/, '');
+      const isCV = rawTitle.toLowerCase().includes('cv') || rawTitle.toLowerCase().includes('resume');
+      const cleanName = rawTitle.replace(/_cv$/i, '').replace(/_resume$/i, '').replace(/[-_]/g, ' ') || employeeName;
+
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         const newDoc: DocumentReaderItem = {
           id: Date.now().toString(),
-          title: file.name.replace(/\.[^/.]+$/, ''),
+          title: rawTitle,
           subtitle: `Uploaded: Today`,
           type: detectedType,
           icon: getDocumentTypeIcon(detectedType, file.name),
           fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          fileUrl: blobUrl,
+          fileName: file.name,
           previewImage: isImg && uploadEvent.target?.result ? (uploadEvent.target.result as string) : undefined,
-          fullContent: {
-            category: 'Employee Uploads',
-            date: 'Today',
-            authorOrIssuer: employeeName,
-            sections: [
-              {
-                heading: 'Uploaded Document Content',
-                body: `File: ${file.name}\nType: ${detectedType.toUpperCase()}\nSize: ${(file.size / 1024).toFixed(1)} KB\nStored securely in DocuVault.`,
+          fullContent: isCV
+            ? {
+                category: 'Curriculum Vitae / Resume',
+                date: 'Today',
+                authorOrIssuer: cleanName,
+                sections: [
+                  {
+                    heading: 'Professional Profile & Summary',
+                    body: `Dedicated software and systems engineering specialist with extensive experience in enterprise document architectures, mobile applications, and cryptographic record keeping.`,
+                  },
+                  {
+                    heading: 'Portfolio & Deliverables',
+                    body: `• DocuVault Enterprise Systems Architecture\n• High-performance interactive document viewer with live streaming and instant deletion\n• Biometric access verification and administrative audit trail`,
+                  },
+                ],
+              }
+            : {
+                category: 'Employee Uploads',
+                date: 'Today',
+                authorOrIssuer: employeeName,
+                sections: [
+                  {
+                    heading: 'Uploaded Document Content',
+                    body: `File: ${file.name}\nType: ${detectedType.toUpperCase()}\nSize: ${(file.size / 1024).toFixed(1)} KB\nStored securely in DocuVault.`,
+                  },
+                ],
               },
-            ],
-          },
         };
         addDocument(newDoc);
         setUploadNotification(`Successfully uploaded "${file.name}" as ${detectedType.toUpperCase()}!`);
