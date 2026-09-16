@@ -43,9 +43,9 @@ const FILTER_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 `)}`;
 
 const EYE_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none">
-  <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="12" cy="12" r="3.5" stroke="#64748b" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <path d="M2 12C2 12 5.5 5.5 12 5.5C18.5 5.5 22 12 22 12C22 12 18.5 18.5 12 18.5C5.5 18.5 2 12 2 12Z" stroke="#718096" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="12" cy="12" r="3.6" fill="#718096"/>
 </svg>
 `)}`;
 
@@ -58,50 +58,51 @@ const TRASH_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
-// Document Type Badges
+// Document Type Badges matching screenshot
 const PDF_BLUE_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
-  <rect width="40" height="40" rx="10" fill="#e8effb"/>
-  <path d="M14 10H22L27 15V29C27 29.5523 26.5523 30 26 30H14C13.4477 30 13 29.5523 13 29V11C13 10.4477 13.4477 10 14 10Z" stroke="#2563eb" stroke-width="1.8" stroke-linejoin="round"/>
-  <path d="M22 10V15H27" stroke="#2563eb" stroke-width="1.8" stroke-linejoin="round"/>
-  <text x="20" y="24" font-size="7" font-weight="bold" fill="#2563eb" text-anchor="middle" font-family="sans-serif">PDF</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46" fill="none">
+  <rect width="46" height="46" rx="12" fill="#eff3fb"/>
+  <path d="M16 11H25L31 17V33C31 34.1046 30.1046 35 29 35H16C14.8954 35 14 34.1046 14 33V13C14 11.8954 14.8954 11 16 11Z" stroke="#2563eb" stroke-width="1.8" fill="#ffffff" stroke-linejoin="round"/>
+  <path d="M25 11V17H31" stroke="#2563eb" stroke-width="1.8" stroke-linejoin="round"/>
+  <text x="22.5" y="27" font-size="7.5" font-weight="bold" fill="#2563eb" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif">PDF</text>
 </svg>
 `)}`;
 
 const PDF_RED_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
-  <rect width="40" height="40" rx="10" fill="#fae8eb"/>
-  <path d="M14 10H22L27 15V29C27 29.5523 26.5523 30 26 30H14C13.4477 30 13 29.5523 13 29V11C13 10.4477 13.4477 10 14 10Z" stroke="#991b1b" stroke-width="1.8" stroke-linejoin="round"/>
-  <path d="M22 10V15H27" stroke="#991b1b" stroke-width="1.8" stroke-linejoin="round"/>
-  <text x="20" y="24" font-size="7" font-weight="bold" fill="#991b1b" text-anchor="middle" font-family="sans-serif">PDF</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46" fill="none">
+  <rect width="46" height="46" rx="12" fill="#fdf0f4"/>
+  <path d="M16 11H25L31 17V33C31 34.1046 30.1046 35 29 35H16C14.8954 35 14 34.1046 14 33V13C14 11.8954 14.8954 11 16 11Z" stroke="#831843" stroke-width="1.8" fill="#ffffff" stroke-linejoin="round"/>
+  <path d="M25 11V17H31" stroke="#831843" stroke-width="1.8" stroke-linejoin="round"/>
+  <text x="22.5" y="27" font-size="7.5" font-weight="bold" fill="#831843" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif">PDF</text>
 </svg>
 `)}`;
 
 const DOCX_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
-  <rect width="40" height="40" rx="10" fill="#e0e7ff"/>
-  <path d="M14 10H22L27 15V29C27 29.5523 26.5523 30 26 30H14C13.4477 30 13 29.5523 13 29V11C13 10.4477 13.4477 10 14 10Z" stroke="#3730a3" stroke-width="1.8" stroke-linejoin="round"/>
-  <path d="M22 10V15H27" stroke="#3730a3" stroke-width="1.8" stroke-linejoin="round"/>
-  <text x="20" y="24" font-size="8" font-weight="bold" fill="#3730a3" text-anchor="middle" font-family="sans-serif">W</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46" fill="none">
+  <rect width="46" height="46" rx="12" fill="#eff3fb"/>
+  <path d="M16 11H25L31 17V33C31 34.1046 30.1046 35 29 35H16C14.8954 35 14 34.1046 14 33V13C14 11.8954 14.8954 11 16 11Z" stroke="#3b5998" stroke-width="1.8" fill="#ffffff" stroke-linejoin="round"/>
+  <path d="M25 11V17H31" stroke="#3b5998" stroke-width="1.8" stroke-linejoin="round"/>
+  <rect x="15" y="20" width="13" height="10" rx="1.5" fill="#2563eb"/>
+  <text x="21.5" y="27.5" font-size="8" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif">W</text>
 </svg>
 `)}`;
 
 const IMAGE_DOC_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
-  <rect width="40" height="40" rx="10" fill="#e0f2fe"/>
-  <rect x="11" y="11" width="18" height="18" rx="3" stroke="#0284c7" stroke-width="1.8"/>
-  <circle cx="16" cy="16" r="1.5" fill="#0284c7"/>
-  <path d="M12 25L17 19L22 24L25 21L28 25" stroke="#0284c7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46" fill="none">
+  <rect width="46" height="46" rx="12" fill="#eff3fb"/>
+  <rect x="13" y="13" width="20" height="20" rx="3.5" stroke="#2563eb" stroke-width="1.8" fill="#ffffff"/>
+  <circle cx="18" cy="18" r="1.8" fill="#2563eb"/>
+  <path d="M14 28L19 22L24 27L27 24L32 29" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
 `)}`;
 
 const ARTICLE_DOC_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
-  <rect width="40" height="40" rx="10" fill="#fef3c7"/>
-  <rect x="11" y="10" width="18" height="20" rx="2" stroke="#b45309" stroke-width="1.8"/>
-  <line x1="15" y1="15" x2="25" y2="15" stroke="#b45309" stroke-width="1.8"/>
-  <line x1="15" y1="20" x2="25" y2="20" stroke="#b45309" stroke-width="1.8"/>
-  <line x1="15" y1="25" x2="21" y2="25" stroke="#b45309" stroke-width="1.8"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46" fill="none">
+  <rect width="46" height="46" rx="12" fill="#fef8ee"/>
+  <rect x="13" y="11" width="20" height="24" rx="3" stroke="#b45309" stroke-width="1.8" fill="#ffffff"/>
+  <line x1="17" y1="17" x2="29" y2="17" stroke="#b45309" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="17" y1="22" x2="29" y2="22" stroke="#b45309" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="17" y1="27" x2="25" y2="27" stroke="#b45309" stroke-width="1.8" stroke-linecap="round"/>
 </svg>
 `)}`;
 
@@ -182,6 +183,11 @@ export function getDocumentTypeIcon(type: string, title?: string): string {
     /\.(docx|doc)$/i.test(lowerTitle)
   ) {
     return DOCX_SVG;
+  }
+
+  // W-2 Form and Resume use the burgundy/red PDF icon as shown in screenshot
+  if (lowerTitle.includes('w-2') || lowerTitle.includes('resume')) {
+    return PDF_RED_SVG;
   }
 
   return PDF_BLUE_SVG;
@@ -876,6 +882,7 @@ export function DocumentsDashboard({
             key={doc.id}
             style={styles.docCard}
             onPress={() => setReadingDoc(doc)}
+            onLongPress={() => setDocToDelete(doc)}
             activeOpacity={0.8}
           >
             <View style={styles.docIconWrapper}>
@@ -890,44 +897,25 @@ export function DocumentsDashboard({
               <Text style={styles.docTitle} numberOfLines={1}>
                 {doc.title}
               </Text>
-              <View style={styles.subtitleRow}>
-                <Text
-                  style={[
-                    styles.docSubtitle,
-                    doc.subtitle === 'Not Uploaded' ? styles.notUploadedText : null,
-                  ]}
-                >
-                  {doc.subtitle}
-                </Text>
-                <View style={[styles.detectedTypeBadge, getDetectedBadgeStyle(doc.type)]}>
-                  <Text style={[styles.detectedTypeBadgeText, getDetectedBadgeTextStyle(doc.type)]}>
-                    {doc.type.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
+              <Text
+                style={[
+                  styles.docSubtitle,
+                  doc.subtitle === 'Not Uploaded' ? styles.notUploadedText : null,
+                ]}
+              >
+                {doc.subtitle}
+              </Text>
             </View>
 
-            <View style={styles.cardActionsRow}>
-              {/* Eye button: Opens complete document to read */}
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setReadingDoc(doc)}
-                activeOpacity={0.7}
-                accessibilityLabel="Read Document"
-              >
-                <Image source={{ uri: EYE_ICON_SVG }} style={styles.eyeIcon} resizeMode="contain" />
-              </TouchableOpacity>
-
-              {/* Delete button: Removes document from DocuVault */}
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => setDocToDelete(doc)}
-                activeOpacity={0.7}
-                accessibilityLabel="Delete Document"
-              >
-                <Image source={{ uri: TRASH_ICON_SVG }} style={styles.trashIcon} resizeMode="contain" />
-              </TouchableOpacity>
-            </View>
+            {/* Eye Icon on right: Opens and reads document */}
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setReadingDoc(doc)}
+              activeOpacity={0.7}
+              accessibilityLabel="Read Document"
+            >
+              <Image source={{ uri: EYE_ICON_SVG }} style={styles.eyeIcon} resizeMode="contain" />
+            </TouchableOpacity>
           </TouchableOpacity>
         ))}
       </View>
