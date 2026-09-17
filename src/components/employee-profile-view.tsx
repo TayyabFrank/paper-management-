@@ -1,7 +1,7 @@
 import { useAuth } from '@/context/auth-context';
 import { useDocuments } from '@/context/documents-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Image,
   Modal,
@@ -13,7 +13,9 @@ import {
   View,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { TabKey } from './bottom-navbar';
 import { ThemeToggleButton } from './theme-toggle-button';
 
@@ -28,35 +30,127 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
 
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editAvatar, setEditAvatar] = useState(user.avatar);
   const [editName, setEditName] = useState(user.name);
-  const [editRole, setEditRole] = useState(user.role);
-  const [editDepartment, setEditDepartment] = useState(user.department);
-  const [editEmail, setEditEmail] = useState(user.email);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const handleOpenEdit = () => {
+    setEditAvatar(user.avatar);
     setEditName(user.name);
-    setEditRole(user.role);
-    setEditDepartment(user.department);
-    setEditEmail(user.email);
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+    setEditError(null);
     setEditModalVisible(true);
   };
 
-  const handleSaveEdit = () => {
-    if (!editName.trim()) {
-      setFeedbackToast('⚠️ Name cannot be empty');
-      setTimeout(() => setFeedbackToast(null), 2500);
+  const handlePickAvatar = async () => {
+    try {
+      if (Platform.OS === 'web' && fileInputRef.current) {
+        fileInputRef.current.click();
+        return;
+      }
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setEditAvatar(result.assets[0].uri);
+        if (editError) setEditError(null);
+      }
+    } catch (err) {
+      console.warn('Avatar picker error:', err);
+      if (Platform.OS === 'web' && fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+    }
+  };
+
+  const handleWebFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        if (uploadEvent.target?.result) {
+          setEditAvatar(uploadEvent.target.result as string);
+          if (editError) setEditError(null);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    setEditError(null);
+    const cleanName = editName.trim();
+    if (!cleanName) {
+      setEditError('Full name is required.');
       return;
     }
-    updateUser({
-      name: editName.trim(),
-      role: editRole.trim() || user.role,
-      department: editDepartment.trim() || user.department,
-      email: editEmail.trim() || user.email,
-    });
+
+    if (!editAvatar) {
+      setEditError('Profile photo is required.');
+      return;
+    }
+
+    // Password validation if entered
+    if (newPassword || confirmPassword) {
+      if (newPassword !== confirmPassword) {
+        setEditError('Passwords do not match. Please verify your new password.');
+        return;
+      }
+      if (newPassword.length < 8) {
+        setEditError('New password must be at least 8 characters long.');
+        return;
+      }
+      if (!/[A-Z]/.test(newPassword)) {
+        setEditError('New password must contain at least one uppercase letter (A-Z).');
+        return;
+      }
+      if (!/[a-z]/.test(newPassword)) {
+        setEditError('New password must contain at least one lowercase letter (a-z).');
+        return;
+      }
+      if (!/[0-9]/.test(newPassword)) {
+        setEditError('New password must contain at least one number (0-9).');
+        return;
+      }
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) {
+        setEditError('New password must contain at least one special character (!@#$%^&*...).');
+        return;
+      }
+    }
+
+    setIsSaving(true);
+    const result = await updateUser(
+      {
+        name: cleanName,
+        avatar: editAvatar,
+      },
+      newPassword.trim() ? newPassword.trim() : undefined
+    );
+    setIsSaving(false);
+
+    if (!result.success) {
+      setEditError(result.error || 'Failed to update profile.');
+      return;
+    }
+
     setEditModalVisible(false);
-    setFeedbackToast('✓ Profile updated successfully!');
-    setTimeout(() => setFeedbackToast(null), 3000);
+    setFeedbackToast('✓ Profile updated successfully' + (newPassword.trim() ? ' with new password!' : '!'));
+    setTimeout(() => setFeedbackToast(null), 3500);
   };
 
   return (
@@ -64,6 +158,17 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
       contentContainerStyle={[styles.container, { backgroundColor: isDark ? colors.background : '#f1f5f9' }]}
       showsVerticalScrollIndicator={false}
     >
+      {/* Hidden file input for web avatar upload */}
+      {Platform.OS === 'web' && (
+        <input
+          type="file"
+          ref={fileInputRef as any}
+          onChange={handleWebFileChange as any}
+          accept="image/*"
+          style={{ display: 'none' }}
+        />
+      )}
+
       <View style={styles.maxWidthWrapper}>
         {/* Header with Title, Status & Theme Toggle */}
         <View style={styles.headerRow}>
@@ -459,7 +564,7 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
         </TouchableOpacity>
       </View>
 
-      {/* Edit Profile Modal */}
+      {/* Edit Profile Modal (Photo, Name, and Password Only) */}
       <Modal
         visible={editModalVisible}
         transparent={true}
@@ -471,133 +576,217 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
           style={{ flex: 1 }}
         >
           <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.editModalCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? '#334155' : '#e2e8f0',
-              },
-            ]}
-          >
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              ✏️ Edit Profile Information
-            </Text>
-            <Text style={[styles.modalSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              Update your personal details visible across DocuVault.
-            </Text>
-
-            {/* Input 1: Name */}
-            <View style={styles.inputBlock}>
-              <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>👤 Full Name</Text>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  {
-                    backgroundColor: isDark ? '#1e293b' : '#f8fafc',
-                    borderColor: isDark ? '#334155' : '#cbd5e1',
-                    color: colors.textPrimary,
-                  },
-                ]}
-                value={editName}
-                onChangeText={setEditName}
-                placeholder="Your Name"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-              />
-            </View>
-
-            {/* Input 2: Role */}
-            <View style={styles.inputBlock}>
-              <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>💼 Role / Job Title</Text>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  {
-                    backgroundColor: isDark ? '#1e293b' : '#f8fafc',
-                    borderColor: isDark ? '#334155' : '#cbd5e1',
-                    color: colors.textPrimary,
-                  },
-                ]}
-                value={editRole}
-                onChangeText={setEditRole}
-                placeholder="Senior Software Engineer"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-              />
-            </View>
-
-            {/* Input 3: Department */}
-            <View style={styles.inputBlock}>
-              <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>🏢 Department</Text>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  {
-                    backgroundColor: isDark ? '#1e293b' : '#f8fafc',
-                    borderColor: isDark ? '#334155' : '#cbd5e1',
-                    color: colors.textPrimary,
-                  },
-                ]}
-                value={editDepartment}
-                onChangeText={setEditDepartment}
-                placeholder="Cloud Platform & Security"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-              />
-            </View>
-
-            {/* Input 4: Email */}
-            <View style={styles.inputBlock}>
-              <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>✉️ Email Address</Text>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  {
-                    backgroundColor: isDark ? '#1e293b' : '#f8fafc',
-                    borderColor: isDark ? '#334155' : '#cbd5e1',
-                    color: colors.textPrimary,
-                  },
-                ]}
-                value={editEmail}
-                onChangeText={setEditEmail}
-                placeholder="name@enterprise.com"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.modalActionsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.modalCancelBtn,
-                  {
-                    backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
-                    borderColor: isDark ? '#334155' : '#cbd5e1',
-                  },
-                ]}
-                onPress={() => setEditModalVisible(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.modalCancelBtnText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                  Cancel
+            <View
+              style={[
+                styles.editModalCard,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? '#334155' : '#e2e8f0',
+                },
+              ]}
+            >
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+                  ✏️ Edit Profile
                 </Text>
-              </TouchableOpacity>
+                <Text style={[styles.modalSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                  Update your profile photo, full name, or account password.
+                </Text>
 
-              <TouchableOpacity
-                style={[
-                  styles.modalSaveBtn,
-                  { backgroundColor: isDark ? '#2563eb' : '#1b3569' },
-                ]}
-                onPress={handleSaveEdit}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.modalSaveBtnText}>Save Changes</Text>
-              </TouchableOpacity>
+                {/* Inline Error Banner */}
+                {editError && (
+                  <View style={styles.editErrorBox}>
+                    <Text style={styles.editErrorText}>⚠️ {editError}</Text>
+                  </View>
+                )}
+
+                {/* 1. Update Profile Photo */}
+                <View style={styles.avatarEditContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.avatarEditRing,
+                      { borderColor: isDark ? '#38bdf8' : '#2563eb' },
+                    ]}
+                    onPress={handlePickAvatar}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={{ uri: editAvatar || user.avatar }}
+                      style={styles.avatarEditImg}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.avatarEditBadge}>
+                      <Text style={{ fontSize: 13 }}>📷</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.changePhotoBtn,
+                      {
+                        backgroundColor: isDark ? '#1e293b' : '#eff6ff',
+                        borderColor: isDark ? '#38bdf8' : '#bfdbfe',
+                      },
+                    ]}
+                    onPress={handlePickAvatar}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.changePhotoBtnText, { color: isDark ? '#38bdf8' : '#1d4ed8' }]}>
+                      📷 Change Photo
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* 2. Change Full Name */}
+                <View style={styles.inputBlock}>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>👤 Full Name</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+                        borderColor: isDark ? '#334155' : '#cbd5e1',
+                        color: colors.textPrimary,
+                      },
+                    ]}
+                    value={editName}
+                    onChangeText={(val) => {
+                      setEditName(val);
+                      if (editError) setEditError(null);
+                    }}
+                    placeholder="Your Full Name"
+                    placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  />
+                </View>
+
+                {/* 3. Update Password Section */}
+                <View
+                  style={[
+                    styles.passwordCardSection,
+                    {
+                      backgroundColor: isDark ? '#0b1329' : '#f8fafc',
+                      borderColor: isDark ? '#1e293b' : '#e2e8f0',
+                    },
+                  ]}
+                >
+                  <View style={styles.passwordHeaderRow}>
+                    <Text style={[styles.passwordSectionTitle, { color: colors.textPrimary }]}>
+                      🔒 Change Password
+                    </Text>
+                    <Text style={[styles.optionalBadge, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                      (Optional)
+                    </Text>
+                  </View>
+                  <Text style={[styles.passwordHelperText, { color: isDark ? '#64748b' : '#94a3b8' }]}>
+                    Leave blank if you wish to keep your current password.
+                  </Text>
+
+                  {/* New Password */}
+                  <View style={[styles.inputBlock, { marginTop: 10 }]}>
+                    <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>New Password</Text>
+                    <View style={styles.passwordInputWrapper}>
+                      <TextInput
+                        style={[
+                          styles.textInput,
+                          styles.passwordInput,
+                          {
+                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            borderColor: isDark ? '#334155' : '#cbd5e1',
+                            color: colors.textPrimary,
+                          },
+                        ]}
+                        value={newPassword}
+                        onChangeText={(val) => {
+                          setNewPassword(val);
+                          if (editError) setEditError(null);
+                        }}
+                        placeholder="At least 8 chars (Aa1@)"
+                        placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                        secureTextEntry={!showNewPassword}
+                        autoCapitalize="none"
+                      />
+                      <TouchableOpacity
+                        style={styles.eyeBtn}
+                        onPress={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        <Text style={{ fontSize: 16 }}>{showNewPassword ? '🙈' : '👁️'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Confirm New Password */}
+                  <View style={styles.inputBlock}>
+                    <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Confirm New Password</Text>
+                    <View style={styles.passwordInputWrapper}>
+                      <TextInput
+                        style={[
+                          styles.textInput,
+                          styles.passwordInput,
+                          {
+                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            borderColor: isDark ? '#334155' : '#cbd5e1',
+                            color: colors.textPrimary,
+                          },
+                        ]}
+                        value={confirmPassword}
+                        onChangeText={(val) => {
+                          setConfirmPassword(val);
+                          if (editError) setEditError(null);
+                        }}
+                        placeholder="Confirm new password"
+                        placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                        secureTextEntry={!showConfirmPassword}
+                        autoCapitalize="none"
+                      />
+                      <TouchableOpacity
+                        style={styles.eyeBtn}
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        <Text style={{ fontSize: 16 }}>{showConfirmPassword ? '🙈' : '👁️'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Action Buttons */}
+                <View style={styles.modalActionsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalCancelBtn,
+                      {
+                        backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                        borderColor: isDark ? '#334155' : '#cbd5e1',
+                      },
+                    ]}
+                    onPress={() => setEditModalVisible(false)}
+                    activeOpacity={0.7}
+                    disabled={isSaving}
+                  >
+                    <Text style={[styles.modalCancelBtnText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.modalSaveBtn,
+                      { backgroundColor: isDark ? '#2563eb' : '#1b3569' },
+                    ]}
+                    onPress={handleSaveEdit}
+                    activeOpacity={0.85}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <Text style={styles.modalSaveBtnText}>Save Changes</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </View>
           </View>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Logout Confirmation Dialog */}
       <Modal
@@ -1120,5 +1309,94 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '800',
+  },
+  avatarEditContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatarEditRing: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    borderWidth: 2.5,
+    position: 'relative',
+    overflow: 'visible',
+    marginBottom: 8,
+  },
+  avatarEditImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 43,
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#2563eb',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  changePhotoBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  changePhotoBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  editErrorBox: {
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 14,
+  },
+  editErrorText: {
+    color: '#dc2626',
+    fontSize: 12.5,
+    fontWeight: '600',
+  },
+  passwordCardSection: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+  },
+  passwordHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  passwordSectionTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  optionalBadge: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  passwordHelperText: {
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+  passwordInputWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  passwordInput: {
+    paddingRight: 42,
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: 12,
+    padding: 6,
   },
 });

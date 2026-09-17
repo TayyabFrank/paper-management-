@@ -34,7 +34,7 @@ interface AuthContextValue {
     department?: string;
   }) => Promise<AuthResult>;
   logout: () => Promise<void>;
-  updateUser: (data: Partial<EmployeeUser>) => Promise<void>;
+  updateUser: (data: Partial<EmployeeUser>, newPassword?: string) => Promise<AuthResult>;
 }
 
 const STORAGE_KEY_SESSION = '@docuvault_auth_session';
@@ -57,7 +57,7 @@ const AuthContext = createContext<AuthContextValue>({
   login: async () => ({ success: false }),
   register: async () => ({ success: false }),
   logout: async () => {},
-  updateUser: async () => {},
+  updateUser: async () => ({ success: true }),
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -314,7 +314,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUser = async (data: Partial<EmployeeUser>) => {
+  const updateUser = async (
+    data: Partial<EmployeeUser>,
+    newPassword?: string
+  ): Promise<AuthResult> => {
+    // Validate new password if provided
+    if (newPassword && newPassword.trim()) {
+      const cleanPassword = newPassword.trim();
+      if (cleanPassword.length < 8) {
+        return { success: false, error: 'Password must be at least 8 characters long.' };
+      }
+      if (!/[A-Z]/.test(cleanPassword)) {
+        return { success: false, error: 'Password must contain at least one uppercase letter (A-Z).' };
+      }
+      if (!/[a-z]/.test(cleanPassword)) {
+        return { success: false, error: 'Password must contain at least one lowercase letter (a-z).' };
+      }
+      if (!/[0-9]/.test(cleanPassword)) {
+        return { success: false, error: 'Password must contain at least one number (0-9).' };
+      }
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(cleanPassword)) {
+        return { success: false, error: 'Password must contain at least one special character (!@#$%^&*...).' };
+      }
+    }
+
     const updatedUser = { ...user, ...data };
     setUser(updatedUser);
 
@@ -326,8 +349,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Update in registered accounts list too
     const updatedAccounts = accounts.map((acc) => {
-      if (acc.email.toLowerCase() === updatedUser.email.toLowerCase()) {
-        return { ...acc, ...data };
+      if (acc.email.toLowerCase() === user.email.toLowerCase()) {
+        return {
+          ...acc,
+          ...data,
+          ...(newPassword && newPassword.trim() ? { password: newPassword.trim() } : {}),
+        };
       }
       return acc;
     });
@@ -338,6 +365,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.warn('Failed to update stored account:', e);
     }
+
+    return { success: true };
   };
 
   return (

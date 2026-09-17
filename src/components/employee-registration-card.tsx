@@ -485,7 +485,7 @@ export function EmployeeRegistrationCard({
             {isSubmitting ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
-              <Text style={styles.primaryButtonText}>🚀 Create Account & Enter Workspace</Text>
+              <Text style={styles.primaryButtonText}>Create Account & Enter Workspace</Text>
             )}
           </TouchableOpacity>
 
@@ -528,7 +528,7 @@ export function EmployeeRegistrationCard({
                 activeOpacity={0.7}
               >
                 <Text style={[styles.forgotPasswordLink, { color: isDark ? '#38bdf8' : '#3b82f6' }]}>
-                  ❓ Forgot Password?
+                  Forgot Password❓
                 </Text>
               </TouchableOpacity>
             </View>
