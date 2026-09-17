@@ -1,18 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@/context/auth-context';
+import { useDocuVaultTheme } from '@/context/theme-context';
+import * as DocumentPicker from 'expo-document-picker';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Image,
+  Modal,
+  Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Platform,
-  Image,
-  ActivityIndicator,
-  Modal,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useDocuVaultTheme } from '@/context/theme-context';
-import { UploadPermissionModal } from './upload-permission-modal';
 
 const DEFAULT_AVATAR_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -56,6 +57,7 @@ export function EmployeeRegistrationCard({
 }: EmployeeRegistrationCardProps) {
   const router = useRouter();
   const { isDark, colors } = useDocuVaultTheme();
+  const { login, register } = useAuth();
   const [mode, setMode] = useState<'register' | 'login'>(initialMode);
   const [fullName, setFullName] = useState('');
   const [workEmail, setWorkEmail] = useState('');
@@ -65,7 +67,7 @@ export function EmployeeRegistrationCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedModalVisible, setSubmittedModalVisible] = useState(false);
   const [forgotModalVisible, setForgotModalVisible] = useState(false);
-  const [permModalVisible, setPermModalVisible] = useState(false);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -76,6 +78,29 @@ export function EmployeeRegistrationCard({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const pwdRules = {
+    hasMinLength: password.length >= 8,
+    hasUpper: /[A-Z]/.test(password),
+    hasLower: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+  };
+  const passwordScore = Object.values(pwdRules).filter(Boolean).length;
+
+  const getScoreColor = (score: number) => {
+    if (score <= 1) return '#ef4444';
+    if (score <= 3) return '#f59e0b';
+    if (score === 4) return '#3b82f6';
+    return '#16a34a';
+  };
+
+  const getScoreLabel = (score: number) => {
+    if (score <= 1) return 'Weak Password';
+    if (score <= 3) return 'Moderate Password';
+    if (score === 4) return 'Good Password';
+    return 'Strong Password ✓';
+  };
+
   const switchMode = (newMode: 'register' | 'login') => {
     setMode(newMode);
     setErrors({});
@@ -85,7 +110,37 @@ export function EmployeeRegistrationCard({
   };
 
   const handleChoosePhoto = () => {
-    setPermModalVisible(true);
+    setShowPermissionDialog(true);
+  };
+
+  const handlePermissionDecision = async (allow: boolean) => {
+    setShowPermissionDialog(false);
+    if (!allow) {
+      return;
+    }
+
+    try {
+      if (Platform.OS === 'web' && fileInputRef.current) {
+        fileInputRef.current.click();
+        return;
+      }
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setFaceImage(asset.uri);
+      }
+    } catch (err) {
+      console.warn('File picker error:', err);
+      if (Platform.OS === 'web' && fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+    }
   };
 
   const handleWebFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,31 +150,59 @@ export function EmployeeRegistrationCard({
       reader.onload = (uploadEvent) => {
         if (uploadEvent.target?.result) {
           setFaceImage(uploadEvent.target.result as string);
+          if (errors.faceImage) {
+            setErrors((prev) => ({ ...prev, faceImage: '' }));
+          }
         }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const newErrors: { [key: string]: string } = {};
 
     if (mode === 'register') {
-      if (!fullName.trim()) newErrors.fullName = 'Full Name is required';
+      // 1. Compulsory Full Name
+      if (!fullName.trim()) {
+        newErrors.fullName = 'Full Name is required';
+      }
+
+      // 2. Compulsory Work Email
       if (!workEmail.trim()) {
         newErrors.workEmail = 'Work Email is required';
       } else if (!/\S+@\S+\.\S+/.test(workEmail)) {
         newErrors.workEmail = 'Please enter a valid work email';
       }
-      if (!password.trim()) newErrors.password = 'Password is required';
-      else if (password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+
+      // 3. Compulsory Strong Password
+      if (!password.trim()) {
+        newErrors.password = 'Password is required';
+      } else if (password.length < 8) {
+        newErrors.password = 'Password must be at least 8 characters long';
+      } else if (!/[A-Z]/.test(password)) {
+        newErrors.password = 'Password must contain at least one uppercase letter (A-Z)';
+      } else if (!/[a-z]/.test(password)) {
+        newErrors.password = 'Password must contain at least one lowercase letter (a-z)';
+      } else if (!/[0-9]/.test(password)) {
+        newErrors.password = 'Password must contain at least one number (0-9)';
+      } else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+        newErrors.password = 'Password must contain at least one special character (!@#$%^&*...)';
+      }
+
+      // 4. Compulsory Profile Photo / Image
+      if (!faceImage) {
+        newErrors.faceImage = 'Profile photo is required. Please upload your photo to register.';
+      }
     } else {
       if (!workEmail.trim()) {
         newErrors.workEmail = 'Work Email is required';
       } else if (!/\S+@\S+\.\S+/.test(workEmail)) {
         newErrors.workEmail = 'Please enter a valid work email';
       }
-      if (!password.trim()) newErrors.password = 'Password is required';
+      if (!password.trim()) {
+        newErrors.password = 'Password is required';
+      }
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -130,31 +213,47 @@ export function EmployeeRegistrationCard({
     setErrors({});
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
       if (mode === 'login') {
+        const result = await login(workEmail, password);
+        setIsSubmitting(false);
+        if (!result.success) {
+          setErrors({ form: result.error || 'Authentication failed' });
+          return;
+        }
         if (onLoginSuccess) {
-          onLoginSuccess({
-            name: workEmail ? workEmail.split('@')[0].replace('.', ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : 'Liam Thompson',
-            email: workEmail || 'l.thompson@enterprise.com',
-            avatar: faceImage || undefined,
-          });
+          onLoginSuccess();
         } else {
-          router.push('/dashboard');
+          router.push('/');
         }
       } else {
+        const result = await register({
+          name: fullName,
+          email: workEmail,
+          password: password,
+          avatar: faceImage || undefined,
+        });
+        setIsSubmitting(false);
+        if (!result.success) {
+          setErrors({ form: result.error || 'Registration failed' });
+          return;
+        }
         setSubmittedModalVisible(true);
       }
-    }, 700);
+    } catch {
+      setIsSubmitting(false);
+      setErrors({ form: 'An unexpected error occurred. Please try again.' });
+    }
   };
 
   const handleReset = () => {
     setSubmittedModalVisible(false);
     if (mode === 'register') {
-      setFullName('');
-      setWorkEmail('');
-      setPassword('');
-      setFaceImage(null);
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      } else {
+        router.push('/');
+      }
     }
   };
 
@@ -209,8 +308,11 @@ export function EmployeeRegistrationCard({
         /* REGISTRATION FORM */
         <View style={styles.formContent}>
           {/* Full Name */}
+          {/* Full Name */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>👤 Full Name</Text>
+            <Text style={[styles.label, labelThemeStyle]}>
+              👤 Full Name <Text style={styles.requiredMark}>*</Text>
+            </Text>
             <TextInput
               style={[styles.input, inputThemeStyle, errors.fullName ? styles.inputError : null]}
               placeholder="John Doe"
@@ -227,7 +329,9 @@ export function EmployeeRegistrationCard({
 
           {/* Work Email */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>✉️ Work Email</Text>
+            <Text style={[styles.label, labelThemeStyle]}>
+              ✉️ Work Email <Text style={styles.requiredMark}>*</Text>
+            </Text>
             <TextInput
               style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
               placeholder="name@company.com"
@@ -246,11 +350,13 @@ export function EmployeeRegistrationCard({
 
           {/* Password */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>🔒 Password</Text>
-            <View style={[styles.passwordInputContainer, inputThemeStyle]}>
+            <Text style={[styles.label, labelThemeStyle]}>
+              🔒 Password <Text style={styles.requiredMark}></Text>
+            </Text>
+            <View style={[styles.passwordInputContainer, inputThemeStyle, errors.password ? styles.inputError : null]}>
               <TextInput
-                style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }, errors.password ? styles.inputError : null]}
-                placeholder="Enter password"
+                style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }]}
+                placeholder="Enter strong password"
                 placeholderTextColor={placeholderColor}
                 value={password}
                 onChangeText={(text) => {
@@ -272,12 +378,56 @@ export function EmployeeRegistrationCard({
               </TouchableOpacity>
             </View>
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+
+            {/* Real-time Password Strength Meter in Register Mode */}
+            {password.length > 0 && (
+              <View style={styles.pwdStrengthWrapper}>
+                <View style={styles.pwdProgressBar}>
+                  <View
+                    style={[
+                      styles.pwdProgressFill,
+                      {
+                        width: `${(passwordScore / 5) * 100}%`,
+                        backgroundColor: getScoreColor(passwordScore),
+                      },
+                    ]}
+                  />
+                </View>
+                <View style={styles.pwdStatusRow}>
+                  <Text style={[styles.pwdStrengthLabel, { color: getScoreColor(passwordScore) }]}>
+                    {getScoreLabel(passwordScore)}
+                  </Text>
+                  <Text style={[styles.pwdHintText, { color: colors.textSecondary }]}>
+                    {passwordScore === 5 ? '✓ All requirements met' : `${passwordScore}/5 met`}
+                  </Text>
+                </View>
+                <View style={styles.pwdRulesGrid}>
+                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasMinLength ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
+                    {pwdRules.hasMinLength ? '✓' : '•'} 8+ characters
+                  </Text>
+                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasUpper ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
+                    {pwdRules.hasUpper ? '✓' : '•'} Uppercase (A-Z)
+                  </Text>
+                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasLower ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
+                    {pwdRules.hasLower ? '✓' : '•'} Lowercase (a-z)
+                  </Text>
+                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasNumber ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
+                    {pwdRules.hasNumber ? '✓' : '•'} Number (0-9)
+                  </Text>
+                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasSpecial ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
+                    {pwdRules.hasSpecial ? '✓' : '•'} Symbol (!@#$%...)
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Face Image */}
           <View style={styles.fieldGroup}>
             <View style={styles.faceLabelRow}>
-              <Text style={[styles.label, labelThemeStyle]}>📷 Face Image</Text>
+              <Text style={[styles.label, labelThemeStyle]}>
+                📷 Profile Photo <Text style={styles.requiredMark}></Text>
+              </Text>
               {faceImage && (
                 <TouchableOpacity onPress={() => setFaceImage(null)}>
                   <Text style={styles.removePhotoText}>🗑️ Remove</Text>
@@ -285,7 +435,7 @@ export function EmployeeRegistrationCard({
               )}
             </View>
 
-            <View style={[styles.faceUploadBox, inputThemeStyle]}>
+            <View style={[styles.faceUploadBox, inputThemeStyle, errors.faceImage ? styles.inputError : null]}>
               <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#28364e' : '#cbd5e1' }]}>
                 <Image
                   source={faceImage ? { uri: faceImage } : { uri: DEFAULT_AVATAR_SVG }}
@@ -299,7 +449,7 @@ export function EmployeeRegistrationCard({
                   styles.uploadButton,
                   {
                     backgroundColor: isDark ? '#1e293b' : '#f1f5fa',
-                    borderColor: isDark ? '#38bdf8' : '#1b3569',
+                    borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569'),
                   },
                 ]}
                 onPress={handleChoosePhoto}
@@ -308,14 +458,22 @@ export function EmployeeRegistrationCard({
                 <Text
                   style={[
                     styles.uploadButtonText,
-                    { color: isDark ? '#38bdf8' : '#1b3569' },
+                    { color: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569') },
                   ]}
                 >
-                  {faceImage ? '🔄 Change Photo' : '🖼️ Upload Photo'}
+                  {faceImage ? '🔄 Change Photo' : '🖼️ Upload Photo *'}
                 </Text>
               </TouchableOpacity>
             </View>
+            {errors.faceImage ? <Text style={styles.errorText}>{errors.faceImage}</Text> : null}
           </View>
+
+          {/* Global Form Error Banner */}
+          {errors.form ? (
+            <View style={styles.formErrorBanner}>
+              <Text style={styles.formErrorText}>⚠️ {errors.form}</Text>
+            </View>
+          ) : null}
 
           {/* Submit Button */}
           <TouchableOpacity
@@ -327,7 +485,7 @@ export function EmployeeRegistrationCard({
             {isSubmitting ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
-              <Text style={styles.primaryButtonText}>🚀 Submit for Admin Approval</Text>
+              <Text style={styles.primaryButtonText}>🚀 Create Account & Enter Workspace</Text>
             )}
           </TouchableOpacity>
 
@@ -347,7 +505,7 @@ export function EmployeeRegistrationCard({
             <Text style={[styles.label, labelThemeStyle]}>✉️ Work Email</Text>
             <TextInput
               style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
-              placeholder="m.chen@company.com"
+              placeholder="name@company.com"
               placeholderTextColor={placeholderColor}
               value={workEmail}
               onChangeText={(text) => {
@@ -402,6 +560,13 @@ export function EmployeeRegistrationCard({
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
           </View>
 
+          {/* Global Form Error Banner */}
+          {errors.form ? (
+            <View style={styles.formErrorBanner}>
+              <Text style={styles.formErrorText}>⚠️ {errors.form}</Text>
+            </View>
+          ) : null}
+
           {/* Login Button */}
           <TouchableOpacity
             style={[styles.primaryButton, primaryBtnStyle]}
@@ -426,16 +591,95 @@ export function EmployeeRegistrationCard({
         </View>
       )}
 
-      {/* Upload Permission Modal for Face Picture */}
-      <UploadPermissionModal
-        visible={permModalVisible}
-        onClose={() => setPermModalVisible(false)}
-        title="Permission & Upload: Face Picture"
-        onlyImages
-        onUploadSuccess={(item) => {
-          setFaceImage(item.previewImage || item.url || null);
-        }}
-      />
+      {/* Hidden File Input for Web */}
+      {Platform.OS === 'web' && (
+        <input
+          type="file"
+          ref={fileInputRef as any}
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleWebFileChange}
+        />
+      )}
+
+      {/* Device Storage Permission Modal (Yes / No) */}
+      <Modal
+        visible={showPermissionDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => handlePermissionDecision(false)}
+      >
+        <View style={styles.permOverlay}>
+          <View
+            style={[
+              styles.permCard,
+              {
+                backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                borderColor: isDark ? '#334155' : '#e2e8f0',
+              },
+            ]}
+          >
+            {/* Icon Header */}
+            <View
+              style={[
+                styles.permIconBadge,
+                {
+                  backgroundColor: isDark ? '#0f172a' : '#eff6ff',
+                  borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                },
+              ]}
+            >
+              <Text style={{ fontSize: 32 }}>📁</Text>
+            </View>
+
+            <Text style={[styles.permHeading, { color: colors.textPrimary }]}>
+              Device Storage Access
+            </Text>
+
+            <Text style={[styles.permDescription, { color: isDark ? '#cbd5e1' : '#475569' }]}>
+              Allow DocuVault to access files on this device so you can browse your file manager and select your profile photo?
+            </Text>
+
+            <Text style={[styles.permSecurityNote, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+              🔒 Only the photo you choose will be uploaded.
+            </Text>
+
+            {/* Yes / No Action Buttons */}
+            <View style={styles.permBtnRow}>
+              <TouchableOpacity
+                style={[
+                  styles.permDenyBtn,
+                  {
+                    backgroundColor: isDark ? '#334155' : '#f1f5f9',
+                    borderColor: isDark ? '#475569' : '#cbd5e1',
+                  },
+                ]}
+                onPress={() => handlePermissionDecision(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.permDenyBtnText, { color: isDark ? '#f1f5f9' : '#475569' }]}>
+                  ✕ No / Deny
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.permAllowBtn,
+                  {
+                    backgroundColor: isDark ? '#2563eb' : '#1b3569',
+                  },
+                ]}
+                onPress={() => handlePermissionDecision(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.permAllowBtnText}>
+                  ✓ Yes / Allow
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Submission Confirmation Modal */}
       <Modal
@@ -459,12 +703,12 @@ export function EmployeeRegistrationCard({
               <Text style={styles.checkmarkText}>✓</Text>
             </View>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {mode === 'register' ? 'Registration Submitted!' : 'Welcome Back!'}
+              {mode === 'register' ? 'Account Created!' : 'Welcome Back!'}
             </Text>
             <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
               {mode === 'register'
-                ? `Your application for ${fullName || 'Employee'} (${workEmail}) has been sent for administrator approval. You will receive an email once approved.`
-                : `Successfully authenticated as ${workEmail || 'm.chen@company.com'}. Redirecting to your workspace...`}
+                ? `Welcome, ${fullName || 'Employee'}! Your account (${workEmail}) has been created successfully. You can now access your workspace.`
+                : `Successfully authenticated as ${workEmail}. Redirecting to your workspace...`}
             </Text>
 
             <TouchableOpacity
@@ -472,7 +716,7 @@ export function EmployeeRegistrationCard({
               onPress={handleReset}
               activeOpacity={0.8}
             >
-              <Text style={styles.modalButtonText}>Continue</Text>
+              <Text style={styles.modalButtonText}>Enter Workspace 🚀</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -782,6 +1026,146 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: '#ffffff',
     fontSize: 15,
+    fontWeight: '600',
+  },
+  permOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    zIndex: 9999,
+  },
+  permCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  permIconBadge: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    marginBottom: 16,
+  },
+  permHeading: {
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  permDescription: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  permSecurityNote: {
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  permBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+  },
+  permDenyBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  permDenyBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  permAllowBtn: {
+    flex: 1.25,
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1b3569',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  permAllowBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  formErrorBanner: {
+    backgroundColor: '#fee2e2',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  formErrorText: {
+    color: '#b91c1c',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  requiredMark: {
+    color: '#ef4444',
+    fontWeight: '700',
+  },
+  pwdStrengthWrapper: {
+    marginTop: 6,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
+  pwdProgressBar: {
+    height: 4,
+    backgroundColor: '#cbd5e1',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  pwdProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  pwdStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  pwdStrengthLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  pwdHintText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  pwdRulesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pwdRuleText: {
+    fontSize: 11,
     fontWeight: '600',
   },
 });

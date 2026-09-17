@@ -382,12 +382,20 @@ interface DocumentsDashboardProps {
   employeeAvatar?: string;
 }
 
+const DEFAULT_AVATAR_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
+  <circle cx="24" cy="24" r="23" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/>
+  <circle cx="24" cy="18" r="7.5" fill="#64748b"/>
+  <path d="M11 40C11 32.8203 16.8203 27 24 27C31.1797 27 37 32.8203 37 40" fill="#64748b"/>
+</svg>
+`)}`;
+
 export function DocumentsDashboard({
   onBack,
   onNavigateNewDoc,
-  employeeName = 'Liam Thompson',
-  employeeEmail = 'l.thompson@enterprise.com',
-  employeeAvatar = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+  employeeName = '',
+  employeeEmail = '',
+  employeeAvatar = '',
 }: DocumentsDashboardProps) {
   const router = useRouter();
   const { isDark, colors } = useDocuVaultTheme();
@@ -405,9 +413,7 @@ export function DocumentsDashboard({
     if (e && e.stopPropagation) {
       e.stopPropagation();
     }
-    deleteDocument(doc.id);
-    setUploadNotification(`🗑️ "${doc.title}" deleted.`);
-    setTimeout(() => setUploadNotification(null), 3000);
+    setDocToDelete(doc);
   };
 
   const handleConfirmDelete = () => {
@@ -652,7 +658,7 @@ export function DocumentsDashboard({
         ]}
       >
         <Image
-          source={{ uri: employeeAvatar }}
+          source={{ uri: employeeAvatar || DEFAULT_AVATAR_SVG }}
           style={styles.profileAvatar}
           resizeMode="cover"
         />
@@ -999,10 +1005,13 @@ export function DocumentsDashboard({
       />
 
       {/* Dedicated Full Document / Article / Image Reader */}
-      <DocumentReader
-        document={readingDoc}
-        onClose={() => setReadingDoc(null)}
-      />
+      {readingDoc && (
+        <DocumentReader
+          key={readingDoc.id}
+          document={readingDoc}
+          onClose={() => setReadingDoc(null)}
+        />
+      )}
     </View>
   );
 }

@@ -13,6 +13,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { TabKey } from './bottom-navbar';
 import { DocumentReaderItem } from './document-reader';
@@ -299,13 +300,20 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        { backgroundColor: isDark ? colors.background : '#f0f4fa' },
-      ]}
-      showsVerticalScrollIndicator={false}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}
     >
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          { backgroundColor: isDark ? colors.background : '#f0f4fa' },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={true}
+      >
       {/* Hidden Web File Input for Native File System Access */}
       {Platform.OS === 'web' && (
         <input
@@ -659,6 +667,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
         </View>
       </Modal>
     </ScrollView>
+  </KeyboardAvoidingView>
   );
 }
 
@@ -667,7 +676,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 95,
+    paddingBottom: 130,
   },
   maxWidthWrapper: {
     width: '100%',

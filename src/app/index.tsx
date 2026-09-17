@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DocuVaultLogo } from '@/components/docuvault-logo';
@@ -21,9 +22,24 @@ import { useAuth } from '@/context/auth-context';
 
 export default function HomeScreen() {
   const { isDark, colors } = useDocuVaultTheme();
-  const { isLoggedIn, user, login } = useAuth();
+  const { isLoggedIn, isLoading, user } = useAuth();
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [activeTab, setActiveTab] = useState<TabKey>('home');
+
+  // Loading indicator while checking stored session
+  if (isLoading) {
+    return (
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}
+      >
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={colors.background}
+        />
+        <ActivityIndicator size="large" color={isDark ? '#38bdf8' : '#1b3569'} />
+      </SafeAreaView>
+    );
+  }
 
   // IF LOGGED IN: Open Home page directly with fixed bottom navbar throughout application
   if (isLoggedIn) {
@@ -62,7 +78,9 @@ export default function HomeScreen() {
             <NewDocView onNavigateTab={(tab) => setActiveTab(tab)} />
           )}
 
-          {activeTab === 'profile' && <EmployeeProfileView />}
+          {activeTab === 'profile' && (
+            <EmployeeProfileView onNavigateTab={(tab) => setActiveTab(tab)} />
+          )}
         </View>
 
         {/* Fixed Employee Bottom Navbar matching the user's design */}
@@ -79,8 +97,9 @@ export default function HomeScreen() {
         backgroundColor={colors.background}
       />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardContainer}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
         {/* Top Floating Header with Theme Toggle */}
         <View style={styles.topThemeBar}>
@@ -91,6 +110,7 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
         >
           <View style={styles.innerContainer}>
             <DocuVaultLogo
@@ -99,8 +119,7 @@ export default function HomeScreen() {
             <EmployeeRegistrationCard
               initialMode={authMode}
               onModeChange={(newMode) => setAuthMode(newMode)}
-              onLoginSuccess={(userData) => {
-                login(userData);
+              onLoginSuccess={() => {
                 setActiveTab('home');
               }}
             />

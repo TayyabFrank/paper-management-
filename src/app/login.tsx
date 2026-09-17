@@ -25,8 +25,9 @@ export default function LoginScreen() {
         backgroundColor={colors.background}
       />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardContainer}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
         <View style={styles.topThemeBar}>
           <ThemeToggleButton />
@@ -36,6 +37,7 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
         >
           <View style={styles.innerContainer}>
             <DocuVaultLogo subtitle="Enterprise Document Management System" />
@@ -47,7 +49,7 @@ export default function LoginScreen() {
                 }
               }}
               onLoginSuccess={() => {
-                router.push('/dashboard');
+                router.replace('/');
               }}
             />
           </View>

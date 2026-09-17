@@ -169,10 +169,14 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
       style={[
         styles.navbarContainer,
         {
-          backgroundColor: isDark ? '#0c1322' : '#ffffff',
+          backgroundColor: isDark ? 'rgba(12, 19, 34, 0.94)' : 'rgba(255, 255, 255, 0.94)',
           borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
           paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 14 : 8),
         },
+        Platform.OS === 'web' && ({
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        } as any),
       ]}
     >
       <View style={styles.tabBarInner}>
@@ -184,9 +188,9 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
           return (
             <TouchableOpacity
               key={tab.key}
-              style={styles.tabItem}
+              style={[styles.tabItem, Platform.OS === 'web' && ({ cursor: 'pointer' } as any)]}
               onPress={() => onTabChange(tab.key)}
-              activeOpacity={0.75}
+              activeOpacity={0.7}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={`${tab.label} tab`}
@@ -218,6 +222,14 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
               >
                 {tab.label}
               </Text>
+
+              {/* Subtle active indicator dot */}
+              <View
+                style={[
+                  styles.activeDot,
+                  { backgroundColor: isActive ? activeLabelColor : 'transparent' },
+                ]}
+              />
             </TouchableOpacity>
           );
         })}
@@ -236,42 +248,43 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 12,
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 14,
     zIndex: 999,
   },
   tabBarInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    maxWidth: 520,
+    maxWidth: 480,
     alignSelf: 'center',
     width: '100%',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    minHeight: 52,
+    minHeight: 54,
+    paddingVertical: 2,
   },
   iconSlot: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   activeCapsulePill: {
-    width: 64,
+    width: 60,
     height: 32,
     borderRadius: 16,
     shadowColor: '#1b3569',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   inactiveIconSlot: {
-    width: 64,
+    width: 60,
     height: 32,
   },
   icon: {
@@ -279,12 +292,18 @@ const styles = StyleSheet.create({
     height: 22,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '500',
-    marginTop: 4,
+    marginTop: 3,
     letterSpacing: -0.1,
   },
   activeTabLabel: {
     fontWeight: '700',
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 2,
   },
 });

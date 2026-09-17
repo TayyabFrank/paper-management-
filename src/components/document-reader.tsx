@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,12 @@ import {
   Image,
   Modal,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
+import * as Sharing from 'expo-sharing';
+import * as IntentLauncher from 'expo-intent-launcher';
+import * as FileSystem from 'expo-file-system/legacy';
 import { getDocumentTypeIcon, getDetectedBadgeStyle, getDetectedBadgeTextStyle } from './documents-dashboard';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { useDocuVaultTheme } from '@/context/theme-context';
@@ -60,6 +65,194 @@ const PRINT_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+const OPEN_APP_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b3569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+  <polyline points="15 3 21 3 21 9"></polyline>
+  <line x1="10" y1="14" x2="21" y2="3"></line>
+</svg>
+`)}`;
+
+const OPEN_APP_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+  <polyline points="15 3 21 3 21 9"></polyline>
+  <line x1="10" y1="14" x2="21" y2="3"></line>
+</svg>
+`)}`;
+
+function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: ${isDark ? '#0b0f19' : '#e2e8f0'};
+      color: ${isDark ? '#f8fafc' : '#0f172a'};
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #document-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px 8px 40px;
+      gap: 16px;
+      width: 100%;
+    }
+    .page-wrapper {
+      position: relative;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      border-radius: 6px;
+      overflow: hidden;
+      background-color: #ffffff;
+      max-width: 100%;
+    }
+    canvas {
+      display: block;
+      width: 100% !important;
+      height: auto !important;
+    }
+    .page-number-tag {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.75);
+      color: #ffffff;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-family: sans-serif;
+      pointer-events: none;
+    }
+    #status-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 50px 20px;
+      text-align: center;
+    }
+    .spinner {
+      width: 38px;
+      height: 38px;
+      border: 3.5px solid rgba(56, 189, 248, 0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .status-text {
+      font-size: 14px;
+      color: ${isDark ? '#94a3b8' : '#64748b'};
+      font-weight: 600;
+    }
+    .error-box {
+      background: ${isDark ? '#1f1315' : '#fef2f2'};
+      border: 1px solid #f87171;
+      border-radius: 8px;
+      padding: 16px;
+      max-width: 90%;
+      margin-top: 14px;
+      color: #ef4444;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="status-overlay">
+    <div class="spinner" id="spinner"></div>
+    <div class="status-text" id="status-label">Rendering document on screen...</div>
+    <div id="error-container" style="display:none;" class="error-box"></div>
+  </div>
+  <div id="document-container"></div>
+
+  <script>
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    async function initViewer() {
+      const base64Data = ${JSON.stringify(base64Data)};
+      if (!base64Data) {
+        showError('No document content data found.');
+        return;
+      }
+      try {
+        const binary = atob(base64Data);
+        const len = binary.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+
+        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+        document.getElementById('status-overlay').style.display = 'none';
+        const container = document.getElementById('document-container');
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const unscaledViewport = page.getViewport({ scale: 1 });
+          const dpr = Math.min(window.devicePixelRatio || 2, 2.5);
+          const targetWidth = Math.min(window.innerWidth - 16, 760);
+          const scale = (targetWidth / unscaledViewport.width) * dpr;
+          const viewport = page.getViewport({ scale: scale });
+
+          const wrapper = document.createElement('div');
+          wrapper.className = 'page-wrapper';
+          wrapper.style.width = targetWidth + 'px';
+
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          canvas.style.width = targetWidth + 'px';
+          canvas.style.height = (viewport.height / dpr) + 'px';
+
+          const context = canvas.getContext('2d');
+          wrapper.appendChild(canvas);
+
+          if (pdf.numPages > 1) {
+            const pageTag = document.createElement('div');
+            pageTag.className = 'page-number-tag';
+            pageTag.innerText = i + ' / ' + pdf.numPages;
+            wrapper.appendChild(pageTag);
+          }
+
+          container.appendChild(wrapper);
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+        }
+      } catch (e) {
+        showError('Could not render document: ' + (e && e.message ? e.message : e));
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('status-label').innerText = 'Document View';
+      const errBox = document.getElementById('error-container');
+      errBox.style.display = 'block';
+      errBox.innerText = msg;
+    }
+
+    if (window.pdfjsLib) {
+      initViewer();
+    } else {
+      window.onload = initViewer;
+    }
+  </script>
+</body>
+</html>`;
+}
+
 export interface DocumentReaderItem {
   id: string;
   title: string;
@@ -96,6 +289,61 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
   const [acknowledged, setAcknowledged] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'embedded' | 'content'>(document?.fileUrl ? 'embedded' : 'content');
+  const [pdfBase64, setPdfBase64] = useState<string | null>(null);
+  const [isLoadingFile, setIsLoadingFile] = useState<boolean>(false);
+  const [fileLoadError, setFileLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (document?.fileUrl) {
+      setViewMode('embedded');
+    } else {
+      setViewMode('content');
+    }
+  }, [document?.id, document?.fileUrl]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadBase64() {
+      if (!document?.fileUrl) {
+        setPdfBase64(null);
+        return;
+      }
+      const url = document.fileUrl;
+      const isLocal = url.startsWith('file://') || url.startsWith('content://');
+      const isDocPDF =
+        document.type === 'pdf' ||
+        (document.fileName && document.fileName.toLowerCase().endsWith('.pdf')) ||
+        (document.title && document.title.toLowerCase().endsWith('.pdf'));
+
+      if (Platform.OS === 'android' && isLocal && isDocPDF) {
+        setIsLoadingFile(true);
+        setFileLoadError(null);
+        try {
+          const b64 = await FileSystem.readAsStringAsync(url, {
+            encoding: 'base64' as any,
+          });
+          if (isMounted) {
+            setPdfBase64(b64);
+            setIsLoadingFile(false);
+          }
+        } catch (err: any) {
+          console.warn('Could not read PDF as base64:', err);
+          if (isMounted) {
+            setFileLoadError(err?.message || 'Could not load local file content');
+            setIsLoadingFile(false);
+          }
+        }
+      } else {
+        setPdfBase64(null);
+        setIsLoadingFile(false);
+      }
+    }
+
+    loadBase64();
+    return () => {
+      isMounted = false;
+    };
+  }, [document?.id, document?.fileUrl, document?.type]);
 
   if (!document) return null;
 
@@ -116,14 +364,221 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
     document.fullContent?.category?.toLowerCase().includes('resume');
 
   const candidateName =
-    document.fullContent?.authorOrIssuer && document.fullContent.authorOrIssuer !== 'Liam Thompson'
+    document.fullContent?.authorOrIssuer
       ? document.fullContent.authorOrIssuer
       : document.title
           .replace(/\.[^/.]+$/, '')
           .replace(/_cv$/i, '')
           .replace(/_resume$/i, '')
           .replace(/[-_]/g, ' ')
-          .trim() || 'Tayyab';
+          .trim() || 'Employee';
+
+  const handleOpenExternal = async () => {
+    if (!document?.fileUrl) {
+      showNotice('No file available to open.');
+      return;
+    }
+    const url = document.fileUrl;
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') {
+        window.open(url, '_blank');
+      }
+      return;
+    }
+
+    try {
+      if (Platform.OS === 'android') {
+        try {
+          let contentUri = url;
+          if (url.startsWith('file://')) {
+            contentUri = await FileSystem.getContentUriAsync(url);
+          }
+          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            data: contentUri,
+            flags: 1,
+            type: isPDF ? 'application/pdf' : '*/*',
+          });
+          showNotice('Opening in device viewer...');
+          return;
+        } catch (intentErr) {
+          console.log('Android Intent fallback to Sharing:', intentErr);
+        }
+      }
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(url, {
+          dialogTitle: `Open ${document.title}`,
+          mimeType: isPDF ? 'application/pdf' : undefined,
+          UTI: isPDF ? 'com.adobe.pdf' : undefined,
+        });
+        return;
+      }
+      showNotice('Device viewer unavailable.');
+    } catch (err) {
+      console.warn('Error opening file with external app:', err);
+      showNotice('Could not open external app.');
+    }
+  };
+
+  const handleDownload = () => {
+    if (!document?.fileUrl) {
+      showNotice('No file available for download.');
+      return;
+    }
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') {
+        const a = window.document.createElement('a');
+        a.href = document.fileUrl;
+        a.download = document.fileName || `${document.title}.pdf`;
+        a.click();
+        showNotice('Downloading document...');
+      }
+    } else {
+      handleOpenExternal();
+    }
+  };
+
+  const renderLiveDocument = () => {
+    if (!document.fileUrl) return null;
+
+    if (isImage || (document.previewImage && !isPDF)) {
+      return (
+        <View style={[styles.fullImageViewerContainer, { backgroundColor: isDark ? '#0b0f19' : '#0f172a' }]}>
+          <Image
+            source={{ uri: document.fileUrl || document.previewImage }}
+            style={[styles.fullScreenImage, { transform: [{ scale: zoomLevel }] }]}
+            resizeMode="contain"
+          />
+          <View style={styles.floatingZoomRow}>
+            <TouchableOpacity
+              style={[styles.floatZoomBtn, { backgroundColor: isDark ? '#1e293b' : '#334155' }]}
+              onPress={() => setZoomLevel(Math.max(0.75, zoomLevel - 0.25))}
+            >
+              <Text style={styles.floatZoomBtnText}>-</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.floatZoomBtn, { backgroundColor: isDark ? '#1e293b' : '#334155' }]}
+              onPress={() => setZoomLevel(1)}
+            >
+              <Text style={styles.floatZoomBtnText}>100%</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.floatZoomBtn, { backgroundColor: isDark ? '#1e293b' : '#334155' }]}
+              onPress={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))}
+            >
+              <Text style={styles.floatZoomBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
+    if (Platform.OS === 'web') {
+      return (
+        <iframe
+          src={document.fileUrl}
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            backgroundColor: isDark ? '#111827' : '#ffffff',
+          }}
+          title={document.title}
+        />
+      );
+    }
+
+    // Native Mobile (Android & iOS)
+    if (isLoadingFile) {
+      return (
+        <View style={styles.loadingFileContainer}>
+          <ActivityIndicator size="large" color={isDark ? '#38bdf8' : '#1b3569'} />
+          <Text style={[styles.loadingFileText, { color: colors.textPrimary }]}>
+            Loading complete document on screen...
+          </Text>
+        </View>
+      );
+    }
+
+    if (fileLoadError && !pdfBase64) {
+      return (
+        <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff' }]}>
+          <Text style={{ fontSize: 44, marginBottom: 12 }}>📄</Text>
+          <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.title}</Text>
+          <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
+            Tap below to view this complete document in your device's native PDF reader.
+          </Text>
+          <TouchableOpacity
+            style={[styles.openNativeBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
+            onPress={handleOpenExternal}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.openNativeBtnText}>📂 Open in Device PDF Viewer</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (Platform.OS === 'ios' && document.fileUrl.startsWith('file://')) {
+      return (
+        <WebView
+          source={{ uri: document.fileUrl }}
+          style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#ffffff' }}
+          allowFileAccess={true}
+          allowFileAccessFromFileURLs={true}
+          allowUniversalAccessFromFileURLs={true}
+          originWhitelist={['*']}
+        />
+      );
+    }
+
+    if (pdfBase64) {
+      const htmlContent = generatePdfJsHtml(pdfBase64, isDark);
+      return (
+        <WebView
+          source={{ html: htmlContent }}
+          style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#e2e8f0' }}
+          originWhitelist={['*']}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          allowFileAccess={true}
+          allowUniversalAccessFromFileURLs={true}
+          mixedContentMode="always"
+        />
+      );
+    }
+
+    if (document.fileUrl.startsWith('http://') || document.fileUrl.startsWith('https://')) {
+      const isDriveLink = document.fileUrl.includes('drive.google.com');
+      let viewerUrl = document.fileUrl;
+      if (isDriveLink && document.fileUrl.includes('/view')) {
+        viewerUrl = document.fileUrl.replace('/view', '/preview');
+      } else if (!isDriveLink && isPDF) {
+        viewerUrl = `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(document.fileUrl)}`;
+      }
+      return (
+        <WebView
+          source={{ uri: viewerUrl }}
+          style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#ffffff' }}
+          originWhitelist={['*']}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+        />
+      );
+    }
+
+    return (
+      <WebView
+        source={{ uri: document.fileUrl }}
+        style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#ffffff' }}
+        allowFileAccess={true}
+        allowFileAccessFromFileURLs={true}
+        allowUniversalAccessFromFileURLs={true}
+        originWhitelist={['*']}
+      />
+    );
+  };
 
   return (
     <Modal visible={!!document} animationType="slide" onRequestClose={onClose}>
@@ -166,6 +621,26 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           <View style={styles.navActions}>
             <ThemeToggleButton compact showLabel={false} />
 
+            {document.fileUrl && Platform.OS !== 'web' && (
+              <TouchableOpacity
+                style={[
+                  styles.actionIconButton,
+                  {
+                    backgroundColor: isDark ? '#1f293d' : '#eff6ff',
+                    borderColor: isDark ? '#38bdf8' : '#bfdbfe',
+                  },
+                ]}
+                onPress={handleOpenExternal}
+                activeOpacity={0.7}
+              >
+                <Image
+                  source={{ uri: isDark ? OPEN_APP_ICON_DARK_SVG : OPEN_APP_ICON_SVG }}
+                  style={styles.actionIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={[
                 styles.actionIconButton,
@@ -174,16 +649,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                   borderColor: isDark ? '#38bdf8' : '#bfdbfe',
                 },
               ]}
-              onPress={() => {
-                if (typeof window !== 'undefined' && document.fileUrl) {
-                  const a = window.document.createElement('a');
-                  a.href = document.fileUrl;
-                  a.download = document.fileName || `${document.title}.pdf`;
-                  a.click();
-                } else {
-                  showNotice('Document downloaded securely!');
-                }
-              }}
+              onPress={handleDownload}
               activeOpacity={0.7}
             >
               <Image
@@ -200,13 +666,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                   borderColor: isDark ? '#38bdf8' : '#bfdbfe',
                 },
               ]}
-              onPress={() => {
-                if (typeof window !== 'undefined' && document.fileUrl) {
-                  window.open(document.fileUrl, '_blank');
-                } else {
-                  showNotice('Preparing document for print...');
-                }
-              }}
+              onPress={handleOpenExternal}
               activeOpacity={0.7}
             >
               <Image
@@ -266,82 +726,64 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           </View>
         )}
 
-        {/* Main Document Content ScrollView */}
-        <ScrollView
-          contentContainerStyle={[styles.scrollContent, { backgroundColor: isDark ? '#0b0f19' : '#f1f5f9' }]}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.containerMaxWidth}>
-            {document.fileUrl && viewMode === 'embedded' ? (
-              /* LIVE EMBEDDED FILE VIEWER (PDF / RAW FILE) */
-              <View
-                style={[
-                  styles.embeddedFrameCard,
-                  {
-                    backgroundColor: isDark ? '#131d31' : '#ffffff',
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1',
-                  },
-                ]}
-              >
-                <View style={styles.embeddedTopBar}>
-                  <View style={{ flex: 1, marginRight: 10 }}>
-                    <Text style={[styles.embeddedDocName, { color: colors.textPrimary }]} numberOfLines={1}>
-                      📄 {document.fileName || document.title}
-                    </Text>
-                    <Text style={[styles.embeddedDocSub, { color: colors.textSecondary }]}>
-                      Live Document Stream • {document.fileSize || 'Encrypted Stream'}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity
-                      style={[styles.embeddedActionBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
-                      onPress={() => {
-                        if (typeof window !== 'undefined' && document.fileUrl) {
-                          window.open(document.fileUrl, '_blank');
-                        }
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.embeddedActionBtnText, { color: colors.textPrimary }]}>↗️ Fullscreen</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.embeddedActionBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
-                      onPress={() => {
-                        if (typeof window !== 'undefined' && document.fileUrl) {
-                          const a = window.document.createElement('a');
-                          a.href = document.fileUrl;
-                          a.download = document.fileName || `${document.title}.pdf`;
-                          a.click();
-                        }
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.embeddedActionBtnText, { color: '#ffffff' }]}>📥 Download</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {Platform.OS === 'web' ? (
-                  <iframe
-                    src={document.fileUrl}
-                    style={{
-                      width: '100%',
-                      height: 750,
-                      minHeight: 620,
-                      border: 'none',
-                      borderRadius: 8,
-                      backgroundColor: '#ffffff',
-                    }}
-                    title={document.title}
-                  />
-                ) : (
-                  <View style={{ padding: 40, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 40, marginBottom: 12 }}>📄</Text>
-                    <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '700' }}>{document.title}</Text>
-                  </View>
-                )}
+        {/* Main Document Body */}
+        {document.fileUrl && viewMode === 'embedded' ? (
+          <View style={[styles.embeddedFlexContainer, { backgroundColor: isDark ? '#0b0f19' : '#f1f5f9' }]}>
+            <View
+              style={[
+                styles.embeddedTopBar,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <View style={{ flex: 1, marginRight: 10 }}>
+                <Text style={[styles.embeddedDocName, { color: colors.textPrimary }]} numberOfLines={1}>
+                  📄 {document.fileName || document.title}
+                </Text>
+                <Text style={[styles.embeddedDocSub, { color: colors.textSecondary }]}>
+                  {document.type.toUpperCase()} • {document.fileSize || 'Live Document'} • Full Screen
+                </Text>
               </View>
-            ) : isArticle ? (
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TouchableOpacity
+                  style={[
+                    styles.embeddedActionBtn,
+                    {
+                      backgroundColor: isDark ? '#1e293b' : '#eff6ff',
+                      borderWidth: 1,
+                      borderColor: isDark ? '#38bdf8' : '#bfdbfe',
+                    },
+                  ]}
+                  onPress={handleOpenExternal}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.embeddedActionBtnText, { color: isDark ? '#38bdf8' : '#1d4ed8' }]}>
+                    {Platform.OS === 'web' ? '↗ New Tab' : '📱 Device Viewer'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.embeddedActionBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
+                  onPress={handleDownload}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.embeddedActionBtnText, { color: '#ffffff' }]}>📥 Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.embeddedBodyContainer}>
+              {renderLiveDocument()}
+            </View>
+          </View>
+        ) : (
+          <ScrollView
+            contentContainerStyle={[styles.scrollContent, { backgroundColor: isDark ? '#0b0f19' : '#f1f5f9' }]}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.containerMaxWidth}>
+              {isArticle ? (
               /* ARTICLE READER */
               <View
                 style={[
@@ -685,6 +1127,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
             )}
           </View>
         </ScrollView>
+      )}
       </SafeAreaView>
     </Modal>
   );
@@ -1154,43 +1597,114 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   // EMBEDDED VIEWER STYLES
-  embeddedFrameCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
+  embeddedFlexContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   embeddedTopBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
   embeddedDocName: {
-    fontSize: 16,
+    fontSize: 14.5,
     fontWeight: '700',
   },
   embeddedDocSub: {
-    fontSize: 12,
+    fontSize: 11.5,
     marginTop: 2,
   },
   embeddedActionBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 7,
     alignItems: 'center',
     justifyContent: 'center',
   },
   embeddedActionBtnText: {
     fontSize: 12,
+    fontWeight: '700',
+  },
+  embeddedBodyContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  loadingFileContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+  },
+  loadingFileText: {
+    marginTop: 14,
+    fontSize: 14,
     fontWeight: '600',
+  },
+  errorFallbackContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    margin: 16,
+    borderRadius: 14,
+  },
+  errorDocTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorDocSub: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+    maxWidth: 320,
+  },
+  openNativeBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  openNativeBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  fullImageViewerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+  },
+  floatingZoomRow: {
+    position: 'absolute',
+    bottom: 24,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderRadius: 24,
+    padding: 6,
+    gap: 6,
+    alignItems: 'center',
+  },
+  floatZoomBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  floatZoomBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ffffff',
   },
   // CV / RESUME STYLES
   cvPaperDocument: {
