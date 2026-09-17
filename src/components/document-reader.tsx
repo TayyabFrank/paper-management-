@@ -100,6 +100,7 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
       overflow-x: auto;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y pinch-zoom;
     }
     #document-container {
       display: flex;
@@ -112,40 +113,39 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
     }
     .page-wrapper {
       position: relative;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.22);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.22);
       border-radius: 6px;
       overflow: hidden;
       background-color: #ffffff;
       margin: 0 auto;
-      transition: width 0.12s ease-out;
+      transition: width 0.15s ease-out;
     }
     canvas {
       display: block;
       width: 100% !important;
       height: auto !important;
       image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
+      image-rendering: high-quality;
     }
     .page-number-tag {
       position: absolute;
       bottom: 8px;
       right: 12px;
-      background: rgba(15, 23, 42, 0.78);
+      background: rgba(15, 23, 42, 0.82);
       color: #ffffff;
       font-size: 11px;
-      font-weight: 600;
-      padding: 3px 9px;
+      padding: 4px 9px;
       border-radius: 12px;
       font-family: sans-serif;
       pointer-events: none;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.5px;
     }
     #status-overlay {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 60px 20px;
+      padding: 50px 20px;
       text-align: center;
     }
     .spinner {
@@ -175,74 +175,91 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
       color: #ef4444;
       font-size: 13px;
     }
-    /* Floating zoom toolbar */
-    .floating-toolbar {
+    .zoom-toolbar {
       position: fixed;
       bottom: 18px;
       left: 50%;
       transform: translateX(-50%);
-      background: ${isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(30, 41, 59, 0.92)'};
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      padding: 5px 12px;
-      border-radius: 30px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
-      z-index: 10000;
-      border: 1px solid rgba(255,255,255,0.15);
+      gap: 6px;
+      background: ${isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)'};
+      border: 1px solid ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)'};
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 6px 12px;
+      border-radius: 30px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      z-index: 9999;
       user-select: none;
       -webkit-user-select: none;
     }
-    .toolbar-btn {
-      background: rgba(255, 255, 255, 0.12);
-      color: #ffffff;
-      border: none;
+    .zoom-btn {
       width: 32px;
       height: 32px;
-      border-radius: 16px;
+      border-radius: 50%;
+      border: none;
+      background: ${isDark ? '#1e293b' : '#f1f5f9'};
+      color: ${isDark ? '#38bdf8' : '#0284c7'};
       font-size: 18px;
-      font-weight: 700;
+      font-weight: bold;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      outline: none;
       -webkit-tap-highlight-color: transparent;
     }
-    .toolbar-btn:active {
-      background: rgba(56, 189, 248, 0.4);
+    .zoom-btn:active {
+      transform: scale(0.92);
+      opacity: 0.85;
     }
-    .toolbar-label {
-      color: #f8fafc;
-      font-size: 12px;
-      font-weight: 700;
-      min-width: 44px;
-      text-align: center;
-      letter-spacing: 0.5px;
-    }
-    .toolbar-fit-btn {
+    .fit-btn {
       width: auto;
+      border-radius: 16px;
       padding: 0 10px;
       font-size: 12px;
+      font-weight: 700;
+    }
+    .zoom-text {
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 38px;
+      text-align: center;
+      color: ${isDark ? '#e2e8f0' : '#1e293b'};
+      font-variant-numeric: tabular-nums;
+    }
+    .divider {
+      width: 1px;
+      height: 18px;
+      background: ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'};
+      margin: 0 2px;
+    }
+    .page-text {
+      font-size: 12px;
       font-weight: 600;
-      border-radius: 14px;
+      color: ${isDark ? '#94a3b8' : '#64748b'};
+      padding-left: 2px;
+      font-variant-numeric: tabular-nums;
     }
   </style>
 </head>
 <body>
   <div id="status-overlay">
     <div class="spinner" id="spinner"></div>
-    <div class="status-text" id="status-label">Rendering crystal-clear document...</div>
+    <div class="status-text" id="status-label">Rendering document in HD...</div>
     <div id="error-container" style="display:none;" class="error-box"></div>
   </div>
+  
   <div id="document-container"></div>
 
-  <div id="floating-toolbar" class="floating-toolbar" style="display: none;">
-    <button class="toolbar-btn" id="btn-zoom-out" title="Zoom out">−</button>
-    <span class="toolbar-label" id="zoom-label">100%</span>
-    <button class="toolbar-btn" id="btn-zoom-in" title="Zoom in">+</button>
-    <button class="toolbar-btn toolbar-fit-btn" id="btn-zoom-fit" title="Fit to width">Fit</button>
+  <div id="zoom-toolbar" class="zoom-toolbar" style="display: none;">
+    <button class="zoom-btn" id="btn-zoom-out" title="Zoom Out">−</button>
+    <span class="zoom-text" id="zoom-label">100%</span>
+    <button class="zoom-btn" id="btn-zoom-in" title="Zoom In">+</button>
+    <button class="zoom-btn fit-btn" id="btn-zoom-fit">Fit</button>
+    <div class="divider"></div>
+    <span class="page-text" id="page-count-label">1 / 1</span>
   </div>
 
   <script>
@@ -252,24 +269,52 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
       } catch (e) {}
     }
 
-    const ZOOM_STEPS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0];
-    let currentZoomIndex = 1; // 1.0 = 100%
+    let currentZoom = 1.0;
+    let baseWidth = Math.min(window.innerWidth - 16, 760);
+    let totalPdfPages = 1;
 
-    function applyZoom(index) {
-      currentZoomIndex = Math.max(0, Math.min(ZOOM_STEPS.length - 1, index));
-      const zoom = ZOOM_STEPS[currentZoomIndex];
-      const baseWidth = Math.min(window.innerWidth - 16, 760);
-      const newWidth = Math.round(baseWidth * zoom);
-
+    function applyZoom(zoom) {
+      currentZoom = Math.max(0.6, Math.min(3.5, Math.round(zoom * 100) / 100));
+      const newWidth = Math.round(baseWidth * currentZoom);
       const wrappers = document.querySelectorAll('.page-wrapper');
-      wrappers.forEach(function(w) {
+      wrappers.forEach(w => {
         w.style.width = newWidth + 'px';
       });
-
       const label = document.getElementById('zoom-label');
       if (label) {
-        label.innerText = Math.round(zoom * 100) + '%';
+        label.innerText = Math.round(currentZoom * 100) + '%';
       }
+    }
+
+    function setupControls() {
+      const btnIn = document.getElementById('btn-zoom-in');
+      const btnOut = document.getElementById('btn-zoom-out');
+      const btnFit = document.getElementById('btn-zoom-fit');
+
+      if (btnIn) btnIn.onclick = () => applyZoom(currentZoom + 0.25);
+      if (btnOut) btnOut.onclick = () => applyZoom(currentZoom - 0.25);
+      if (btnFit) btnFit.onclick = () => applyZoom(1.0);
+
+      window.addEventListener('resize', () => {
+        baseWidth = Math.min(window.innerWidth - 16, 760);
+        applyZoom(currentZoom);
+      });
+
+      // Update visible page counter on scroll
+      window.addEventListener('scroll', () => {
+        const wrappers = document.querySelectorAll('.page-wrapper');
+        const midY = window.innerHeight / 3;
+        for (let idx = 0; idx < wrappers.length; idx++) {
+          const rect = wrappers[idx].getBoundingClientRect();
+          if (rect.top <= midY && rect.bottom >= midY) {
+            const pageTag = document.getElementById('page-count-label');
+            if (pageTag) {
+              pageTag.innerText = (idx + 1) + ' / ' + totalPdfPages;
+            }
+            break;
+          }
+        }
+      }, { passive: true });
     }
 
     async function initViewer() {
@@ -290,47 +335,42 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
           data: bytes,
           cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
           cMapPacked: true,
+          standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/',
         });
         const pdf = await loadingTask.promise;
-        document.getElementById('status-overlay').style.display = 'none';
+        totalPdfPages = pdf.numPages;
+
         const container = document.getElementById('document-container');
-        const toolbar = document.getElementById('floating-toolbar');
-        if (toolbar) toolbar.style.display = 'flex';
+        baseWidth = Math.min(window.innerWidth - 16, 760);
 
-        // Set up zoom toolbar button events
-        document.getElementById('btn-zoom-in').onclick = function() {
-          applyZoom(currentZoomIndex + 1);
-        };
-        document.getElementById('btn-zoom-out').onclick = function() {
-          applyZoom(currentZoomIndex - 1);
-        };
-        document.getElementById('btn-zoom-fit').onclick = function() {
-          applyZoom(1); // 100% / Fit
-        };
+        // High-definition canvas resolution target: 1920px width ensures ultra-sharp text even when zooming
+        let targetCanvasWidth = 1920;
+        if (pdf.numPages > 20) {
+          targetCanvasWidth = 1200;
+        } else if (pdf.numPages > 6) {
+          targetCanvasWidth = 1600;
+        }
 
-        const targetBaseWidth = Math.min(window.innerWidth - 16, 760);
-        const dpr = window.devicePixelRatio || 2;
-        // High-density rasterization: target minimum 1800px-2200px width for razor-sharp vector clarity
-        const renderScale = pdf.numPages > 12 ? Math.max(2.0, dpr) : Math.max(2.8, dpr * 1.4);
+        setupControls();
 
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
+          const unscaledViewport = page.getViewport({ scale: 1 });
+          const renderScale = targetCanvasWidth / unscaledViewport.width;
           const viewport = page.getViewport({ scale: renderScale });
 
           const wrapper = document.createElement('div');
           wrapper.className = 'page-wrapper';
-          wrapper.style.width = targetBaseWidth + 'px';
+          wrapper.style.width = Math.round(baseWidth * currentZoom) + 'px';
 
           const canvas = document.createElement('canvas');
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          canvas.style.width = '100%';
-          canvas.style.height = 'auto';
+          canvas.width = Math.round(viewport.width);
+          canvas.height = Math.round(viewport.height);
 
           const context = canvas.getContext('2d', { alpha: false });
           if (context) {
-            context.fillStyle = '#ffffff';
-            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
           }
           wrapper.appendChild(canvas);
 
@@ -342,10 +382,19 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
           }
 
           container.appendChild(wrapper);
-          await page.render({ canvasContext: context, viewport: viewport, intent: 'display' }).promise;
-        }
 
-        applyZoom(1);
+          // Render high-DPI canvas
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+          // Make first page visible immediately without waiting for remaining pages
+          if (i === 1) {
+            document.getElementById('status-overlay').style.display = 'none';
+            const toolbar = document.getElementById('zoom-toolbar');
+            if (toolbar) toolbar.style.display = 'flex';
+            const pageTag = document.getElementById('page-count-label');
+            if (pageTag) pageTag.innerText = '1 / ' + pdf.numPages;
+          }
+        }
       } catch (e) {
         showError('Could not render document: ' + (e && e.message ? e.message : e));
       }
@@ -369,10 +418,10 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
 </html>`;
 }
 
-async function resolveLocalFile(rawUrl: string, fileName?: string): Promise<{ fileUri: string; base64: string }> {
+async function resolveLocalPdf(rawUrl: string, fileName?: string): Promise<{ fileUri: string; base64: string }> {
   let localFileUri = rawUrl;
   const cleanName = (fileName || `doc_${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, '_');
-  const safeName = cleanName.includes('.') ? cleanName : `${cleanName}.pdf`;
+  const safeName = cleanName.toLowerCase().endsWith('.pdf') ? cleanName : `${cleanName}.pdf`;
   const cachedPath = `${FileSystem.cacheDirectory}${safeName}`;
 
   // If rawUrl is content:// on Android, copy to cache to get a real file:// URI
@@ -395,7 +444,7 @@ async function resolveLocalFile(rawUrl: string, fileName?: string): Promise<{ fi
       encoding: 'base64' as any,
     });
   } catch (e1) {
-    // Ignore
+    console.warn('readAsStringAsync failed on localFileUri:', e1);
   }
 
   if (!base64 && rawUrl !== localFileUri) {
@@ -403,11 +452,13 @@ async function resolveLocalFile(rawUrl: string, fileName?: string): Promise<{ fi
       base64 = await FileSystem.readAsStringAsync(rawUrl, {
         encoding: 'base64' as any,
       });
-    } catch (e2) {}
+    } catch (e2) {
+      console.warn('readAsStringAsync failed on rawUrl:', e2);
+    }
   }
 
-  // If still no base64 and it's a web/blob url, attempt fetch + FileReader
-  if (!base64 && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('blob:'))) {
+  // If still no base64, attempt fetch + FileReader
+  if (!base64) {
     try {
       const resp = await fetch(rawUrl);
       const blob = await resp.blob();
@@ -421,17 +472,21 @@ async function resolveLocalFile(rawUrl: string, fileName?: string): Promise<{ fi
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
-    } catch (fetchErr) {}
+    } catch (fetchErr) {
+      console.warn('fetch fallback for base64 failed:', fetchErr);
+    }
   }
 
-  // If we have base64 and localFileUri is not a file:// URI, write to cache so we have a guaranteed file:// URI!
+  // If we have base64 and localFileUri is not a file:// URI, write to cache so we have a file:// URI!
   if (base64 && !localFileUri.startsWith('file://')) {
     try {
       await FileSystem.writeAsStringAsync(cachedPath, base64, {
         encoding: 'base64' as any,
       });
       localFileUri = cachedPath;
-    } catch (wErr) {}
+    } catch (wErr) {
+      console.warn('writeAsStringAsync failed:', wErr);
+    }
   }
 
   return { fileUri: localFileUri, base64 };
@@ -493,17 +548,19 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       if (!document?.fileUrl) {
         setPdfBase64(null);
         setResolvedFileUri(null);
-        setIsLoadingFile(false);
         return;
       }
       const url = document.fileUrl;
-      const isLocal = url.startsWith('file://') || url.startsWith('content://');
+      const isDocPDF =
+        document.type === 'pdf' ||
+        (document.fileName && document.fileName.toLowerCase().endsWith('.pdf')) ||
+        (document.title && document.title.toLowerCase().endsWith('.pdf'));
 
-      if (isLocal) {
+      if (isDocPDF) {
         setIsLoadingFile(true);
         setFileLoadError(null);
         try {
-          const { fileUri, base64 } = await resolveLocalFile(url, document.fileName || document.title);
+          const { fileUri, base64 } = await resolveLocalPdf(url, document.fileName || document.title);
           if (isMounted) {
             setResolvedFileUri(fileUri);
             if (base64) {
@@ -512,14 +569,14 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
             setIsLoadingFile(false);
           }
         } catch (err: any) {
-          console.warn('Could not resolve file data:', err);
+          console.warn('Could not resolve PDF data:', err);
           if (isMounted) {
-            setResolvedFileUri(url);
+            setFileLoadError(err?.message || 'Could not load local file content');
             setIsLoadingFile(false);
           }
         }
       } else {
-        setResolvedFileUri(url);
+        setPdfBase64(null);
         setIsLoadingFile(false);
       }
     }
@@ -537,41 +594,9 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
     setTimeout(() => setActionNotice(null), 2500);
   };
 
-  const rawUrl = (document.fileUrl || '').toLowerCase();
-  const rawFileName = (document.fileName || '').toLowerCase();
-  const rawTitle = (document.title || '').toLowerCase();
-
-  const isImage =
-    document.type === 'image' ||
-    /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic)($|\?)/i.test(rawUrl) ||
-    /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic)$/i.test(rawFileName) ||
-    /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic)$/i.test(rawTitle) ||
-    Boolean(document.previewImage && !rawUrl.endsWith('.pdf') && !rawFileName.endsWith('.pdf') && !rawTitle.endsWith('.pdf'));
-
-  const isPDF =
-    !isImage &&
-    (document.type === 'pdf' ||
-      rawUrl.endsWith('.pdf') ||
-      rawUrl.includes('/pdf') ||
-      rawFileName.endsWith('.pdf') ||
-      rawTitle.endsWith('.pdf'));
-
-  const isDocx =
-    !isImage &&
-    !isPDF &&
-    (document.type === 'docx' ||
-      /\.(docx|doc|rtf|odt)$/i.test(rawUrl) ||
-      /\.(docx|doc|rtf|odt)$/i.test(rawFileName) ||
-      /\.(docx|doc|rtf|odt)$/i.test(rawTitle));
-
-  const isArticle =
-    !isImage &&
-    !isPDF &&
-    !isDocx &&
-    (document.type === 'article' ||
-      Boolean(document.fullContent?.sections && document.fullContent.sections.length > 0) ||
-      /\.(txt|md)$/i.test(rawUrl) ||
-      /\.(txt|md)$/i.test(rawFileName));
+  const isArticle = document.type === 'article';
+  const isImage = document.type === 'image';
+  const isPDF = document.type === 'pdf';
 
   const isCV =
     document.title.toLowerCase().includes('cv') ||
@@ -609,7 +634,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       // 1. Ensure a valid file:// URI on device filesystem
       let targetFileUri = resolvedFileUri;
       if (!targetFileUri || !targetFileUri.startsWith('file://')) {
-        const res = await resolveLocalFile(url, document.fileName || document.title);
+        const res = await resolveLocalPdf(url, document.fileName || document.title);
         targetFileUri = res.fileUri;
         if (res.base64 && !pdfBase64) {
           setPdfBase64(res.base64);
@@ -620,22 +645,6 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
         targetFileUri = url;
       }
 
-      let mimeType = '*/*';
-      let uti: string | undefined = undefined;
-      if (isPDF) {
-        mimeType = 'application/pdf';
-        uti = 'com.adobe.pdf';
-      } else if (isImage) {
-        mimeType = 'image/*';
-        uti = 'public.image';
-      } else if (isDocx) {
-        mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        uti = 'org.openxmlformats.wordprocessingml.document';
-      } else if (isArticle) {
-        mimeType = 'text/plain';
-        uti = 'public.plain-text';
-      }
-
       // 2. Android: IntentLauncher via FileProvider content URI
       if (Platform.OS === 'android' && targetFileUri?.startsWith('file://')) {
         try {
@@ -643,7 +652,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
             data: contentUri,
             flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-            type: mimeType,
+            type: isPDF ? 'application/pdf' : '*/*',
           });
           return;
         } catch (intentErr) {
@@ -657,8 +666,8 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
         if (isAvailable) {
           await Sharing.shareAsync(targetFileUri, {
             dialogTitle: `Open ${document.title}`,
-            mimeType: mimeType !== '*/*' ? mimeType : undefined,
-            UTI: uti,
+            mimeType: isPDF ? 'application/pdf' : undefined,
+            UTI: isPDF ? 'com.adobe.pdf' : undefined,
           });
           return;
         }
@@ -669,12 +678,12 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       if (isAvail) {
         await Sharing.shareAsync(url, {
           dialogTitle: `Open ${document.title}`,
-          mimeType: mimeType !== '*/*' ? mimeType : undefined,
+          mimeType: isPDF ? 'application/pdf' : undefined,
         });
         return;
       }
 
-      showNotice('No external viewer found.');
+      showNotice('No external PDF viewer found.');
     } catch (err: any) {
       console.warn('Error opening external app:', err);
       showNotice(err?.message || 'Could not open external app.');
@@ -702,46 +711,30 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
   const renderLiveDocument = () => {
     if (!document.fileUrl) return null;
 
-    // 1. IMAGE VIEWER (Ultra-Crisp with Zoom & Pan)
-    if (isImage) {
-      const displayUri = resolvedFileUri || document.fileUrl || document.previewImage;
+    if (isImage || (document.previewImage && !isPDF)) {
       return (
         <View style={[styles.fullImageViewerContainer, { backgroundColor: isDark ? '#0b0f19' : '#0f172a' }]}>
-          <ScrollView
-            maximumZoomScale={5}
-            minimumZoomScale={0.8}
-            contentContainerStyle={styles.imageScrollContainer}
-            showsHorizontalScrollIndicator={false}
-            showsVerticalScrollIndicator={false}
-          >
-            <Image
-              source={{ uri: displayUri }}
-              style={[styles.fullScreenImage, { transform: [{ scale: zoomLevel }] }]}
-              resizeMode="contain"
-              onError={(e) => {
-                console.warn('Image render error:', e.nativeEvent.error);
-                setFileLoadError('Could not load image file.');
-              }}
-            />
-          </ScrollView>
-
-          {/* Floating Zoom Controls */}
+          <Image
+            source={{ uri: document.fileUrl || document.previewImage }}
+            style={[styles.fullScreenImage, { transform: [{ scale: zoomLevel }] }]}
+            resizeMode="contain"
+          />
           <View style={styles.floatingZoomRow}>
             <TouchableOpacity
               style={[styles.floatZoomBtn, { backgroundColor: isDark ? '#1e293b' : '#334155' }]}
-              onPress={() => setZoomLevel(Math.max(0.5, Number((zoomLevel - 0.25).toFixed(2))))}
+              onPress={() => setZoomLevel(Math.max(0.75, zoomLevel - 0.25))}
             >
-              <Text style={styles.floatZoomBtnText}>−</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.floatZoomBtn, { backgroundColor: isDark ? '#1e293b' : '#334155', minWidth: 60 }]}
-              onPress={() => setZoomLevel(1)}
-            >
-              <Text style={styles.floatZoomBtnText}>{Math.round(zoomLevel * 100)}%</Text>
+              <Text style={styles.floatZoomBtnText}>-</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.floatZoomBtn, { backgroundColor: isDark ? '#1e293b' : '#334155' }]}
-              onPress={() => setZoomLevel(Math.min(4, Number((zoomLevel + 0.25).toFixed(2))))}
+              onPress={() => setZoomLevel(1)}
+            >
+              <Text style={styles.floatZoomBtnText}>100%</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.floatZoomBtn, { backgroundColor: isDark ? '#1e293b' : '#334155' }]}
+              onPress={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))}
             >
               <Text style={styles.floatZoomBtnText}>+</Text>
             </TouchableOpacity>
@@ -750,7 +743,6 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       );
     }
 
-    // 2. WEB BROWSER
     if (Platform.OS === 'web') {
       return (
         <iframe
@@ -766,7 +758,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       );
     }
 
-    // 3. LOADING STATE
+    // Native Mobile (Android & iOS)
     if (isLoadingFile) {
       return (
         <View style={styles.loadingFileContainer}>
@@ -778,44 +770,38 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       );
     }
 
-    // 4. DOCX / WORD DOCUMENT CARD
-    if (isDocx) {
+    if (fileLoadError && !pdfBase64) {
       return (
         <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff' }]}>
-          <View style={{ width: 76, height: 76, borderRadius: 18, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <Image
-              source={{ uri: getDocumentTypeIcon('docx', 'doc.docx') }}
-              style={{ width: 44, height: 44 }}
-              resizeMode="contain"
-            />
-          </View>
-          <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.fileName || document.title}</Text>
+          <Text style={{ fontSize: 44, marginBottom: 12 }}>📄</Text>
+          <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.title}</Text>
           <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
-            Microsoft Word Document • {document.fileSize || 'Standard Document'}
+            Tap below to view this complete document in your device's native PDF reader.
           </Text>
-          <View style={{ flexDirection: 'column', gap: 12, width: '100%', maxWidth: 300, marginTop: 16 }}>
-            <TouchableOpacity
-              style={[styles.openNativeBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569', alignItems: 'center', justifyContent: 'center' }]}
-              onPress={handleOpenExternal}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.openNativeBtnText}>📂 Open in Word / Office</Text>
-            </TouchableOpacity>
-            {document.fullContent && (
-              <TouchableOpacity
-                style={[styles.openNativeBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9', borderWidth: 1, borderColor: isDark ? '#38bdf8' : '#cbd5e1', alignItems: 'center', justifyContent: 'center' }]}
-                onPress={() => setViewMode('content')}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.openNativeBtnText, { color: isDark ? '#38bdf8' : '#1e293b' }]}>📝 View Formatted Content</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <TouchableOpacity
+            style={[styles.openNativeBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
+            onPress={handleOpenExternal}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.openNativeBtnText}>📂 Open in Device PDF Viewer</Text>
+          </TouchableOpacity>
         </View>
       );
     }
 
-    // 5. PDF VIEWER (High-DPI Supersampled in-app)
+    if (Platform.OS === 'ios' && document.fileUrl.startsWith('file://')) {
+      return (
+        <WebView
+          source={{ uri: document.fileUrl }}
+          style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#ffffff' }}
+          allowFileAccess={true}
+          allowFileAccessFromFileURLs={true}
+          allowUniversalAccessFromFileURLs={true}
+          originWhitelist={['*']}
+        />
+      );
+    }
+
     if (pdfBase64) {
       const htmlContent = generatePdfJsHtml(pdfBase64, isDark);
       return (
@@ -829,30 +815,15 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           allowUniversalAccessFromFileURLs={true}
           mixedContentMode="always"
           scalesPageToFit={false}
-          showsHorizontalScrollIndicator={true}
-          showsVerticalScrollIndicator={true}
           setBuiltInZoomControls={true}
           setDisplayZoomControls={false}
-          overScrollMode="never"
+          showsHorizontalScrollIndicator={true}
+          showsVerticalScrollIndicator={true}
+          androidLayerType="hardware"
         />
       );
     }
 
-    // 6. iOS Native PDF
-    if (Platform.OS === 'ios' && (resolvedFileUri?.startsWith('file://') || document.fileUrl.startsWith('file://'))) {
-      return (
-        <WebView
-          source={{ uri: resolvedFileUri || document.fileUrl }}
-          style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#ffffff' }}
-          allowFileAccess={true}
-          allowFileAccessFromFileURLs={true}
-          allowUniversalAccessFromFileURLs={true}
-          originWhitelist={['*']}
-        />
-      );
-    }
-
-    // 7. Cloud / Drive / Web links
     if (document.fileUrl.startsWith('http://') || document.fileUrl.startsWith('https://')) {
       const isDriveLink = document.fileUrl.includes('drive.google.com');
       let viewerUrl = document.fileUrl;
@@ -872,22 +843,15 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       );
     }
 
-    // 8. Fallback
     return (
-      <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff' }]}>
-        <Text style={{ fontSize: 44, marginBottom: 12 }}>📄</Text>
-        <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.title}</Text>
-        <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
-          Tap below to view this document in your device's native viewer.
-        </Text>
-        <TouchableOpacity
-          style={[styles.openNativeBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
-          onPress={handleOpenExternal}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.openNativeBtnText}>📂 Open in Device Viewer</Text>
-        </TouchableOpacity>
-      </View>
+      <WebView
+        source={{ uri: document.fileUrl }}
+        style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#ffffff' }}
+        allowFileAccess={true}
+        allowFileAccessFromFileURLs={true}
+        allowUniversalAccessFromFileURLs={true}
+        originWhitelist={['*']}
+      />
     );
   };
 
@@ -1180,8 +1144,6 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                   <Image
                     source={{
                       uri:
-                        resolvedFileUri ||
-                        document.fileUrl ||
                         document.previewImage ||
                         'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&auto=format&fit=crop&q=80',
                     }}
@@ -1991,45 +1953,28 @@ const styles = StyleSheet.create({
   },
   fullImageViewerContainer: {
     flex: 1,
-    width: '100%',
-    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
-  imageScrollContainer: {
-    flexGrow: 1,
+  fullScreenImage: {
     width: '100%',
     height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fullScreenImage: {
-    width: '96%',
-    height: '88%',
-    minWidth: 320,
-    minHeight: 320,
   },
   floatingZoomRow: {
     position: 'absolute',
     bottom: 24,
     flexDirection: 'row',
-    backgroundColor: 'rgba(15, 23, 42, 0.88)',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     borderRadius: 24,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 8,
+    padding: 6,
+    gap: 6,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    zIndex: 999,
   },
   floatZoomBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   floatZoomBtnText: {
     fontSize: 13,
