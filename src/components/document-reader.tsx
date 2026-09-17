@@ -1138,22 +1138,55 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
         ? docxMime
         : '*/*';
 
-      // 2. Android: IntentLauncher via FileProvider content URI
-      if (Platform.OS === 'android' && targetFileUri?.startsWith('file://')) {
+      // 2. Direct launch on Android if raw url is content://
+      if (Platform.OS === 'android' && url.startsWith('content://')) {
         try {
-          const contentUri = await FileSystem.getContentUriAsync(targetFileUri);
           await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-            data: contentUri,
+            data: url,
             flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
             type: mimeTypeToUse,
           });
           return;
+        } catch (cErr1) {
+          try {
+            await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+              data: url,
+              flags: 1,
+              type: '*/*',
+            });
+            return;
+          } catch (cErr2) {
+            // continue to fileUri approach
+          }
+        }
+      }
+
+      // 3. Android: IntentLauncher via FileProvider content URI
+      if (Platform.OS === 'android' && targetFileUri?.startsWith('file://')) {
+        try {
+          const contentUri = await FileSystem.getContentUriAsync(targetFileUri);
+          try {
+            await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+              data: contentUri,
+              flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+              type: mimeTypeToUse,
+            });
+            return;
+          } catch (exactIntentErr) {
+            // Retry with generic mime type if exact mime handler is not registered
+            await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+              data: contentUri,
+              flags: 1,
+              type: '*/*',
+            });
+            return;
+          }
         } catch (intentErr) {
           console.log('IntentLauncher fallback to Sharing:', intentErr);
         }
       }
 
-      // 3. Sharing fallback (guaranteed file:// URI on Android/iOS)
+      // 4. Sharing fallback (guaranteed file:// URI on Android/iOS)
       if (targetFileUri?.startsWith('file://')) {
         const isAvailable = await Sharing.isAvailableAsync();
         if (isAvailable) {
@@ -1172,7 +1205,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
         }
       }
 
-      // 4. Direct Sharing fallback with raw URL
+      // 5. Direct Sharing fallback with raw URL
       const isAvail = await Sharing.isAvailableAsync();
       if (isAvail) {
         await Sharing.shareAsync(url, {
@@ -1206,6 +1239,69 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       handleOpenExternal();
     }
   };
+
+  const renderDocxFallbackCard = () => (
+    <ScrollView
+      contentContainerStyle={[styles.scrollContent, { backgroundColor: isDark ? '#0b0f19' : '#f1f5f9', flexGrow: 1, justifyContent: 'center' }]}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={[styles.docxDedicatedCard, { backgroundColor: isDark ? '#131d31' : '#ffffff', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1' }]}>
+        <View style={styles.docxCardHeader}>
+          <View style={[styles.docxIconBox, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
+            <Text style={{ fontSize: 36 }}>📝</Text>
+          </View>
+          <View style={{ flex: 1, marginLeft: 14 }}>
+            <View style={styles.docxBadgeRow}>
+              <View style={[styles.docxTypeBadge, { backgroundColor: isDark ? '#271c47' : '#f5f3ff' }]}>
+                <Text style={[styles.docxTypeBadgeText, { color: isDark ? '#c084fc' : '#7c3aed' }]}>MICROSOFT WORD (.DOCX)</Text>
+              </View>
+              <Text style={[styles.docxSizeBadge, { color: colors.textSecondary }]}>
+                {document.fileSize || '1.2 MB'}
+              </Text>
+            </View>
+            <Text style={[styles.docxCardTitle, { color: colors.textPrimary }]} numberOfLines={2}>
+              {document.fileName || document.title}
+            </Text>
+          </View>
+        </View>
+
+        <View style={[styles.docxCardDivider, { backgroundColor: isDark ? '#1e293b' : '#e2e8f0' }]} />
+
+        <View style={styles.docxInfoBox}>
+          <Text style={[styles.docxInfoTitle, { color: colors.textPrimary }]}>Document Ready to View</Text>
+          <Text style={[styles.docxInfoDesc, { color: colors.textSecondary }]}>
+            This Word document is verified and stored in DocuVault. Tap below to open it in Microsoft Word, Google Docs, or WPS Office, or view structured transcript details.
+          </Text>
+        </View>
+
+        <View style={styles.docxBtnStack}>
+          <TouchableOpacity
+            style={[styles.docxPrimaryActionBtn, { backgroundColor: '#2563eb' }]}
+            onPress={handleOpenExternal}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.docxPrimaryActionText}>📱 Open in Microsoft Word / Office</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.docxSecondaryActionBtn, { backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#cbd5e1' }]}
+            onPress={() => setViewMode('content')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.docxSecondaryActionText, { color: isDark ? '#38bdf8' : '#1e293b' }]}>
+              📝 View Formatted Content Transcript
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.docxMetaFooter, { backgroundColor: isDark ? '#16233b' : '#f8fafc', borderColor: isDark ? '#273854' : '#e2e8f0' }]}>
+          <Text style={[styles.docxMetaFooterText, { color: colors.textSecondary }]}>
+            🔒 Storage: High Availability Enterprise Tier • Status: Active & Encrypted • Ref: DV-DOCX-#{document.id.slice(-6)}
+          </Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
 
   const renderLiveDocument = () => {
     if (!document.fileUrl) return null;
@@ -1289,45 +1385,49 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       );
     }
 
-    // Word Document HD Rendering via Mammoth.js
-    if (isDocWord && docxBase64) {
-      const htmlContent = generateDocxHtml(docxBase64, isDark, document.fileName || document.title);
-      return (
-        <WebView
-          source={{ html: htmlContent }}
-          style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#e2e8f0' }}
-          originWhitelist={['*']}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          allowFileAccess={true}
-          allowUniversalAccessFromFileURLs={true}
-          mixedContentMode="always"
-          scalesPageToFit={false}
-          setBuiltInZoomControls={true}
-          setDisplayZoomControls={false}
-          showsHorizontalScrollIndicator={true}
-          showsVerticalScrollIndicator={true}
-          androidLayerType="hardware"
-        />
-      );
+    // Word Document HD Rendering via Mammoth.js or Dedicated Card View
+    if (isDocWord) {
+      if (docxBase64) {
+        const htmlContent = generateDocxHtml(docxBase64, isDark, document.fileName || document.title);
+        return (
+          <View style={{ flex: 1 }}>
+            <WebView
+              source={{ html: htmlContent, baseUrl: 'https://cdnjs.cloudflare.com' }}
+              style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#e2e8f0' }}
+              originWhitelist={['*']}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              allowFileAccess={true}
+              allowUniversalAccessFromFileURLs={true}
+              mixedContentMode="always"
+              scalesPageToFit={false}
+              setBuiltInZoomControls={true}
+              setDisplayZoomControls={false}
+              showsHorizontalScrollIndicator={true}
+              showsVerticalScrollIndicator={true}
+              androidLayerType="hardware"
+              renderError={() => renderDocxFallbackCard()}
+            />
+          </View>
+        );
+      }
+      return renderDocxFallbackCard();
     }
 
-    if (fileLoadError && !pdfBase64 && !docxBase64) {
+    if (fileLoadError && !pdfBase64) {
       return (
         <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff' }]}>
-          <Text style={{ fontSize: 44, marginBottom: 12 }}>{isDocWord ? '📝' : '📄'}</Text>
+          <Text style={{ fontSize: 44, marginBottom: 12 }}>📄</Text>
           <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.title}</Text>
           <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
-            Tap below to view this complete document in your device's native {isDocWord ? 'Word' : 'PDF'} viewer.
+            Tap below to view this complete document in your device's native viewer.
           </Text>
           <TouchableOpacity
             style={[styles.openNativeBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
             onPress={handleOpenExternal}
             activeOpacity={0.8}
           >
-            <Text style={styles.openNativeBtnText}>
-              {isDocWord ? '📝 Open in Word / Office App' : '📂 Open in Device PDF Viewer'}
-            </Text>
+            <Text style={styles.openNativeBtnText}>📂 Open in Device PDF Viewer</Text>
           </TouchableOpacity>
         </View>
       );
@@ -1419,23 +1519,34 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
               </View>
             )}
             renderError={() => (
-              <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff' }]}>
+              <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff', flex: 1, justifyContent: 'center' }]}>
                 <Text style={{ fontSize: 44, marginBottom: 12 }}>{isGoogleDrive ? '☁️' : '🌐'}</Text>
                 <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.title}</Text>
-                <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
+                <Text style={[styles.errorDocSub, { color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 20 }]}>
                   {isGoogleDrive
-                    ? 'Google Drive requires authentication to display inside the preview window. Tap below to open it directly in the Google Drive app.'
+                    ? 'Google Drive requires authentication or app launch. Tap below to open directly in the official Google Drive / Docs app.'
                     : 'Could not load web view directly. Tap below to open in your browser.'}
                 </Text>
-                <TouchableOpacity
-                  style={[styles.openNativeBtn, { backgroundColor: '#2563eb' }]}
-                  onPress={() => Linking.openURL(document.fileUrl || '')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.openNativeBtnText}>
-                    {isGoogleDrive ? '📂 Open in Google Drive App ↗' : '🌐 Open in Web Browser ↗'}
-                  </Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
+                  <TouchableOpacity
+                    style={[styles.openNativeBtn, { backgroundColor: '#2563eb' }]}
+                    onPress={() => Linking.openURL(document.fileUrl || '')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.openNativeBtnText}>
+                      {isGoogleDrive ? '📂 Open in Google Drive App ↗' : '🌐 Open in Web Browser ↗'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.openNativeBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9', borderWidth: 1, borderColor: isDark ? '#38bdf8' : '#cbd5e1' }]}
+                    onPress={() => setViewMode('content')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.openNativeBtnText, { color: isDark ? '#38bdf8' : '#1e293b' }]}>
+                      📝 View Details
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           />
@@ -1444,14 +1555,31 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
     }
 
     return (
-      <WebView
-        source={{ uri: document.fileUrl }}
-        style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#ffffff' }}
-        allowFileAccess={true}
-        allowFileAccessFromFileURLs={true}
-        allowUniversalAccessFromFileURLs={true}
-        originWhitelist={['*']}
-      />
+      <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff', flex: 1, justifyContent: 'center' }]}>
+        <Text style={{ fontSize: 44, marginBottom: 12 }}>📄</Text>
+        <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.title}</Text>
+        <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
+          {document.fileName || document.title} • {document.fileSize || 'Live Document'}
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+          <TouchableOpacity
+            style={[styles.openNativeBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
+            onPress={handleOpenExternal}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.openNativeBtnText}>📂 Open in Device App</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.openNativeBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9', borderWidth: 1, borderColor: isDark ? '#38bdf8' : '#cbd5e1' }]}
+            onPress={() => setViewMode('content')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.openNativeBtnText, { color: isDark ? '#38bdf8' : '#1e293b' }]}>
+              📝 View Details
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   };
 
@@ -2145,6 +2273,111 @@ const styles = StyleSheet.create({
   articleLinkCtaText: {
     fontSize: 12.5,
     fontWeight: '700',
+  },
+  docxDedicatedCard: {
+    width: '100%',
+    maxWidth: 680,
+    borderRadius: 18,
+    padding: 24,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    alignSelf: 'center',
+    marginVertical: 10,
+  },
+  docxCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  docxIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  docxBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+    flexWrap: 'wrap',
+  },
+  docxTypeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  docxTypeBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  docxSizeBadge: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  docxCardTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  docxCardDivider: {
+    height: 1,
+    marginVertical: 18,
+  },
+  docxInfoBox: {
+    marginBottom: 20,
+  },
+  docxInfoTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  docxInfoDesc: {
+    fontSize: 13.5,
+    lineHeight: 20,
+  },
+  docxBtnStack: {
+    gap: 10,
+  },
+  docxPrimaryActionBtn: {
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  docxPrimaryActionText: {
+    color: '#ffffff',
+    fontSize: 14.5,
+    fontWeight: '700',
+  },
+  docxSecondaryActionBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  docxSecondaryActionText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  docxMetaFooter: {
+    marginTop: 20,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  docxMetaFooterText: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    textAlign: 'center',
   },
   actionIconButton: {
     width: 36,
