@@ -10,6 +10,7 @@ import {
   Modal,
   SafeAreaView,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as Sharing from 'expo-sharing';
@@ -418,11 +419,13 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
 </html>`;
 }
 
-async function resolveLocalPdf(rawUrl: string, fileName?: string): Promise<{ fileUri: string; base64: string }> {
+async function resolveLocalFile(rawUrl: string, fileName?: string, isPdfHint?: boolean): Promise<{ fileUri: string; base64: string }> {
   let localFileUri = rawUrl;
-  const cleanName = (fileName || `doc_${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, '_');
-  const safeName = cleanName.toLowerCase().endsWith('.pdf') ? cleanName : `${cleanName}.pdf`;
-  const cachedPath = `${FileSystem.cacheDirectory}${safeName}`;
+  let cleanName = (fileName || `doc_${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+  if (!/\.[a-zA-Z0-9]+$/.test(cleanName)) {
+    cleanName = isPdfHint ? `${cleanName}.pdf` : `${cleanName}.jpg`;
+  }
+  const cachedPath = `${FileSystem.cacheDirectory}${cleanName}`;
 
   // If rawUrl is content:// on Android, copy to cache to get a real file:// URI
   if (rawUrl.startsWith('content://')) {
@@ -444,7 +447,7 @@ async function resolveLocalPdf(rawUrl: string, fileName?: string): Promise<{ fil
       encoding: 'base64' as any,
     });
   } catch (e1) {
-    console.warn('readAsStringAsync failed on localFileUri:', e1);
+    // skip
   }
 
   if (!base64 && rawUrl !== localFileUri) {
@@ -453,7 +456,7 @@ async function resolveLocalPdf(rawUrl: string, fileName?: string): Promise<{ fil
         encoding: 'base64' as any,
       });
     } catch (e2) {
-      console.warn('readAsStringAsync failed on rawUrl:', e2);
+      // skip
     }
   }
 
@@ -473,7 +476,7 @@ async function resolveLocalPdf(rawUrl: string, fileName?: string): Promise<{ fil
         reader.readAsDataURL(blob);
       });
     } catch (fetchErr) {
-      console.warn('fetch fallback for base64 failed:', fetchErr);
+      // skip
     }
   }
 
@@ -555,12 +558,16 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
         document.type === 'pdf' ||
         (document.fileName && document.fileName.toLowerCase().endsWith('.pdf')) ||
         (document.title && document.title.toLowerCase().endsWith('.pdf'));
+      const isDocImage =
+        document.type === 'image' ||
+        (document.fileName && /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(document.fileName)) ||
+        (document.title && /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(document.title));
 
       if (isDocPDF) {
         setIsLoadingFile(true);
         setFileLoadError(null);
         try {
-          const { fileUri, base64 } = await resolveLocalPdf(url, document.fileName || document.title);
+          const { fileUri, base64 } = await resolveLocalFile(url, document.fileName || document.title, true);
           if (isMounted) {
             setResolvedFileUri(fileUri);
             if (base64) {
@@ -572,6 +579,21 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           console.warn('Could not resolve PDF data:', err);
           if (isMounted) {
             setFileLoadError(err?.message || 'Could not load local file content');
+            setIsLoadingFile(false);
+          }
+        }
+      } else if (isDocImage) {
+        setIsLoadingFile(true);
+        setFileLoadError(null);
+        try {
+          const { fileUri } = await resolveLocalFile(url, document.fileName || document.title, false);
+          if (isMounted) {
+            setResolvedFileUri(fileUri);
+            setIsLoadingFile(false);
+          }
+        } catch (err: any) {
+          console.warn('Could not resolve image file:', err);
+          if (isMounted) {
             setIsLoadingFile(false);
           }
         }
@@ -634,7 +656,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       // 1. Ensure a valid file:// URI on device filesystem
       let targetFileUri = resolvedFileUri;
       if (!targetFileUri || !targetFileUri.startsWith('file://')) {
-        const res = await resolveLocalPdf(url, document.fileName || document.title);
+        const res = await resolveLocalFile(url, document.fileName || document.title, isPDF);
         targetFileUri = res.fileUri;
         if (res.base64 && !pdfBase64) {
           setPdfBase64(res.base64);
@@ -652,7 +674,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
             data: contentUri,
             flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-            type: isPDF ? 'application/pdf' : '*/*',
+            type: isPDF ? 'application/pdf' : isImage ? 'image/*' : '*/*',
           });
           return;
         } catch (intentErr) {
@@ -666,8 +688,8 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
         if (isAvailable) {
           await Sharing.shareAsync(targetFileUri, {
             dialogTitle: `Open ${document.title}`,
-            mimeType: isPDF ? 'application/pdf' : undefined,
-            UTI: isPDF ? 'com.adobe.pdf' : undefined,
+            mimeType: isPDF ? 'application/pdf' : isImage ? 'image/*' : undefined,
+            UTI: isPDF ? 'com.adobe.pdf' : isImage ? 'public.image' : undefined,
           });
           return;
         }
@@ -712,17 +734,37 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
     if (!document.fileUrl) return null;
 
     if (isImage || (document.previewImage && !isPDF)) {
+      const imgUri = resolvedFileUri || document.fileUrl || document.previewImage;
+      const screenWidth = Dimensions.get('window').width;
+      const screenHeight = Dimensions.get('window').height;
+      const displayWidth = Math.max(screenWidth, Math.round(screenWidth * zoomLevel));
+      const displayHeight = Math.max(Math.round(screenHeight * 0.72), Math.round(screenHeight * 0.72 * zoomLevel));
+
       return (
         <View style={[styles.fullImageViewerContainer, { backgroundColor: isDark ? '#0b0f19' : '#0f172a' }]}>
-          <Image
-            source={{ uri: document.fileUrl || document.previewImage }}
-            style={[styles.fullScreenImage, { transform: [{ scale: zoomLevel }] }]}
-            resizeMode="contain"
-          />
+          <ScrollView
+            horizontal
+            contentContainerStyle={styles.imageScrollContent}
+            showsHorizontalScrollIndicator={false}
+          >
+            <ScrollView
+              contentContainerStyle={styles.imageScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <Image
+                source={{ uri: imgUri }}
+                style={{
+                  width: displayWidth,
+                  height: displayHeight,
+                }}
+                resizeMode="contain"
+              />
+            </ScrollView>
+          </ScrollView>
           <View style={styles.floatingZoomRow}>
             <TouchableOpacity
               style={[styles.floatZoomBtn, { backgroundColor: isDark ? '#1e293b' : '#334155' }]}
-              onPress={() => setZoomLevel(Math.max(0.75, zoomLevel - 0.25))}
+              onPress={() => setZoomLevel(Math.max(0.75, Math.round((zoomLevel - 0.25) * 100) / 100))}
             >
               <Text style={styles.floatZoomBtnText}>-</Text>
             </TouchableOpacity>
@@ -730,11 +772,11 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
               style={[styles.floatZoomBtn, { backgroundColor: isDark ? '#1e293b' : '#334155' }]}
               onPress={() => setZoomLevel(1)}
             >
-              <Text style={styles.floatZoomBtnText}>100%</Text>
+              <Text style={styles.floatZoomBtnText}>{Math.round(zoomLevel * 100)}%</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.floatZoomBtn, { backgroundColor: isDark ? '#1e293b' : '#334155' }]}
-              onPress={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))}
+              onPress={() => setZoomLevel(Math.min(3.5, Math.round((zoomLevel + 0.25) * 100) / 100))}
             >
               <Text style={styles.floatZoomBtnText}>+</Text>
             </TouchableOpacity>
@@ -874,21 +916,21 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
               style={styles.navIcon}
               resizeMode="contain"
             />
-            <Text style={[styles.backBtnText, { color: colors.textPrimary }]}>Documents</Text>
+            <Text style={[styles.backBtnText, { color: colors.textPrimary }]}>Back</Text>
           </TouchableOpacity>
 
           <View style={styles.navTitleContainer}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Image
                 source={{ uri: getDocumentTypeIcon(document.type, document.title) }}
-                style={{ width: 22, height: 22 }}
+                style={{ width: 20, height: 20 }}
                 resizeMode="contain"
               />
-              <Text style={[styles.navDocTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+              <Text style={[styles.navDocTitle, { color: colors.textPrimary }]} numberOfLines={1} ellipsizeMode="tail">
                 {document.title}
               </Text>
             </View>
-            <Text style={[styles.navDocSub, { color: colors.textSecondary }]}>
+            <Text style={[styles.navDocSub, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
               {isCV ? 'Curriculum Vitae' : document.type.toUpperCase()} • {document.fileSize || 'Vault Encrypted'}
             </Text>
           </View>
@@ -1442,17 +1484,21 @@ const styles = StyleSheet.create({
   navTitleContainer: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 6,
+    minWidth: 0,
+    overflow: 'hidden',
   },
   navDocTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: '#0f172a',
+    maxWidth: '100%',
   },
   navDocSub: {
     fontSize: 11,
     color: '#64748b',
     marginTop: 1,
+    maxWidth: '100%',
   },
   navActions: {
     flexDirection: 'row',
@@ -1960,6 +2006,11 @@ const styles = StyleSheet.create({
   fullScreenImage: {
     width: '100%',
     height: '100%',
+  },
+  imageScrollContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexGrow: 1,
   },
   floatingZoomRow: {
     position: 'absolute',
