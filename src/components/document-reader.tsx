@@ -88,6 +88,7 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -179,7 +180,11 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
   <div id="document-container"></div>
 
   <script>
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    if (window.pdfjsLib) {
+      try {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+      } catch (e) {}
+    }
 
     async function initViewer() {
       const base64Data = ${JSON.stringify(base64Data)};
@@ -195,7 +200,12 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
           bytes[i] = binary.charCodeAt(i);
         }
 
-        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+        const loadingTask = pdfjsLib.getDocument({
+          data: bytes,
+          cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+          cMapPacked: true,
+        });
+        const pdf = await loadingTask.promise;
         document.getElementById('status-overlay').style.display = 'none';
         const container = document.getElementById('document-container');
 
@@ -253,6 +263,80 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
 </html>`;
 }
 
+async function resolveLocalPdf(rawUrl: string, fileName?: string): Promise<{ fileUri: string; base64: string }> {
+  let localFileUri = rawUrl;
+  const cleanName = (fileName || `doc_${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+  const safeName = cleanName.toLowerCase().endsWith('.pdf') ? cleanName : `${cleanName}.pdf`;
+  const cachedPath = `${FileSystem.cacheDirectory}${safeName}`;
+
+  // If rawUrl is content:// on Android, copy to cache to get a real file:// URI
+  if (rawUrl.startsWith('content://')) {
+    try {
+      await FileSystem.copyAsync({
+        from: rawUrl,
+        to: cachedPath,
+      });
+      localFileUri = cachedPath;
+    } catch (copyErr) {
+      console.warn('copyAsync failed:', copyErr);
+    }
+  }
+
+  // Read base64
+  let base64 = '';
+  try {
+    base64 = await FileSystem.readAsStringAsync(localFileUri, {
+      encoding: 'base64' as any,
+    });
+  } catch (e1) {
+    console.warn('readAsStringAsync failed on localFileUri:', e1);
+  }
+
+  if (!base64 && rawUrl !== localFileUri) {
+    try {
+      base64 = await FileSystem.readAsStringAsync(rawUrl, {
+        encoding: 'base64' as any,
+      });
+    } catch (e2) {
+      console.warn('readAsStringAsync failed on rawUrl:', e2);
+    }
+  }
+
+  // If still no base64, attempt fetch + FileReader
+  if (!base64) {
+    try {
+      const resp = await fetch(rawUrl);
+      const blob = await resp.blob();
+      base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const resStr = (reader.result as string) || '';
+          const commaIdx = resStr.indexOf(',');
+          resolve(commaIdx !== -1 ? resStr.slice(commaIdx + 1) : resStr);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (fetchErr) {
+      console.warn('fetch fallback for base64 failed:', fetchErr);
+    }
+  }
+
+  // If we have base64 and localFileUri is not a file:// URI, write to cache so we have a file:// URI!
+  if (base64 && !localFileUri.startsWith('file://')) {
+    try {
+      await FileSystem.writeAsStringAsync(cachedPath, base64, {
+        encoding: 'base64' as any,
+      });
+      localFileUri = cachedPath;
+    } catch (wErr) {
+      console.warn('writeAsStringAsync failed:', wErr);
+    }
+  }
+
+  return { fileUri: localFileUri, base64 };
+}
+
 export interface DocumentReaderItem {
   id: string;
   title: string;
@@ -293,6 +377,8 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
   const [isLoadingFile, setIsLoadingFile] = useState<boolean>(false);
   const [fileLoadError, setFileLoadError] = useState<string | null>(null);
 
+  const [resolvedFileUri, setResolvedFileUri] = useState<string | null>(null);
+
   useEffect(() => {
     if (document?.fileUrl) {
       setViewMode('embedded');
@@ -303,31 +389,32 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
 
   useEffect(() => {
     let isMounted = true;
-    async function loadBase64() {
+    async function loadDocumentData() {
       if (!document?.fileUrl) {
         setPdfBase64(null);
+        setResolvedFileUri(null);
         return;
       }
       const url = document.fileUrl;
-      const isLocal = url.startsWith('file://') || url.startsWith('content://');
       const isDocPDF =
         document.type === 'pdf' ||
         (document.fileName && document.fileName.toLowerCase().endsWith('.pdf')) ||
         (document.title && document.title.toLowerCase().endsWith('.pdf'));
 
-      if (Platform.OS === 'android' && isLocal && isDocPDF) {
+      if (isDocPDF) {
         setIsLoadingFile(true);
         setFileLoadError(null);
         try {
-          const b64 = await FileSystem.readAsStringAsync(url, {
-            encoding: 'base64' as any,
-          });
+          const { fileUri, base64 } = await resolveLocalPdf(url, document.fileName || document.title);
           if (isMounted) {
-            setPdfBase64(b64);
+            setResolvedFileUri(fileUri);
+            if (base64) {
+              setPdfBase64(base64);
+            }
             setIsLoadingFile(false);
           }
         } catch (err: any) {
-          console.warn('Could not read PDF as base64:', err);
+          console.warn('Could not resolve PDF data:', err);
           if (isMounted) {
             setFileLoadError(err?.message || 'Could not load local file content');
             setIsLoadingFile(false);
@@ -339,7 +426,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       }
     }
 
-    loadBase64();
+    loadDocumentData();
     return () => {
       isMounted = false;
     };
@@ -387,37 +474,64 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
     }
 
     try {
-      if (Platform.OS === 'android') {
-        try {
-          let contentUri = url;
-          if (url.startsWith('file://')) {
-            contentUri = await FileSystem.getContentUriAsync(url);
-          }
-          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-            data: contentUri,
-            flags: 1,
-            type: isPDF ? 'application/pdf' : '*/*',
-          });
-          showNotice('Opening in device viewer...');
-          return;
-        } catch (intentErr) {
-          console.log('Android Intent fallback to Sharing:', intentErr);
+      showNotice('Opening device viewer...');
+
+      // 1. Ensure a valid file:// URI on device filesystem
+      let targetFileUri = resolvedFileUri;
+      if (!targetFileUri || !targetFileUri.startsWith('file://')) {
+        const res = await resolveLocalPdf(url, document.fileName || document.title);
+        targetFileUri = res.fileUri;
+        if (res.base64 && !pdfBase64) {
+          setPdfBase64(res.base64);
         }
       }
 
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable) {
+      if ((!targetFileUri || !targetFileUri.startsWith('file://')) && url.startsWith('file://')) {
+        targetFileUri = url;
+      }
+
+      // 2. Android: IntentLauncher via FileProvider content URI
+      if (Platform.OS === 'android' && targetFileUri?.startsWith('file://')) {
+        try {
+          const contentUri = await FileSystem.getContentUriAsync(targetFileUri);
+          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            data: contentUri,
+            flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+            type: isPDF ? 'application/pdf' : '*/*',
+          });
+          return;
+        } catch (intentErr) {
+          console.log('IntentLauncher fallback to Sharing:', intentErr);
+        }
+      }
+
+      // 3. Sharing fallback (guaranteed file:// URI on Android/iOS)
+      if (targetFileUri?.startsWith('file://')) {
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(targetFileUri, {
+            dialogTitle: `Open ${document.title}`,
+            mimeType: isPDF ? 'application/pdf' : undefined,
+            UTI: isPDF ? 'com.adobe.pdf' : undefined,
+          });
+          return;
+        }
+      }
+
+      // 4. Direct Sharing fallback with raw URL
+      const isAvail = await Sharing.isAvailableAsync();
+      if (isAvail) {
         await Sharing.shareAsync(url, {
           dialogTitle: `Open ${document.title}`,
           mimeType: isPDF ? 'application/pdf' : undefined,
-          UTI: isPDF ? 'com.adobe.pdf' : undefined,
         });
         return;
       }
-      showNotice('Device viewer unavailable.');
-    } catch (err) {
-      console.warn('Error opening file with external app:', err);
-      showNotice('Could not open external app.');
+
+      showNotice('No external PDF viewer found.');
+    } catch (err: any) {
+      console.warn('Error opening external app:', err);
+      showNotice(err?.message || 'Could not open external app.');
     }
   };
 
