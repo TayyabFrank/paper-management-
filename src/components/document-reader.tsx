@@ -86,18 +86,18 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       width: 100%;
-      height: 100%;
+      min-height: 100%;
       background-color: ${isDark ? '#0b0f19' : '#e2e8f0'};
       color: ${isDark ? '#f8fafc' : '#0f172a'};
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      overflow-x: hidden;
+      overflow-x: auto;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
@@ -105,41 +105,47 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 14px 8px 40px;
+      padding: 14px 8px 90px;
       gap: 16px;
       width: 100%;
+      min-width: 100%;
     }
     .page-wrapper {
       position: relative;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.22);
       border-radius: 6px;
       overflow: hidden;
       background-color: #ffffff;
-      max-width: 100%;
+      margin: 0 auto;
+      transition: width 0.12s ease-out;
     }
     canvas {
       display: block;
       width: 100% !important;
       height: auto !important;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
     .page-number-tag {
       position: absolute;
       bottom: 8px;
       right: 12px;
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.78);
       color: #ffffff;
       font-size: 11px;
-      padding: 3px 8px;
+      font-weight: 600;
+      padding: 3px 9px;
       border-radius: 12px;
       font-family: sans-serif;
       pointer-events: none;
+      letter-spacing: 0.3px;
     }
     #status-overlay {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 50px 20px;
+      padding: 60px 20px;
       text-align: center;
     }
     .spinner {
@@ -169,21 +175,101 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
       color: #ef4444;
       font-size: 13px;
     }
+    /* Floating zoom toolbar */
+    .floating-toolbar {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(30, 41, 59, 0.92)'};
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 5px 12px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+      z-index: 10000;
+      border: 1px solid rgba(255,255,255,0.15);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .toolbar-btn {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .toolbar-btn:active {
+      background: rgba(56, 189, 248, 0.4);
+    }
+    .toolbar-label {
+      color: #f8fafc;
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 44px;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+    .toolbar-fit-btn {
+      width: auto;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 14px;
+    }
   </style>
 </head>
 <body>
   <div id="status-overlay">
     <div class="spinner" id="spinner"></div>
-    <div class="status-text" id="status-label">Rendering document on screen...</div>
+    <div class="status-text" id="status-label">Rendering crystal-clear document...</div>
     <div id="error-container" style="display:none;" class="error-box"></div>
   </div>
   <div id="document-container"></div>
+
+  <div id="floating-toolbar" class="floating-toolbar" style="display: none;">
+    <button class="toolbar-btn" id="btn-zoom-out" title="Zoom out">−</button>
+    <span class="toolbar-label" id="zoom-label">100%</span>
+    <button class="toolbar-btn" id="btn-zoom-in" title="Zoom in">+</button>
+    <button class="toolbar-btn toolbar-fit-btn" id="btn-zoom-fit" title="Fit to width">Fit</button>
+  </div>
 
   <script>
     if (window.pdfjsLib) {
       try {
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = '';
       } catch (e) {}
+    }
+
+    const ZOOM_STEPS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0];
+    let currentZoomIndex = 1; // 1.0 = 100%
+
+    function applyZoom(index) {
+      currentZoomIndex = Math.max(0, Math.min(ZOOM_STEPS.length - 1, index));
+      const zoom = ZOOM_STEPS[currentZoomIndex];
+      const baseWidth = Math.min(window.innerWidth - 16, 760);
+      const newWidth = Math.round(baseWidth * zoom);
+
+      const wrappers = document.querySelectorAll('.page-wrapper');
+      wrappers.forEach(function(w) {
+        w.style.width = newWidth + 'px';
+      });
+
+      const label = document.getElementById('zoom-label');
+      if (label) {
+        label.innerText = Math.round(zoom * 100) + '%';
+      }
     }
 
     async function initViewer() {
@@ -208,26 +294,44 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
         const pdf = await loadingTask.promise;
         document.getElementById('status-overlay').style.display = 'none';
         const container = document.getElementById('document-container');
+        const toolbar = document.getElementById('floating-toolbar');
+        if (toolbar) toolbar.style.display = 'flex';
+
+        // Set up zoom toolbar button events
+        document.getElementById('btn-zoom-in').onclick = function() {
+          applyZoom(currentZoomIndex + 1);
+        };
+        document.getElementById('btn-zoom-out').onclick = function() {
+          applyZoom(currentZoomIndex - 1);
+        };
+        document.getElementById('btn-zoom-fit').onclick = function() {
+          applyZoom(1); // 100% / Fit
+        };
+
+        const targetBaseWidth = Math.min(window.innerWidth - 16, 760);
+        const dpr = window.devicePixelRatio || 2;
+        // High-density rasterization: target minimum 1800px-2200px width for razor-sharp vector clarity
+        const renderScale = pdf.numPages > 12 ? Math.max(2.0, dpr) : Math.max(2.8, dpr * 1.4);
 
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
-          const unscaledViewport = page.getViewport({ scale: 1 });
-          const dpr = Math.min(window.devicePixelRatio || 2, 2.5);
-          const targetWidth = Math.min(window.innerWidth - 16, 760);
-          const scale = (targetWidth / unscaledViewport.width) * dpr;
-          const viewport = page.getViewport({ scale: scale });
+          const viewport = page.getViewport({ scale: renderScale });
 
           const wrapper = document.createElement('div');
           wrapper.className = 'page-wrapper';
-          wrapper.style.width = targetWidth + 'px';
+          wrapper.style.width = targetBaseWidth + 'px';
 
           const canvas = document.createElement('canvas');
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-          canvas.style.width = targetWidth + 'px';
-          canvas.style.height = (viewport.height / dpr) + 'px';
+          canvas.style.width = '100%';
+          canvas.style.height = 'auto';
 
-          const context = canvas.getContext('2d');
+          const context = canvas.getContext('2d', { alpha: false });
+          if (context) {
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+          }
           wrapper.appendChild(canvas);
 
           if (pdf.numPages > 1) {
@@ -238,8 +342,10 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
           }
 
           container.appendChild(wrapper);
-          await page.render({ canvasContext: context, viewport: viewport }).promise;
+          await page.render({ canvasContext: context, viewport: viewport, intent: 'display' }).promise;
         }
+
+        applyZoom(1);
       } catch (e) {
         showError('Could not render document: ' + (e && e.message ? e.message : e));
       }
@@ -659,6 +765,12 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           allowFileAccess={true}
           allowUniversalAccessFromFileURLs={true}
           mixedContentMode="always"
+          scalesPageToFit={false}
+          showsHorizontalScrollIndicator={true}
+          showsVerticalScrollIndicator={true}
+          setBuiltInZoomControls={true}
+          setDisplayZoomControls={false}
+          overScrollMode="never"
         />
       );
     }
