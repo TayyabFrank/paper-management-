@@ -61,19 +61,6 @@ export default function HomeScreen() {
           backgroundColor={colors.background}
         />
 
-        {/* Top Floating Header with Admin Portal Quick Switch */}
-        <View style={styles.topUtilityBar}>
-          <TouchableOpacity
-            style={[styles.adminSwitchBtn, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}
-            onPress={() => setIsAdminMode(true)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.adminSwitchText, { color: '#2563eb' }]}>
-              🛡️ Admin Site
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Tab Content View */}
         <View style={styles.workspaceBody}>
           {activeTab === 'home' && (
@@ -122,17 +109,8 @@ export default function HomeScreen() {
         style={styles.keyboardContainer}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
-        {/* Top Floating Header with Theme Toggle & Admin Shortcut */}
+        {/* Top Header with Theme Toggle */}
         <View style={styles.topThemeBar}>
-          <TouchableOpacity
-            style={[styles.adminLoginPreviewBtn, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}
-            onPress={() => setIsAdminMode(true)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.adminSwitchText, { color: '#2563eb' }]}>
-              🛡️ Admin Site
-            </Text>
-          </TouchableOpacity>
           <ThemeToggleButton />
         </View>
 
@@ -168,33 +146,6 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  topUtilityBar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 2,
-    zIndex: 10,
-  },
-  adminSwitchBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-  },
-  adminLoginPreviewBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-    marginRight: 10,
-  },
-  adminSwitchText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
   workspaceBody: {
     flex: 1,
   },
@@ -207,7 +158,7 @@ const styles = StyleSheet.create({
   topThemeBar: {
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 8,

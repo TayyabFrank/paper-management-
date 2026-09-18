@@ -246,15 +246,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (matchedAcc) {
                 setUser({ ...matchedAcc });
                 setIsLoggedIn(true);
-                if (matchedAcc.role === 'Admin') {
-                  setIsAdminModeState(true);
-                }
               } else {
                 setUser(sessionUser);
                 setIsLoggedIn(true);
-                if (sessionUser.role === 'Admin') {
-                  setIsAdminModeState(true);
-                }
               }
             }
           } catch {
@@ -344,21 +338,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(authUser);
     setIsLoggedIn(true);
 
-    // Automatically transition into Admin Site when logging in as Admin
-    if (authUser.role === 'Admin') {
-      setIsAdminModeState(true);
-      try {
-        await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(true));
-      } catch (e) {
-        console.warn('Failed to persist admin mode flag:', e);
-      }
-    } else {
-      setIsAdminModeState(false);
-      try {
-        await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(false));
-      } catch (e) {
-        console.warn('Failed to persist admin mode flag:', e);
-      }
+    // Do not directly route to Admin portal on login
+    setIsAdminModeState(false);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(false));
+    } catch (e) {
+      console.warn('Failed to persist admin mode flag:', e);
     }
 
     try {

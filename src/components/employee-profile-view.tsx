@@ -25,7 +25,7 @@ interface EmployeeProfileViewProps {
 
 export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps) {
   const { isDark, colors } = useDocuVaultTheme();
-  const { user, logout, updateUser } = useAuth();
+  const { user, logout, updateUser, setIsAdminMode } = useAuth();
   const { documents } = useDocuments();
 
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -545,6 +545,25 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
             <ThemeToggleButton />
           </View>
         </View>
+
+        {/* Switch to Management Console (Only visible when user has Admin role) */}
+        {user.role === 'Admin' && (
+          <TouchableOpacity
+            style={[
+              styles.adminPortalBtn,
+              {
+                backgroundColor: isDark ? '#1e293b' : '#eff6ff',
+                borderColor: isDark ? '#38bdf8' : '#bfdbfe',
+              },
+            ]}
+            onPress={() => setIsAdminMode(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.adminPortalBtnText, { color: isDark ? '#38bdf8' : '#1d4ed8' }]}>
+              🛡️ Open Admin Portal
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* High-Contrast Logout Button */}
         <TouchableOpacity
@@ -1151,6 +1170,20 @@ const styles = StyleSheet.create({
   modeIndicatorText: {
     fontSize: 11,
     fontWeight: '800',
+  },
+  adminPortalBtn: {
+    borderWidth: 1.5,
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  adminPortalBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   logoutBtn: {
     borderWidth: 1.8,
