@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,11 @@ import {
   ScrollView,
   Switch,
   Image,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
@@ -59,10 +64,65 @@ const POLY_BG_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 
 export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfileTabProps) {
   const { isDark, toggleTheme, colors } = useDocuVaultTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
 
   const adminName = user.role === 'Admin' ? user.name || 'Alex Smith' : 'Alex Smith';
-  const adminEmail = user.role === 'Admin' ? user.email || 'a.smith@enterprise.com' : 'a.smith@enterprise.com';
+  const adminEmail = user.role === 'Admin' ? user.email || 'admin@enterprise.com' : 'admin@enterprise.com';
+
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editName, setEditName] = useState(adminName);
+  const [editEmail, setEditEmail] = useState(adminEmail);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
+
+  const handleOpenEdit = () => {
+    setEditName(user.name || adminName);
+    setEditEmail(user.email || adminEmail);
+    setNewPassword('');
+    setShowPassword(false);
+    setEditError(null);
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = async () => {
+    setEditError(null);
+    const cleanEmail = editEmail.trim().toLowerCase();
+    const cleanName = editName.trim();
+
+    if (!cleanEmail) {
+      setEditError('Admin email cannot be empty.');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(cleanEmail)) {
+      setEditError('Please enter a valid work email (e.g. name@company.com).');
+      return;
+    }
+    if (!cleanName) {
+      setEditError('Admin name cannot be empty.');
+      return;
+    }
+
+    setIsSaving(true);
+    const result = await updateUser(
+      { name: cleanName, email: cleanEmail },
+      newPassword.trim() ? newPassword.trim() : undefined
+    );
+    setIsSaving(false);
+
+    if (!result.success) {
+      setEditError(result.error || 'Failed to update admin profile.');
+      return;
+    }
+
+    setEditModalVisible(false);
+    setFeedbackToast('✓ Admin email & profile updated successfully!');
+    setTimeout(() => {
+      setFeedbackToast(null);
+    }, 3500);
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? colors.background : '#f5f3ff' }]}>
@@ -79,6 +139,13 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
           Admin Profile
         </Text>
       </View>
+
+      {/* Floating Success Feedback Toast */}
+      {feedbackToast && (
+        <View style={styles.feedbackToast}>
+          <Text style={styles.feedbackToastText}>{feedbackToast}</Text>
+        </View>
+      )}
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -126,11 +193,22 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
 
           <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }]} />
 
-          {/* Section 2: Admin Email */}
+          {/* Section 2: Admin Email (with direct Edit button) */}
           <View style={styles.cardField}>
-            <Text style={[styles.fieldLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              Admin Email
-            </Text>
+            <View style={styles.fieldLabelRow}>
+              <Text style={[styles.fieldLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                Admin Email
+              </Text>
+              <TouchableOpacity
+                style={[styles.editEmailPill, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}
+                onPress={handleOpenEdit}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.editEmailPillText, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
+                  ✏️ Edit Email
+                </Text>
+              </TouchableOpacity>
+            </View>
             <Text style={[styles.fieldValueEmail, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
               {adminEmail}
             </Text>
@@ -174,6 +252,23 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
               thumbColor={isDark ? '#ffffff' : '#f8fafc'}
             />
           </View>
+
+          {/* Edit Profile & Email Action Button */}
+          <TouchableOpacity
+            style={[
+              styles.editProfileBtn,
+              {
+                backgroundColor: isDark ? '#1e293b' : '#f0f9ff',
+                borderColor: isDark ? '#38bdf8' : '#bfdbfe',
+              },
+            ]}
+            onPress={handleOpenEdit}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.editProfileBtnText, { color: isDark ? '#38bdf8' : '#0284c7' }]}>
+              ✏️ Update Admin Profile & Email
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Quick Workspace Switcher & Sign Out */}
@@ -197,6 +292,153 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Edit Admin Profile & Email Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                borderColor: isDark ? '#334155' : '#e2e8f0',
+              },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+              ✏️ Update Admin Details
+            </Text>
+            <Text style={[styles.modalSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+              You can update your admin login email, display name, and password.
+            </Text>
+
+            {editError && (
+              <View style={styles.modalErrorBanner}>
+                <Text style={styles.modalErrorText}>⚠️ {editError}</Text>
+              </View>
+            )}
+
+            {/* Admin Work Email */}
+            <View style={styles.modalInputGroup}>
+              <Text style={[styles.modalInputLabel, { color: colors.textPrimary }]}>
+                ✉️ Admin Work Email *
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalTextInput,
+                  {
+                    backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+                    borderColor: isDark ? '#334155' : '#cbd5e1',
+                    color: colors.textPrimary,
+                  },
+                ]}
+                value={editEmail}
+                onChangeText={(text) => {
+                  setEditEmail(text);
+                  if (editError) setEditError(null);
+                }}
+                placeholder="admin@enterprise.com"
+                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            {/* Admin Name */}
+            <View style={styles.modalInputGroup}>
+              <Text style={[styles.modalInputLabel, { color: colors.textPrimary }]}>
+                👤 Full Name *
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalTextInput,
+                  {
+                    backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+                    borderColor: isDark ? '#334155' : '#cbd5e1',
+                    color: colors.textPrimary,
+                  },
+                ]}
+                value={editName}
+                onChangeText={(text) => {
+                  setEditName(text);
+                  if (editError) setEditError(null);
+                }}
+                placeholder="Alex Smith"
+                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+              />
+            </View>
+
+            {/* Change Password (Optional) */}
+            <View style={styles.modalInputGroup}>
+              <View style={styles.modalPwdHeaderRow}>
+                <Text style={[styles.modalInputLabel, { color: colors.textPrimary }]}>
+                  🔒 New Password (Optional)
+                </Text>
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Text style={{ fontSize: 13, color: isDark ? '#38bdf8' : '#2563eb', fontWeight: '600' }}>
+                    {showPassword ? 'Hide' : 'Show'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={[
+                  styles.modalTextInput,
+                  {
+                    backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+                    borderColor: isDark ? '#334155' : '#cbd5e1',
+                    color: colors.textPrimary,
+                  },
+                ]}
+                value={newPassword}
+                onChangeText={(text) => {
+                  setNewPassword(text);
+                  if (editError) setEditError(null);
+                }}
+                placeholder="Leave blank to keep existing"
+                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+            </View>
+
+            {/* Modal Actions */}
+            <View style={styles.modalActionRow}>
+              <TouchableOpacity
+                style={[styles.modalCancelBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
+                onPress={() => setEditModalVisible(false)}
+                disabled={isSaving}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.modalCancelText, { color: isDark ? '#e2e8f0' : '#475569' }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalSaveBtn}
+                onPress={handleSaveEdit}
+                disabled={isSaving}
+                activeOpacity={0.8}
+              >
+                {isSaving ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Save Changes</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -242,7 +484,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     paddingTop: 65,
-    paddingBottom: 24,
+    paddingBottom: 20,
     paddingHorizontal: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -287,10 +529,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
   },
+  fieldLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
   fieldLabel: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 4,
+  },
+  editEmailPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  editEmailPillText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   fieldValueName: {
     fontSize: 24,
@@ -334,9 +591,22 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 4,
   },
+  editProfileBtn: {
+    marginTop: 16,
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editProfileBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
   bottomActionsCol: {
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 20,
     gap: 12,
   },
   switchModeBtn: {
@@ -359,6 +629,124 @@ const styles = StyleSheet.create({
   signOutBtnText: {
     color: '#b91c1c',
     fontSize: 15,
+    fontWeight: '700',
+  },
+  feedbackToast: {
+    position: 'absolute',
+    top: 60,
+    alignSelf: 'center',
+    backgroundColor: '#15803d',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    zIndex: 99,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  feedbackToastText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 480,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  modalErrorBanner: {
+    backgroundColor: '#fee2e2',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  modalErrorText: {
+    color: '#b91c1c',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  modalInputGroup: {
+    marginBottom: 14,
+  },
+  modalInputLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  modalTextInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  modalPwdHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalSaveBtn: {
+    flex: 1,
+    backgroundColor: '#2563eb',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  modalSaveText: {
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: '700',
   },
 });

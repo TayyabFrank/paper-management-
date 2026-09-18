@@ -562,27 +562,6 @@ export function EmployeeRegistrationCard({
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
           </View>
 
-          {/* Quick Admin Credentials Helper */}
-          <TouchableOpacity
-            style={[
-              styles.adminQuickFillBtn,
-              {
-                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : '#f0fdf4',
-                borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#bbf7d0',
-              },
-            ]}
-            onPress={() => {
-              setWorkEmail('admin@enterprise.com');
-              setPassword('password123');
-              setErrors({});
-            }}
-            activeOpacity={0.75}
-          >
-            <Text style={[styles.adminQuickFillText, { color: isDark ? '#38bdf8' : '#166534' }]}>
-              👑 Quick Fill Admin: admin@enterprise.com / password123
-            </Text>
-          </TouchableOpacity>
-
           {/* Global Form Error Banner */}
           {errors.form ? (
             <View style={styles.formErrorBanner}>
@@ -1190,19 +1169,5 @@ const styles = StyleSheet.create({
   pwdRuleText: {
     fontSize: 11,
     fontWeight: '600',
-  },
-  adminQuickFillBtn: {
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    marginBottom: 10,
-  },
-  adminQuickFillText: {
-    fontSize: 12,
-    fontWeight: '700',
   },
 });

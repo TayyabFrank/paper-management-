@@ -511,7 +511,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const updatedUser = { ...user, ...data };
+    // Validate email if provided
+    let cleanNewEmail: string | undefined;
+    if (data.email && data.email.trim()) {
+      cleanNewEmail = data.email.trim().toLowerCase();
+      if (!/\S+@\S+\.\S+/.test(cleanNewEmail)) {
+        return { success: false, error: 'Please enter a valid email address.' };
+      }
+      const isDuplicate = accounts.some(
+        (acc) =>
+          acc.email.toLowerCase() === cleanNewEmail &&
+          acc.email.toLowerCase() !== user.email.toLowerCase()
+      );
+      if (isDuplicate) {
+        return { success: false, error: 'An account with this email already exists.' };
+      }
+    }
+
+    const previousEmail = (user.email || '').toLowerCase();
+    const updatedUser: EmployeeUser = {
+      ...user,
+      ...data,
+      ...(cleanNewEmail ? { email: cleanNewEmail } : {}),
+      ...(user.role === 'Admin' ? { role: 'Admin' } : {}),
+    };
+
     setUser(updatedUser);
 
     try {
@@ -522,11 +546,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Update in registered accounts list too
     const updatedAccounts = accounts.map((acc) => {
-      if (acc.email.toLowerCase() === user.email.toLowerCase()) {
+      if (acc.email.toLowerCase() === previousEmail) {
         return {
           ...acc,
           ...data,
+          ...(cleanNewEmail ? { email: cleanNewEmail } : {}),
           ...(newPassword && newPassword.trim() ? { password: newPassword.trim() } : {}),
+          ...(user.role === 'Admin' ? { role: 'Admin' } : {}),
         };
       }
       return acc;
