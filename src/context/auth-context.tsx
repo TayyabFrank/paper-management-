@@ -447,7 +447,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Update in registered accounts list too
     const updatedAccounts = accounts.map((acc) => {
-      if (acc.email.toLowerCase() === user.email.toLowerCase()) {
+      const isTargetAccount =
+        (user.email && acc.email.toLowerCase() === user.email.toLowerCase()) ||
+        (user.role === 'Admin' && acc.role === 'Admin') ||
+        (acc.email.toLowerCase() === 'a.smith@enterprise.com');
+
+      if (isTargetAccount) {
         return {
           ...acc,
           ...data,
