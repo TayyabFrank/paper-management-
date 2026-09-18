@@ -456,6 +456,8 @@ export function DocumentsDashboard({
       fileUrl: item.url,
       fileName: item.name,
       previewImage: item.previewImage,
+      employeeEmail: employeeEmail,
+      employeeName: employeeName || cleanName,
       fullContent: isCV
         ? {
             category: 'Curriculum Vitae / Resume',

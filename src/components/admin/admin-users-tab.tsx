@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth, StoredAccount } from '@/context/auth-context';
+import { useDocuments } from '@/context/documents-context';
 
 interface AdminUsersTabProps {
   onViewEmployeeDocs: (employee: StoredAccount) => void;
@@ -64,12 +65,13 @@ const DOC_COUNTER_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
   const { registeredAccounts, removeAccount } = useAuth();
+  const { documents } = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
   const [employeeToRemove, setEmployeeToRemove] = useState<StoredAccount | null>(null);
 
-  // Active staff only (excluding pending approvals and admins)
+  // Active staff only (excluding admins and rejected accounts)
   const activeStaff = registeredAccounts.filter(
-    (a) => a.role === 'Employee' && a.status !== 'pending' && a.status !== 'rejected'
+    (a) => a.role === 'Employee' && a.status !== 'rejected'
   );
 
   const filteredStaff = activeStaff.filter(
@@ -99,7 +101,7 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
             Staff Directory
           </Text>
           <Text style={[styles.subTitle, { color: isDark ? '#94a3b8' : '#475569' }]}>
-            {activeStaff.length} Active Employees
+            {activeStaff.length} {activeStaff.length === 1 ? 'Registered Employee' : 'Registered Employees'}
           </Text>
         </View>
 
@@ -146,13 +148,24 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
               },
             ]}
           >
+            <Text style={{ fontSize: 36, marginBottom: 10 }}>👥</Text>
+            <Text style={[styles.emptyTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+              {searchQuery ? 'No matching employees' : 'No Registered Employees Yet'}
+            </Text>
             <Text style={[styles.emptyText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              No employees match "{searchQuery}".
+              {searchQuery
+                ? `No employees match "${searchQuery}".`
+                : 'When employees register in DocuVault, their real profile and uploaded documents will appear here automatically.'}
             </Text>
           </View>
         ) : (
           filteredStaff.map((employee) => {
-            const docCount = employee.documentsCount ?? 8;
+            const employeeDocs = documents.filter(
+              (d) =>
+                (d.employeeEmail && d.employeeEmail.toLowerCase() === employee.email.toLowerCase()) ||
+                (d.employeeName && d.employeeName.toLowerCase() === employee.name.toLowerCase())
+            );
+            const docCount = employeeDocs.length;
 
             return (
               <View
@@ -471,13 +484,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyCard: {
-    padding: 30,
-    borderRadius: 16,
+    padding: 36,
+    borderRadius: 20,
     borderWidth: 1,
     alignItems: 'center',
+    marginVertical: 10,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 6,
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: 14.5,
+    textAlign: 'center',
+    lineHeight: 21,
+    maxWidth: 340,
   },
   modalOverlay: {
     flex: 1,
