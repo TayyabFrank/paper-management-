@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth, StoredAccount } from '@/context/auth-context';
-import { useDocuments } from '@/context/documents-context';
 
 interface AdminUsersTabProps {
   onViewEmployeeDocs: (employee: StoredAccount) => void;
@@ -65,13 +64,12 @@ const DOC_COUNTER_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
   const { registeredAccounts, removeAccount } = useAuth();
-  const { documents } = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
   const [employeeToRemove, setEmployeeToRemove] = useState<StoredAccount | null>(null);
 
-  // Active staff only (excluding admins and rejected accounts)
+  // Active staff only (excluding pending approvals and admins)
   const activeStaff = registeredAccounts.filter(
-    (a) => a.role === 'Employee' && a.status !== 'rejected'
+    (a) => a.role === 'Employee' && a.status !== 'pending' && a.status !== 'rejected'
   );
 
   const filteredStaff = activeStaff.filter(
@@ -101,7 +99,7 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
             Staff Directory
           </Text>
           <Text style={[styles.subTitle, { color: isDark ? '#94a3b8' : '#475569' }]}>
-            {activeStaff.length} {activeStaff.length === 1 ? 'Registered Employee' : 'Registered Employees'}
+            {activeStaff.length} Active Employees
           </Text>
         </View>
 
@@ -116,11 +114,7 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
           ]}
         >
           <View style={styles.searchIconBox}>
-            <Image
-              source={{ uri: SEARCH_ICON_SVG }}
-              style={{ width: 18, height: 18 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: SEARCH_ICON_SVG }} style={{ width: 18, height: 18 }} resizeMode="contain" />
           </View>
           <TextInput
             style={[styles.searchInput, { color: isDark ? colors.textPrimary : '#0f172a' }]}
@@ -133,11 +127,7 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
             style={[styles.filterBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
             activeOpacity={0.7}
           >
-            <Image
-              source={{ uri: FILTER_ICON_SVG }}
-              style={{ width: 18, height: 18 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: FILTER_ICON_SVG }} style={{ width: 18, height: 18 }} resizeMode="contain" />
           </TouchableOpacity>
         </View>
 
@@ -152,24 +142,13 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
               },
             ]}
           >
-            <Text style={{ fontSize: 36, marginBottom: 10 }}>👥</Text>
-            <Text style={[styles.emptyTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-              {searchQuery ? 'No matching employees' : 'No Registered Employees Yet'}
-            </Text>
             <Text style={[styles.emptyText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              {searchQuery
-                ? `No employees match "${searchQuery}".`
-                : 'When employees register in DocuVault, their real profile and uploaded documents will appear here automatically.'}
+              No employees match "{searchQuery}".
             </Text>
           </View>
         ) : (
           filteredStaff.map((employee) => {
-            const employeeDocs = documents.filter(
-              (d) =>
-                (d.employeeEmail && d.employeeEmail.toLowerCase() === employee.email.toLowerCase()) ||
-                (d.employeeName && d.employeeName.toLowerCase() === employee.name.toLowerCase())
-            );
-            const docCount = employeeDocs.length;
+            const docCount = employee.documentsCount ?? 8;
 
             return (
               <View
@@ -230,7 +209,7 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
                           resizeMode="contain"
                         />
                         <Text style={[styles.docCountText, { color: isDark ? '#94a3b8' : '#475569' }]}>
-                          {docCount} {docCount === 1 ? 'Document' : 'Documents'}
+                          {docCount} Documents
                         </Text>
                       </View>
                     </View>
@@ -482,22 +461,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyCard: {
-    padding: 36,
-    borderRadius: 20,
+    padding: 30,
+    borderRadius: 16,
     borderWidth: 1,
     alignItems: 'center',
-    marginVertical: 10,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 6,
   },
   emptyText: {
-    fontSize: 14.5,
-    textAlign: 'center',
-    lineHeight: 21,
-    maxWidth: 340,
+    fontSize: 15,
   },
   modalOverlay: {
     flex: 1,

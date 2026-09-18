@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   Image,
-  Platform,
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
@@ -70,7 +69,7 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
     (a) => a.role === 'Employee' && a.status !== 'pending' && a.status !== 'rejected'
   );
   const pendingApprovals = registeredAccounts.filter((a) => a.status === 'pending');
-  const totalDocumentsCount = documents.length;
+  const totalDocumentsCount = documents.length > 0 ? documents.length : 4;
 
   return (
     <View style={[styles.screenContainer, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>
@@ -78,11 +77,7 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
       <View style={[styles.topHeaderBar, { backgroundColor: isDark ? '#0f172a' : '#172554' }]}>
         <View style={styles.topHeaderContent}>
           <View style={styles.brandRow}>
-            <Image
-              source={{ uri: LOGO_BADGE_SVG }}
-              style={{ width: 28, height: 28 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: LOGO_BADGE_SVG }} style={{ width: 28, height: 28 }} resizeMode="contain" />
             <Text style={styles.brandTitle}>DocuVault</Text>
           </View>
 
@@ -127,11 +122,7 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
           activeOpacity={0.8}
         >
           <View style={[styles.metricIconBox, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
-            <Image
-              source={{ uri: USERS_METRIC_SVG }}
-              style={{ width: 26, height: 26 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: USERS_METRIC_SVG }} style={{ width: 26, height: 26 }} resizeMode="contain" />
           </View>
           <View style={styles.metricInfo}>
             <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
@@ -156,11 +147,7 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
           activeOpacity={0.8}
         >
           <View style={[styles.metricIconBox, { backgroundColor: isDark ? '#2a2215' : '#fef3c7' }]}>
-            <Image
-              source={{ uri: CLOCK_METRIC_SVG }}
-              style={{ width: 26, height: 26 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: CLOCK_METRIC_SVG }} style={{ width: 26, height: 26 }} resizeMode="contain" />
           </View>
           <View style={styles.metricInfo}>
             <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
@@ -185,11 +172,7 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
           activeOpacity={0.8}
         >
           <View style={[styles.metricIconBox, { backgroundColor: isDark ? '#143026' : '#ecfdf5' }]}>
-            <Image
-              source={{ uri: DOCS_METRIC_SVG }}
-              style={{ width: 26, height: 26 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: DOCS_METRIC_SVG }} style={{ width: 26, height: 26 }} resizeMode="contain" />
           </View>
           <View style={styles.metricInfo}>
             <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>

@@ -56,11 +56,7 @@ export function AdminApprovalsTab({ onOpenMenu }: AdminApprovalsTabProps) {
       <View style={[styles.topHeaderBar, { backgroundColor: isDark ? '#0f172a' : '#172554' }]}>
         <View style={styles.topHeaderContent}>
           <View style={styles.brandRow}>
-            <Image
-              source={{ uri: LOGO_BADGE_SVG }}
-              style={{ width: 28, height: 28 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: LOGO_BADGE_SVG }} style={{ width: 28, height: 28 }} resizeMode="contain" />
             <Text style={styles.brandTitle}>DocuVault</Text>
           </View>
 

@@ -58,17 +58,64 @@ export const INITIAL_STAFF_ACCOUNTS: StoredAccount[] = [
     employeeId: 'ADM-001',
     status: 'active',
     password: 'password123',
+    documentsCount: 4,
+  },
+  {
+    name: 'Liam Thompson',
+    email: 'l.thompson@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    role: 'Employee',
+    department: 'Engineering',
+    employeeId: 'EMP-10492',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 31,
+  },
+  {
+    name: 'Fatima Khan',
+    email: 'f.khan@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    role: 'Employee',
+    department: 'Design',
+    employeeId: 'EMP-10493',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 18,
+  },
+  {
+    name: 'Benjamin Garcia',
+    email: 'b.garcia@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+    role: 'Employee',
+    department: 'Operations',
+    employeeId: 'EMP-10494',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 5,
+  },
+  {
+    name: 'Alex Thompson',
+    email: 'alex.t@company.com',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&auto=format&fit=crop&q=80',
+    role: 'Employee',
+    department: 'Marketing',
+    employeeId: 'EMP-10501',
+    status: 'pending',
+    password: 'password123',
+    documentsCount: 0,
+  },
+  {
+    name: 'Rachel Green',
+    email: 'r.green@company.com',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
+    role: 'Employee',
+    department: 'Human Resources',
+    employeeId: 'EMP-10502',
+    status: 'pending',
+    password: 'password123',
     documentsCount: 0,
   },
 ];
-
-const MOCK_STAFF_EMAILS = new Set([
-  'l.thompson@enterprise.com',
-  'f.khan@enterprise.com',
-  'b.garcia@enterprise.com',
-  'alex.t@company.com',
-  'r.green@company.com',
-]);
 
 const EMPTY_USER: EmployeeUser = {
   name: '',
@@ -125,22 +172,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const parsed = JSON.parse(rawAccounts);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              // Strictly strip out all mock accounts so only real registered employees remain
-              loadedAccounts = parsed.filter(
-                (a: StoredAccount) => a && a.email && !MOCK_STAFF_EMAILS.has(a.email.toLowerCase())
+              // Merge user accounts with design-matching baseline accounts if not present
+              const existingEmails = new Set(parsed.map((a: StoredAccount) => a.email.toLowerCase()));
+              const missingDefaults = INITIAL_STAFF_ACCOUNTS.filter(
+                (a) => !existingEmails.has(a.email.toLowerCase())
               );
+              loadedAccounts = [...parsed, ...missingDefaults];
+            } else {
+              loadedAccounts = INITIAL_STAFF_ACCOUNTS;
             }
           } catch {
-            loadedAccounts = [];
+            loadedAccounts = INITIAL_STAFF_ACCOUNTS;
           }
+        } else {
+          loadedAccounts = INITIAL_STAFF_ACCOUNTS;
         }
-
-        // Ensure default Admin account exists
-        const adminExists = loadedAccounts.some((a) => a.role === 'Admin');
-        if (!adminExists) {
-          loadedAccounts = [...INITIAL_STAFF_ACCOUNTS, ...loadedAccounts];
-        }
-
         await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(loadedAccounts));
 
         if (isMounted) {
@@ -401,12 +447,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Update in registered accounts list too
     const updatedAccounts = accounts.map((acc) => {
-      const isTargetAccount =
-        (user.email && acc.email.toLowerCase() === user.email.toLowerCase()) ||
-        (user.role === 'Admin' && acc.role === 'Admin') ||
-        (acc.email.toLowerCase() === 'a.smith@enterprise.com');
-
-      if (isTargetAccount) {
+      if (acc.email.toLowerCase() === user.email.toLowerCase()) {
         return {
           ...acc,
           ...data,

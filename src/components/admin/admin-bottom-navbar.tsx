@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
@@ -109,7 +109,7 @@ export function AdminBottomNavbar({
               <View style={styles.iconContainer}>
                 <Image
                   source={{ uri: tab.getIcon(iconColor) }}
-                  style={{ width: 22, height: 22 }}
+                  style={styles.tabIcon}
                   resizeMode="contain"
                 />
 
@@ -175,6 +175,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 28,
     height: 28,
+  },
+  tabIcon: {
+    width: 22,
+    height: 22,
   },
   tabLabel: {
     fontSize: 11,

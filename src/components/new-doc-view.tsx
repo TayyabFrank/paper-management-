@@ -1,6 +1,5 @@
 import { useDocuments } from '@/context/documents-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
-import { useAuth } from '@/context/auth-context';
 import * as DocumentPicker from 'expo-document-picker';
 import React, { useRef, useState } from 'react';
 import {
@@ -79,7 +78,6 @@ const GOOGLE_DRIVE_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 
 export function NewDocView({ onNavigateTab }: NewDocViewProps) {
   const { isDark, colors } = useDocuVaultTheme();
-  const { user } = useAuth();
   const { addDocument } = useDocuments();
   const [driveLink, setDriveLink] = useState('');
   const [documentTitle, setDocumentTitle] = useState('');
@@ -220,8 +218,6 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
       fileUrl: selectedFile?.fileUrl || (isDrive ? driveLink : undefined),
       fileName: selectedFile?.name || finalTitle,
       previewImage: detectedType === 'image' ? selectedFile?.fileUrl : undefined,
-      employeeEmail: user.email,
-      employeeName: user.name || cleanCandidate,
       fullContent: isCV
         ? {
             category: 'Curriculum Vitae / Resume',

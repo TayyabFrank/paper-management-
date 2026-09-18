@@ -5,7 +5,7 @@ import {
   Modal,
   Text,
   TouchableOpacity,
-  Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
@@ -23,7 +23,7 @@ interface AdminPortalViewProps {
 }
 
 export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps) {
-  const { isDark, colors, toggleTheme } = useDocuVaultTheme();
+  const { isDark, colors } = useDocuVaultTheme();
   const { registeredAccounts, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTabKey>('dashboard');
   const [selectedEmployee, setSelectedEmployee] = useState<StoredAccount | null>(null);
@@ -37,6 +37,11 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
       style={[styles.container, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}
       edges={['top', 'left', 'right']}
     >
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={isDark ? '#0f172a' : '#172554'}
+      />
+
       {/* Tab Body */}
       <View style={styles.body}>
         {activeTab === 'dashboard' && (

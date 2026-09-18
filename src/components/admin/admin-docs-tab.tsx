@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useDocuments } from '@/context/documents-context';
-import { useAuth, StoredAccount } from '@/context/auth-context';
+import { StoredAccount } from '@/context/auth-context';
 import { DocumentReaderItem } from '@/components/document-reader';
+import { BASE_STAFF_DOCUMENTS } from '@/constants/staff-documents';
 
 interface AdminDocsTabProps {
   selectedEmployee: StoredAccount | null;
@@ -107,29 +108,21 @@ export function AdminDocsTab({
 }: AdminDocsTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
   const { documents } = useDocuments();
-  const { registeredAccounts } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
-  // Target selected employee or first registered employee
-  const firstStaff = registeredAccounts.find((a) => a.role === 'Employee');
-  const targetEmployee = selectedEmployee || firstStaff || null;
-
-  const employeeName = targetEmployee?.name || 'All Registered Staff';
-  const employeeEmail = targetEmployee?.email || '';
+  // If no employee was explicitly chosen, default to Liam Thompson
+  const employeeName = selectedEmployee?.name || 'Liam Thompson';
+  const employeeEmail = selectedEmployee?.email || 'l.thompson@enterprise.com';
   const employeeAvatar =
-    targetEmployee?.avatar ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
+    selectedEmployee?.avatar ||
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80';
 
-  // Gather documents strictly for this employee (or all documents if none selected)
-  const employeeDocs = targetEmployee
-    ? documents.filter(
-        (d) =>
-          (d.employeeEmail && d.employeeEmail.toLowerCase() === targetEmployee.email.toLowerCase()) ||
-          (d.employeeName && d.employeeName.toLowerCase() === targetEmployee.name.toLowerCase()) ||
-          (!d.employeeEmail && !d.employeeName)
-      )
-    : documents;
+  // Gather documents for this employee (including both mock baseline and user uploaded docs)
+  const employeeDocs = [
+    ...documents.filter((d: DocumentReaderItem) => !d.employeeEmail || d.employeeEmail.toLowerCase() === employeeEmail.toLowerCase()),
+    ...BASE_STAFF_DOCUMENTS.filter((d: DocumentReaderItem) => d.employeeEmail?.toLowerCase() === employeeEmail.toLowerCase()),
+  ].filter((v, i, a) => a.findIndex((t) => t.id === v.id || t.title === v.title) === i);
 
   const filteredDocs = employeeDocs.filter((d) => {
     const matchesSearch =
@@ -211,11 +204,7 @@ export function AdminDocsTab({
           ]}
         >
           <View style={styles.searchIconBox}>
-            <Image
-              source={{ uri: SEARCH_ICON_SVG }}
-              style={{ width: 18, height: 18 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: SEARCH_ICON_SVG }} style={{ width: 18, height: 18 }} resizeMode="contain" />
           </View>
           <TextInput
             style={[styles.searchInput, { color: isDark ? colors.textPrimary : '#0f172a' }]}
@@ -228,11 +217,7 @@ export function AdminDocsTab({
             style={[styles.filterBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
             activeOpacity={0.7}
           >
-            <Image
-              source={{ uri: FILTER_ICON_SVG }}
-              style={{ width: 18, height: 18 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: FILTER_ICON_SVG }} style={{ width: 18, height: 18 }} resizeMode="contain" />
           </TouchableOpacity>
         </View>
 
