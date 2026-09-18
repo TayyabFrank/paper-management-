@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   Dimensions,
   Linking,
-  StatusBar,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as Sharing from 'expo-sharing';
@@ -83,6 +82,131 @@ const OPEN_APP_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
   <line x1="10" y1="14" x2="21" y2="3"></line>
 </svg>
 `)}`;
+
+function generateDocxHtml(base64Data: string, isDark: boolean): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      background-color: ${isDark ? '#0b0f19' : '#f1f5f9'};
+      color: ${isDark ? '#f8fafc' : '#0f172a'};
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      padding: 16px 12px 90px;
+    }
+    .docx-paper {
+      background-color: ${isDark ? '#111827' : '#ffffff'};
+      border: 1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'};
+      box-shadow: 0 4px 20px rgba(0,0,0,0.14);
+      border-radius: 8px;
+      padding: 24px 18px;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+    h1, h2, h3, h4 {
+      margin-top: 20px;
+      margin-bottom: 10px;
+      color: ${isDark ? '#38bdf8' : '#1e3a8a'};
+      font-weight: 700;
+    }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 16px; }
+    p { margin-bottom: 12px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid ${isDark ? '#334155' : '#cbd5e1'};
+      padding: 8px 10px;
+      text-align: left;
+    }
+    th {
+      background-color: ${isDark ? '#1e293b' : '#f1f5f9'};
+      font-weight: 700;
+    }
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 12px;
+    }
+    li { margin-bottom: 4px; }
+    #status-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      text-align: center;
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3.5px solid rgba(56, 189, 248, 0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="status-overlay">
+    <div class="spinner"></div>
+    <div style="font-size: 14px; font-weight: 600; color: ${isDark ? '#94a3b8' : '#64748b'};">
+      Loading Word Document on screen...
+    </div>
+  </div>
+  <div id="docx-container" class="docx-paper" style="display: none;"></div>
+  <script>
+    async function loadDocx() {
+      const b64 = ${JSON.stringify(base64Data)};
+      if (!b64) return;
+      try {
+        const bin = atob(b64);
+        const len = bin.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = bin.charCodeAt(i);
+        }
+        mammoth.convertToHtml({ arrayBuffer: bytes.buffer })
+          .then(function(result) {
+            document.getElementById('status-overlay').style.display = 'none';
+            const container = document.getElementById('docx-container');
+            container.style.display = 'block';
+            container.innerHTML = result.value || '<p>Empty Word document</p>';
+          })
+          .catch(function(err) {
+            showFallback(err);
+          });
+      } catch (e) {
+        showFallback(e);
+      }
+    }
+    function showFallback(err) {
+      document.getElementById('status-overlay').innerHTML =
+        '<div style="padding: 20px; font-size: 14px; color: #ef4444;">Could not render Word document. Please tap "Open in Device Word Viewer" below.</div>';
+    }
+    if (window.mammoth) {
+      loadDocx();
+    } else {
+      window.onload = loadDocx;
+    }
+  </script>
+</body>
+</html>`;
+}
 
 function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
   return `<!DOCTYPE html>
@@ -421,393 +545,29 @@ function generatePdfJsHtml(base64Data: string, isDark: boolean): string {
 </html>`;
 }
 
-function generateDocxHtml(base64Data: string, isDark: boolean, fileName: string): string {
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      width: 100%;
-      min-height: 100%;
-      background-color: ${isDark ? '#0b0f19' : '#e2e8f0'};
-      color: ${isDark ? '#f1f5f9' : '#0f172a'};
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      overflow-x: auto;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x pan-y pinch-zoom;
-    }
-    #document-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 16px 12px 90px;
-      width: 100%;
-      min-width: 100%;
-    }
-    .docx-card {
-      width: 100%;
-      max-width: 820px;
-      background-color: ${isDark ? '#131d31' : '#ffffff'};
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
-      border-radius: 8px;
-      padding: 28px 24px;
-      margin: 0 auto;
-      transition: width 0.15s ease-out;
-      border: 1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1'};
-    }
-    .docx-doc-header {
-      border-bottom: 2px solid ${isDark ? '#1e293b' : '#e2e8f0'};
-      padding-bottom: 14px;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .docx-badge {
-      font-size: 11px;
-      font-weight: 700;
-      color: ${isDark ? '#38bdf8' : '#2563eb'};
-      background: ${isDark ? 'rgba(56,189,248,0.12)' : '#eff6ff'};
-      padding: 4px 10px;
-      border-radius: 12px;
-      letter-spacing: 0.5px;
-    }
-    .docx-filename {
-      font-size: 12px;
-      color: ${isDark ? '#94a3b8' : '#64748b'};
-      font-weight: 600;
-      word-break: break-all;
-    }
-    #docx-content {
-      font-size: 15px;
-      line-height: 1.75;
-      color: ${isDark ? '#e2e8f0' : '#1e293b'};
-    }
-    #docx-content h1 {
-      font-size: 24px;
-      font-weight: 800;
-      margin: 20px 0 12px;
-      color: ${isDark ? '#ffffff' : '#0f172a'};
-      border-bottom: 1px solid ${isDark ? '#22324e' : '#e2e8f0'};
-      padding-bottom: 8px;
-    }
-    #docx-content h2 {
-      font-size: 20px;
-      font-weight: 700;
-      margin: 18px 0 10px;
-      color: ${isDark ? '#f8fafc' : '#1e293b'};
-    }
-    #docx-content h3 {
-      font-size: 17px;
-      font-weight: 700;
-      margin: 14px 0 8px;
-      color: ${isDark ? '#e2e8f0' : '#334155'};
-    }
-    #docx-content p {
-      margin-bottom: 14px;
-      text-align: justify;
-    }
-    #docx-content table {
-      width: 100% !important;
-      border-collapse: collapse;
-      margin: 16px 0;
-      font-size: 13.5px;
-    }
-    #docx-content th, #docx-content td {
-      border: 1px solid ${isDark ? '#2e4161' : '#cbd5e1'};
-      padding: 8px 12px;
-      text-align: left;
-    }
-    #docx-content th {
-      background-color: ${isDark ? '#1e293b' : '#f8fafc'};
-      font-weight: 700;
-      color: ${isDark ? '#f8fafc' : '#0f172a'};
-    }
-    #docx-content tr:nth-child(even) td {
-      background-color: ${isDark ? 'rgba(255,255,255,0.02)' : '#fcfcfd'};
-    }
-    #docx-content ul, #docx-content ol {
-      margin: 12px 0 16px 24px;
-    }
-    #docx-content li {
-      margin-bottom: 6px;
-    }
-    #docx-content img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 4px;
-      margin: 12px auto;
-      display: block;
-    }
-    #status-overlay {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 20px;
-      text-align: center;
-    }
-    .spinner {
-      width: 38px;
-      height: 38px;
-      border: 3.5px solid rgba(56, 189, 248, 0.2);
-      border-top-color: #38bdf8;
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
-      margin-bottom: 16px;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    .status-text {
-      font-size: 14px;
-      color: ${isDark ? '#94a3b8' : '#64748b'};
-      font-weight: 600;
-    }
-    .error-box {
-      background: ${isDark ? '#1f1315' : '#fef2f2'};
-      border: 1px solid #f87171;
-      border-radius: 8px;
-      padding: 18px;
-      max-width: 90%;
-      margin-top: 14px;
-      color: #ef4444;
-      font-size: 13.5px;
-      line-height: 1.5;
-    }
-    .zoom-toolbar {
-      position: fixed;
-      bottom: 18px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: ${isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)'};
-      border: 1px solid ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)'};
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      padding: 6px 12px;
-      border-radius: 30px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-      z-index: 9999;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    .zoom-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: none;
-      background: ${isDark ? '#1e293b' : '#f1f5f9'};
-      color: ${isDark ? '#38bdf8' : '#0284c7'};
-      font-size: 18px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      outline: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .fit-btn {
-      width: auto;
-      border-radius: 16px;
-      padding: 0 10px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .zoom-text {
-      font-size: 12px;
-      font-weight: 700;
-      min-width: 38px;
-      text-align: center;
-      color: ${isDark ? '#e2e8f0' : '#1e293b'};
-      font-variant-numeric: tabular-nums;
-    }
-  </style>
-</head>
-<body>
-  <div id="status-overlay">
-    <div class="spinner" id="spinner"></div>
-    <div class="status-text" id="status-label">Rendering Word Document...</div>
-    <div id="error-container" style="display:none;" class="error-box"></div>
-  </div>
-
-  <div id="document-container">
-    <div id="docx-page-card" class="docx-card" style="display: none;">
-      <div class="docx-doc-header">
-        <span class="docx-badge">DOCX WORD DOCUMENT</span>
-        <span class="docx-filename">${fileName}</span>
-      </div>
-      <div id="docx-content"></div>
-    </div>
-  </div>
-
-  <div id="zoom-toolbar" class="zoom-toolbar" style="display: none;">
-    <button class="zoom-btn" id="btn-zoom-out" title="Zoom Out">−</button>
-    <span class="zoom-text" id="zoom-label">100%</span>
-    <button class="zoom-btn" id="btn-zoom-in" title="Zoom In">+</button>
-    <button class="zoom-btn fit-btn" id="btn-zoom-fit">Fit</button>
-  </div>
-
-  <script>
-    let currentZoom = 1.0;
-    let baseWidth = Math.min(window.innerWidth - 24, 820);
-
-    function applyZoom(zoom) {
-      currentZoom = Math.max(0.6, Math.min(2.5, Math.round(zoom * 100) / 100));
-      const newWidth = Math.round(baseWidth * currentZoom);
-      const card = document.getElementById('docx-page-card');
-      if (card) {
-        card.style.maxWidth = newWidth + 'px';
-      }
-      const label = document.getElementById('zoom-label');
-      if (label) {
-        label.innerText = Math.round(currentZoom * 100) + '%';
-      }
-    }
-
-    function setupControls() {
-      const btnIn = document.getElementById('btn-zoom-in');
-      const btnOut = document.getElementById('btn-zoom-out');
-      const btnFit = document.getElementById('btn-zoom-fit');
-
-      if (btnIn) btnIn.onclick = () => applyZoom(currentZoom + 0.2);
-      if (btnOut) btnOut.onclick = () => applyZoom(currentZoom - 0.2);
-      if (btnFit) btnFit.onclick = () => applyZoom(1.0);
-
-      window.addEventListener('resize', () => {
-        baseWidth = Math.min(window.innerWidth - 24, 820);
-        applyZoom(currentZoom);
-      });
-    }
-
-    async function initDocxViewer() {
-      const base64Data = ${JSON.stringify(base64Data)};
-      if (!base64Data) {
-        showError('No Word document data found.');
-        return;
-      }
-      try {
-        const binary = atob(base64Data);
-        const len = binary.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binary.charCodeAt(i);
-        }
-
-        if (window.mammoth) {
-          const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer });
-          const container = document.getElementById('docx-content');
-          if (result.value && result.value.trim().length > 0) {
-            container.innerHTML = result.value;
-          } else {
-            container.innerHTML = '<p style="color:#64748b;font-style:italic;">This Word document contains formatted layout. Use "Device Viewer" to view all elements in Microsoft Word.</p>';
-          }
-          document.getElementById('status-overlay').style.display = 'none';
-          document.getElementById('docx-page-card').style.display = 'block';
-          const toolbar = document.getElementById('zoom-toolbar');
-          if (toolbar) toolbar.style.display = 'flex';
-          setupControls();
-        } else {
-          showError('Mammoth parser library not loaded. Tap "Device Viewer" above to open in Word or Google Docs.');
-        }
-      } catch (err) {
-        showError('Could not parse Word document: ' + (err && err.message ? err.message : err));
-      }
-    }
-
-    function showError(msg) {
-      document.getElementById('spinner').style.display = 'none';
-      document.getElementById('status-label').innerText = 'Word Document';
-      const errBox = document.getElementById('error-container');
-      errBox.style.display = 'block';
-      errBox.innerText = msg;
-    }
-
-    if (window.mammoth) {
-      initDocxViewer();
-    } else {
-      window.onload = initDocxViewer;
-    }
-  </script>
-</body>
-</html>`;
-}
-
-function normalizeGoogleDriveUrl(rawUrl: string): { previewUrl: string; isGoogleDrive: boolean; rawUrl: string } {
-  if (!rawUrl) return { previewUrl: rawUrl, isGoogleDrive: false, rawUrl };
-  const trimmed = rawUrl.trim();
-  const isGDrive =
-    trimmed.includes('drive.google.com') ||
-    trimmed.includes('docs.google.com');
-
-  if (!isGDrive) {
-    return { previewUrl: trimmed, isGoogleDrive: false, rawUrl: trimmed };
-  }
-
-  let preview = trimmed;
-  // Handle Google Drive /file/d/{id}/view -> /preview
-  if (preview.includes('drive.google.com/file/d/')) {
-    const idMatch = preview.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (idMatch && idMatch[1]) {
-      preview = `https://drive.google.com/file/d/${idMatch[1]}/preview`;
-    }
-  } else if (preview.includes('drive.google.com/open?id=')) {
-    const fileId = preview.split('id=')[1]?.split('&')[0];
-    if (fileId) {
-      preview = `https://drive.google.com/file/d/${fileId}/preview`;
-    }
-  } else if (preview.includes('docs.google.com/document/d/')) {
-    const idMatch = preview.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-    if (idMatch && idMatch[1]) {
-      preview = `https://docs.google.com/document/d/${idMatch[1]}/preview`;
-    }
-  } else if (preview.includes('docs.google.com/spreadsheets/d/')) {
-    const idMatch = preview.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-    if (idMatch && idMatch[1]) {
-      preview = `https://docs.google.com/spreadsheets/d/${idMatch[1]}/preview`;
-    }
-  } else if (preview.includes('docs.google.com/presentation/d/')) {
-    const idMatch = preview.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
-    if (idMatch && idMatch[1]) {
-      preview = `https://docs.google.com/presentation/d/${idMatch[1]}/preview`;
-    }
-  }
-
-  return { previewUrl: preview, isGoogleDrive: true, rawUrl: trimmed };
-}
-
 async function resolveLocalFile(
   rawUrl: string,
   fileName?: string,
-  isPdfHint?: boolean,
-  isDocxHint?: boolean
+  hintType: 'pdf' | 'docx' | 'image' | 'other' = 'other'
 ): Promise<{ fileUri: string; base64: string }> {
+  // If it's a web URL or cloud link, don't try local filesystem copy
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    return { fileUri: rawUrl, base64: '' };
+  }
+
   let localFileUri = rawUrl;
   let cleanName = (fileName || `doc_${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, '_');
   if (!/\.[a-zA-Z0-9]+$/.test(cleanName)) {
-    if (isPdfHint) cleanName = `${cleanName}.pdf`;
-    else if (isDocxHint) cleanName = `${cleanName}.docx`;
-    else cleanName = `${cleanName}.jpg`;
+    const ext = hintType === 'pdf' ? '.pdf' : hintType === 'docx' ? '.docx' : hintType === 'image' ? '.jpg' : '.bin';
+    cleanName = `${cleanName}${ext}`;
   }
   const cachedPath = `${FileSystem.cacheDirectory}${cleanName}`;
 
   // If rawUrl is content:// on Android, copy to cache to get a real file:// URI
   if (rawUrl.startsWith('content://')) {
     try {
-      const info = await FileSystem.getInfoAsync(cachedPath);
-      if (info.exists) {
-        await FileSystem.deleteAsync(cachedPath, { idempotent: true });
-      }
+      // Ensure destination doesn't already exist to avoid copyAsync collision
+      await FileSystem.deleteAsync(cachedPath, { idempotent: true }).catch(() => {});
       await FileSystem.copyAsync({
         from: rawUrl,
         to: cachedPath,
@@ -818,30 +578,26 @@ async function resolveLocalFile(
     }
   }
 
-  // Read base64 safely only from file:// or local absolute paths
+  // Read base64 safely
   let base64 = '';
-  if (localFileUri.startsWith('file://') || localFileUri.startsWith('/')) {
-    try {
-      base64 = await FileSystem.readAsStringAsync(localFileUri, {
-        encoding: 'base64' as any,
-      });
-    } catch (e1) {
-      // skip
+  try {
+    base64 = await FileSystem.readAsStringAsync(localFileUri, {
+      encoding: 'base64' as any,
+    });
+  } catch (_e1) {
+    if (rawUrl !== localFileUri) {
+      try {
+        base64 = await FileSystem.readAsStringAsync(rawUrl, {
+          encoding: 'base64' as any,
+        });
+      } catch (_e2) {
+        // skip
+      }
     }
   }
 
-  if (!base64 && (rawUrl.startsWith('file://') || rawUrl.startsWith('/'))) {
-    try {
-      base64 = await FileSystem.readAsStringAsync(rawUrl, {
-        encoding: 'base64' as any,
-      });
-    } catch (e2) {
-      // skip
-    }
-  }
-
-  // If still no base64 and it's a web/blob URL, attempt fetch + FileReader
-  if (!base64 && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('blob:'))) {
+  // If still no base64 and not a content URI, attempt fetch fallback
+  if (!base64 && !rawUrl.startsWith('content://')) {
     try {
       const resp = await fetch(rawUrl);
       const blob = await resp.blob();
@@ -855,14 +611,15 @@ async function resolveLocalFile(
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
-    } catch (fetchErr) {
+    } catch (_fetchErr) {
       // skip
     }
   }
 
-  // If we have base64 and localFileUri is not a file:// URI, write to cache so we have a file:// URI!
+  // If we have base64 and localFileUri is not a file:// URI, write to cache so we have a valid file:// URI!
   if (base64 && !localFileUri.startsWith('file://')) {
     try {
+      await FileSystem.deleteAsync(cachedPath, { idempotent: true }).catch(() => {});
       await FileSystem.writeAsStringAsync(cachedPath, base64, {
         encoding: 'base64' as any,
       });
@@ -910,28 +667,33 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [acknowledged, setAcknowledged] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
-
-  const isInitialArticle = document?.type === 'article';
-  const [viewMode, setViewMode] = useState<'embedded' | 'content'>(
-    isInitialArticle ? 'content' : document?.fileUrl ? 'embedded' : 'content'
-  );
+  const [viewMode, setViewMode] = useState<'embedded' | 'content'>(document?.fileUrl ? 'embedded' : 'content');
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [docxBase64, setDocxBase64] = useState<string | null>(null);
-  const [articleBodyText, setArticleBodyText] = useState<string | null>(null);
   const [isLoadingFile, setIsLoadingFile] = useState<boolean>(false);
   const [fileLoadError, setFileLoadError] = useState<string | null>(null);
 
   const [resolvedFileUri, setResolvedFileUri] = useState<string | null>(null);
 
+  const isDocWord =
+    document?.type === 'docx' ||
+    Boolean(document?.fileName && /\.(docx|doc)$/i.test(document.fileName)) ||
+    Boolean(document?.title && /\.(docx|doc)$/i.test(document.title));
+
+  const isDriveLink =
+    Boolean(
+      document?.fileUrl &&
+        (document.fileUrl.includes('drive.google.com') ||
+          document.fileUrl.includes('docs.google.com'))
+    ) || document?.type === 'link';
+
   useEffect(() => {
-    if (document?.type === 'article') {
-      setViewMode('content');
-    } else if (document?.fileUrl) {
+    if (document?.fileUrl) {
       setViewMode('embedded');
     } else {
       setViewMode('content');
     }
-  }, [document?.id, document?.fileUrl, document?.type]);
+  }, [document?.id, document?.fileUrl]);
 
   useEffect(() => {
     let isMounted = true;
@@ -939,56 +701,36 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       if (!document?.fileUrl) {
         setPdfBase64(null);
         setDocxBase64(null);
-        setArticleBodyText(null);
         setResolvedFileUri(null);
         return;
       }
       const url = document.fileUrl;
 
-      const isDocWord =
-        document.type === 'docx' ||
-        (document.fileName && /\.(docx|doc)$/i.test(document.fileName)) ||
-        (document.title && /\.(docx|doc)$/i.test(document.title));
+      // Web / Cloud URLs (e.g. Google Drive, external links) do not require local file reading
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        setResolvedFileUri(url);
+        setIsLoadingFile(false);
+        return;
+      }
 
       const isDocPDF =
         document.type === 'pdf' ||
         (document.fileName && document.fileName.toLowerCase().endsWith('.pdf')) ||
         (document.title && document.title.toLowerCase().endsWith('.pdf'));
-
+      const isDocWordFile =
+        document.type === 'docx' ||
+        (document.fileName && /\.(docx|doc)$/i.test(document.fileName)) ||
+        (document.title && /\.(docx|doc)$/i.test(document.title));
       const isDocImage =
         document.type === 'image' ||
         (document.fileName && /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(document.fileName)) ||
         (document.title && /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(document.title));
 
-      const isDocArticle =
-        document.type === 'article' ||
-        (document.fileName && /\.(txt|md|markdown)$/i.test(document.fileName)) ||
-        (document.title && /\.(txt|md|markdown)$/i.test(document.title));
-
-      if (isDocWord) {
+      if (isDocPDF) {
         setIsLoadingFile(true);
         setFileLoadError(null);
         try {
-          const { fileUri, base64 } = await resolveLocalFile(url, document.fileName || document.title, false, true);
-          if (isMounted) {
-            setResolvedFileUri(fileUri);
-            if (base64) {
-              setDocxBase64(base64);
-            }
-            setIsLoadingFile(false);
-          }
-        } catch (err: any) {
-          console.warn('Could not resolve DOCX data:', err);
-          if (isMounted) {
-            setFileLoadError(err?.message || 'Could not load Word file content');
-            setIsLoadingFile(false);
-          }
-        }
-      } else if (isDocPDF) {
-        setIsLoadingFile(true);
-        setFileLoadError(null);
-        try {
-          const { fileUri, base64 } = await resolveLocalFile(url, document.fileName || document.title, true, false);
+          const { fileUri, base64 } = await resolveLocalFile(url, document.fileName || document.title, 'pdf');
           if (isMounted) {
             setResolvedFileUri(fileUri);
             if (base64) {
@@ -1003,11 +745,29 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
             setIsLoadingFile(false);
           }
         }
+      } else if (isDocWordFile) {
+        setIsLoadingFile(true);
+        setFileLoadError(null);
+        try {
+          const { fileUri, base64 } = await resolveLocalFile(url, document.fileName || document.title, 'docx');
+          if (isMounted) {
+            setResolvedFileUri(fileUri);
+            if (base64) {
+              setDocxBase64(base64);
+            }
+            setIsLoadingFile(false);
+          }
+        } catch (err: any) {
+          console.warn('Could not resolve Word file data:', err);
+          if (isMounted) {
+            setIsLoadingFile(false);
+          }
+        }
       } else if (isDocImage) {
         setIsLoadingFile(true);
         setFileLoadError(null);
         try {
-          const { fileUri } = await resolveLocalFile(url, document.fileName || document.title, false, false);
+          const { fileUri } = await resolveLocalFile(url, document.fileName || document.title, 'image');
           if (isMounted) {
             setResolvedFileUri(fileUri);
             setIsLoadingFile(false);
@@ -1017,27 +777,6 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           if (isMounted) {
             setIsLoadingFile(false);
           }
-        }
-      } else if (isDocArticle) {
-        setIsLoadingFile(true);
-        try {
-          const { fileUri } = await resolveLocalFile(url, document.fileName || document.title, false, false);
-          if (isMounted) {
-            setResolvedFileUri(fileUri);
-            if (fileUri && (fileUri.startsWith('file://') || fileUri.startsWith('/'))) {
-              try {
-                const text = await FileSystem.readAsStringAsync(fileUri, { encoding: 'utf8' as any });
-                if (text && isMounted) {
-                  setArticleBodyText(text);
-                }
-              } catch (readErr) {
-                // skip
-              }
-            }
-            setIsLoadingFile(false);
-          }
-        } catch (e) {
-          if (isMounted) setIsLoadingFile(false);
         }
       } else {
         setPdfBase64(null);
@@ -1062,11 +801,6 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
   const isArticle = document.type === 'article';
   const isImage = document.type === 'image';
   const isPDF = document.type === 'pdf';
-  const isDocWord = Boolean(
-    document.type === 'docx' ||
-    (document.fileName && /\.(docx|doc)$/i.test(document.fileName)) ||
-    (document.title && /\.(docx|doc)$/i.test(document.title))
-  );
 
   const isCV =
     document.title.toLowerCase().includes('cv') ||
@@ -1091,6 +825,26 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       return;
     }
     const url = document.fileUrl;
+
+    // 1. Web links & Google Drive links: open directly via Linking in Drive App or Browser
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      try {
+        showNotice(isDriveLink ? 'Opening in Google Drive...' : 'Opening in browser...');
+        if (Platform.OS === 'web') {
+          if (typeof window !== 'undefined') {
+            window.open(url, '_blank');
+          }
+          return;
+        }
+        await Linking.openURL(url);
+        return;
+      } catch (err: any) {
+        console.warn('Could not open link via Linking:', err);
+        showNotice('Could not open link in browser.');
+        return;
+      }
+    }
+
     if (Platform.OS === 'web') {
       if (typeof window !== 'undefined') {
         window.open(url, '_blank');
@@ -1098,31 +852,21 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       return;
     }
 
-    // Direct Web / Cloud Link Open
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      try {
-        await Linking.openURL(url);
-        return;
-      } catch (linkErr) {
-        console.warn('Linking openURL failed:', linkErr);
-      }
-    }
-
     try {
-      showNotice('Opening device viewer...');
+      showNotice(isDocWord ? 'Opening Word viewer...' : 'Opening device viewer...');
 
-      const docxMime = document.fileName?.toLowerCase().endsWith('.doc')
-        ? 'application/msword'
-        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
-      // 1. Ensure a valid file:// URI on device filesystem
+      // 2. Ensure a valid file:// URI on device filesystem
       let targetFileUri = resolvedFileUri;
       if (!targetFileUri || !targetFileUri.startsWith('file://')) {
-        const res = await resolveLocalFile(url, document.fileName || document.title, isPDF, isDocWord);
+        const res = await resolveLocalFile(
+          url,
+          document.fileName || document.title,
+          isPDF ? 'pdf' : isDocWord ? 'docx' : isImage ? 'image' : 'other'
+        );
         targetFileUri = res.fileUri;
         if (res.base64) {
-          if (isDocWord && !docxBase64) setDocxBase64(res.base64);
           if (isPDF && !pdfBase64) setPdfBase64(res.base64);
+          if (isDocWord && !docxBase64) setDocxBase64(res.base64);
         }
       }
 
@@ -1130,57 +874,32 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
         targetFileUri = url;
       }
 
-      const mimeTypeToUse = isPDF
+      const mimeType = isPDF
         ? 'application/pdf'
+        : isDocWord
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         : isImage
         ? 'image/*'
-        : isDocWord
-        ? docxMime
         : '*/*';
 
-      // 2. Direct launch on Android if raw url is content://
-      if (Platform.OS === 'android' && url.startsWith('content://')) {
-        try {
-          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-            data: url,
-            flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-            type: mimeTypeToUse,
-          });
-          return;
-        } catch (cErr1) {
-          try {
-            await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-              data: url,
-              flags: 1,
-              type: '*/*',
-            });
-            return;
-          } catch (cErr2) {
-            // continue to fileUri approach
-          }
-        }
-      }
+      const docUti = isPDF
+        ? 'com.adobe.pdf'
+        : isDocWord
+        ? 'org.openxmlformats.wordprocessingml.document'
+        : isImage
+        ? 'public.image'
+        : undefined;
 
       // 3. Android: IntentLauncher via FileProvider content URI
       if (Platform.OS === 'android' && targetFileUri?.startsWith('file://')) {
         try {
           const contentUri = await FileSystem.getContentUriAsync(targetFileUri);
-          try {
-            await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-              data: contentUri,
-              flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-              type: mimeTypeToUse,
-            });
-            return;
-          } catch (exactIntentErr) {
-            // Retry with generic mime type if exact mime handler is not registered
-            await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-              data: contentUri,
-              flags: 1,
-              type: '*/*',
-            });
-            return;
-          }
+          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            data: contentUri,
+            flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+            type: mimeType,
+          });
+          return;
         } catch (intentErr) {
           console.log('IntentLauncher fallback to Sharing:', intentErr);
         }
@@ -1192,14 +911,8 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
         if (isAvailable) {
           await Sharing.shareAsync(targetFileUri, {
             dialogTitle: `Open ${document.title}`,
-            mimeType: mimeTypeToUse,
-            UTI: isPDF
-              ? 'com.adobe.pdf'
-              : isImage
-              ? 'public.image'
-              : isDocWord
-              ? 'org.openxmlformats.wordprocessingml.document'
-              : undefined,
+            mimeType,
+            UTI: docUti,
           });
           return;
         }
@@ -1210,7 +923,8 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       if (isAvail) {
         await Sharing.shareAsync(url, {
           dialogTitle: `Open ${document.title}`,
-          mimeType: mimeTypeToUse,
+          mimeType,
+          UTI: docUti,
         });
         return;
       }
@@ -1231,7 +945,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       if (typeof window !== 'undefined') {
         const a = window.document.createElement('a');
         a.href = document.fileUrl;
-        a.download = document.fileName || `${document.title}.pdf`;
+        a.download = document.fileName || `${document.title}.${isDocWord ? 'docx' : 'pdf'}`;
         a.click();
         showNotice('Downloading document...');
       }
@@ -1240,73 +954,10 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
     }
   };
 
-  const renderDocxFallbackCard = () => (
-    <ScrollView
-      contentContainerStyle={[styles.scrollContent, { backgroundColor: isDark ? '#0b0f19' : '#f1f5f9', flexGrow: 1, justifyContent: 'center' }]}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={[styles.docxDedicatedCard, { backgroundColor: isDark ? '#131d31' : '#ffffff', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1' }]}>
-        <View style={styles.docxCardHeader}>
-          <View style={[styles.docxIconBox, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
-            <Text style={{ fontSize: 36 }}>📝</Text>
-          </View>
-          <View style={{ flex: 1, marginLeft: 14 }}>
-            <View style={styles.docxBadgeRow}>
-              <View style={[styles.docxTypeBadge, { backgroundColor: isDark ? '#271c47' : '#f5f3ff' }]}>
-                <Text style={[styles.docxTypeBadgeText, { color: isDark ? '#c084fc' : '#7c3aed' }]}>MICROSOFT WORD (.DOCX)</Text>
-              </View>
-              <Text style={[styles.docxSizeBadge, { color: colors.textSecondary }]}>
-                {document.fileSize || '1.2 MB'}
-              </Text>
-            </View>
-            <Text style={[styles.docxCardTitle, { color: colors.textPrimary }]} numberOfLines={2}>
-              {document.fileName || document.title}
-            </Text>
-          </View>
-        </View>
-
-        <View style={[styles.docxCardDivider, { backgroundColor: isDark ? '#1e293b' : '#e2e8f0' }]} />
-
-        <View style={styles.docxInfoBox}>
-          <Text style={[styles.docxInfoTitle, { color: colors.textPrimary }]}>Document Ready to View</Text>
-          <Text style={[styles.docxInfoDesc, { color: colors.textSecondary }]}>
-            This Word document is verified and stored in DocuVault. Tap below to open it in Microsoft Word, Google Docs, or WPS Office, or view structured transcript details.
-          </Text>
-        </View>
-
-        <View style={styles.docxBtnStack}>
-          <TouchableOpacity
-            style={[styles.docxPrimaryActionBtn, { backgroundColor: '#2563eb' }]}
-            onPress={handleOpenExternal}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.docxPrimaryActionText}>📱 Open in Microsoft Word / Office</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.docxSecondaryActionBtn, { backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#cbd5e1' }]}
-            onPress={() => setViewMode('content')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.docxSecondaryActionText, { color: isDark ? '#38bdf8' : '#1e293b' }]}>
-              📝 View Formatted Content Transcript
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.docxMetaFooter, { backgroundColor: isDark ? '#16233b' : '#f8fafc', borderColor: isDark ? '#273854' : '#e2e8f0' }]}>
-          <Text style={[styles.docxMetaFooterText, { color: colors.textSecondary }]}>
-            🔒 Storage: High Availability Enterprise Tier • Status: Active & Encrypted • Ref: DV-DOCX-#{document.id.slice(-6)}
-          </Text>
-        </View>
-      </View>
-    </ScrollView>
-  );
-
   const renderLiveDocument = () => {
     if (!document.fileUrl) return null;
 
-    if (isImage || (document.previewImage && !isPDF && !isDocWord)) {
+    if (isImage || (document.previewImage && !isPDF)) {
       const imgUri = resolvedFileUri || document.fileUrl || document.previewImage;
       const screenWidth = Dimensions.get('window').width;
       const screenHeight = Dimensions.get('window').height;
@@ -1385,54 +1036,88 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       );
     }
 
-    // Word Document HD Rendering via Mammoth.js or Dedicated Card View
-    if (isDocWord) {
-      if (docxBase64) {
-        const htmlContent = generateDocxHtml(docxBase64, isDark, document.fileName || document.title);
-        return (
-          <View style={{ flex: 1 }}>
-            <WebView
-              source={{ html: htmlContent, baseUrl: 'https://cdnjs.cloudflare.com' }}
-              style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#e2e8f0' }}
-              originWhitelist={['*']}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              allowFileAccess={true}
-              allowUniversalAccessFromFileURLs={true}
-              mixedContentMode="always"
-              scalesPageToFit={false}
-              setBuiltInZoomControls={true}
-              setDisplayZoomControls={false}
-              showsHorizontalScrollIndicator={true}
-              showsVerticalScrollIndicator={true}
-              androidLayerType="hardware"
-              renderError={() => renderDocxFallbackCard()}
-            />
-          </View>
-        );
-      }
-      return renderDocxFallbackCard();
-    }
-
-    if (fileLoadError && !pdfBase64) {
+    if (fileLoadError && !pdfBase64 && !docxBase64) {
       return (
         <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff' }]}>
-          <Text style={{ fontSize: 44, marginBottom: 12 }}>📄</Text>
+          <Text style={{ fontSize: 44, marginBottom: 12 }}>{isDocWord ? '📝' : '📄'}</Text>
           <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.title}</Text>
           <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
-            Tap below to view this complete document in your device's native viewer.
+            Tap below to view this complete document in your device's native {isDocWord ? 'Word' : 'PDF'} reader.
           </Text>
           <TouchableOpacity
             style={[styles.openNativeBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
             onPress={handleOpenExternal}
             activeOpacity={0.8}
           >
-            <Text style={styles.openNativeBtnText}>📂 Open in Device PDF Viewer</Text>
+            <Text style={styles.openNativeBtnText}>📂 Open in Device {isDocWord ? 'Word' : 'PDF'} Viewer</Text>
           </TouchableOpacity>
         </View>
       );
     }
 
+    // 1. Microsoft Word (.docx / .doc) documents
+    if (isDocWord) {
+      if (docxBase64) {
+        const docxHtml = generateDocxHtml(docxBase64, isDark);
+        return (
+          <View style={{ flex: 1 }}>
+            <View
+              style={[
+                styles.driveActionBar,
+                {
+                  backgroundColor: isDark ? '#1e293b' : '#eff6ff',
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#bfdbfe',
+                },
+              ]}
+            >
+              <View style={{ flex: 1, paddingRight: 10 }}>
+                <Text style={[styles.driveActionTitle, { color: isDark ? '#38bdf8' : '#1d4ed8' }]} numberOfLines={1}>
+                  📝 Microsoft Word Document
+                </Text>
+                <Text style={[styles.driveActionSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {document.fileName || document.title}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.openDriveBtn, { backgroundColor: '#2563eb' }]}
+                onPress={handleOpenExternal}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.openDriveBtnText}>📂 Open in Word App ↗</Text>
+              </TouchableOpacity>
+            </View>
+            <WebView
+              source={{ html: docxHtml }}
+              style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#f1f5f9' }}
+              originWhitelist={['*']}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              showsVerticalScrollIndicator={true}
+            />
+          </View>
+        );
+      }
+
+      // Fallback Word card if base64 not yet parsed
+      return (
+        <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff' }]}>
+          <Text style={{ fontSize: 48, marginBottom: 12 }}>📝</Text>
+          <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.fileName || document.title}</Text>
+          <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
+            Microsoft Word Document ({document.fileSize || 'DOCX'}). Tap below to open and view the complete document in Microsoft Word or your device's Office app.
+          </Text>
+          <TouchableOpacity
+            style={[styles.openNativeBtn, { backgroundColor: '#2563eb' }]}
+            onPress={handleOpenExternal}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.openNativeBtnText}>📂 Open in Device Word Viewer</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // 2. iOS native local file viewer
     if (Platform.OS === 'ios' && document.fileUrl.startsWith('file://')) {
       return (
         <WebView
@@ -1446,6 +1131,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       );
     }
 
+    // 3. High-DPI PDF.js render pipeline
     if (pdfBase64) {
       const htmlContent = generatePdfJsHtml(pdfBase64, isDark);
       return (
@@ -1468,85 +1154,68 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
       );
     }
 
-    // Google Drive or Web Link
+    // 4. Web URLs / Google Drive links
     if (document.fileUrl.startsWith('http://') || document.fileUrl.startsWith('https://')) {
-      const { previewUrl, isGoogleDrive } = normalizeGoogleDriveUrl(document.fileUrl);
+      const isDrive =
+        document.fileUrl.includes('drive.google.com') ||
+        document.fileUrl.includes('docs.google.com');
+      let viewerUrl = document.fileUrl;
+      if (isDrive && document.fileUrl.includes('/view')) {
+        viewerUrl = document.fileUrl.replace(/\/view(\?[^#]*)?/, '/preview$1');
+      } else if (isDrive && document.fileUrl.includes('/edit')) {
+        viewerUrl = document.fileUrl.replace(/\/edit(\?[^#]*)?/, '/preview$1');
+      } else if (!isDrive && isPDF) {
+        viewerUrl = `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(document.fileUrl)}`;
+      }
       return (
         <View style={{ flex: 1 }}>
-          {isGoogleDrive && (
-            <View
-              style={[
-                styles.driveActionBar,
-                {
-                  backgroundColor: isDark ? '#162032' : '#eff6ff',
-                  borderBottomColor: isDark ? 'rgba(56, 189, 248, 0.2)' : '#bfdbfe',
-                },
-              ]}
-            >
-              <View style={{ flex: 1, marginRight: 10 }}>
-                <Text style={[styles.driveActionTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-                  ☁️ Google Drive Document
-                </Text>
-                <Text style={[styles.driveActionSub, { color: colors.textSecondary }]} numberOfLines={1}>
-                  Viewing live preview
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.openDriveBtn, { backgroundColor: '#2563eb' }]}
-                onPress={() => Linking.openURL(document.fileUrl || '')}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.openDriveBtnText}>Open in Drive App ↗</Text>
-              </TouchableOpacity>
+          <View
+            style={[
+              styles.driveActionBar,
+              {
+                backgroundColor: isDark ? '#1e293b' : '#eff6ff',
+                borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#bfdbfe',
+              },
+            ]}
+          >
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <Text style={[styles.driveActionTitle, { color: isDark ? '#38bdf8' : '#1d4ed8' }]} numberOfLines={1}>
+                {isDrive ? '🌐 Google Drive Document' : '🌐 Cloud / Web Link'}
+              </Text>
+              <Text style={[styles.driveActionSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                {document.fileUrl}
+              </Text>
             </View>
-          )}
+            <TouchableOpacity
+              style={[styles.openDriveBtn, { backgroundColor: '#2563eb' }]}
+              onPress={handleOpenExternal}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.openDriveBtnText}>{isDrive ? '🚀 Open Drive ↗' : '🌐 Open Browser ↗'}</Text>
+            </TouchableOpacity>
+          </View>
           <WebView
-            source={{ uri: previewUrl }}
+            source={{ uri: viewerUrl }}
             style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#ffffff' }}
             originWhitelist={['*']}
             javaScriptEnabled={true}
             domStorageEnabled={true}
-            sharedCookiesEnabled={true}
-            thirdPartyCookiesEnabled={true}
-            userAgent="Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-            startInLoadingState={true}
-            renderLoading={() => (
-              <View style={styles.loadingFileContainer}>
-                <ActivityIndicator size="large" color={isDark ? '#38bdf8' : '#1b3569'} />
-                <Text style={[styles.loadingFileText, { color: colors.textPrimary }]}>
-                  {isGoogleDrive ? 'Loading Google Drive preview...' : 'Loading document...'}
-                </Text>
-              </View>
-            )}
             renderError={() => (
-              <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff', flex: 1, justifyContent: 'center' }]}>
-                <Text style={{ fontSize: 44, marginBottom: 12 }}>{isGoogleDrive ? '☁️' : '🌐'}</Text>
+              <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff' }]}>
+                <Text style={{ fontSize: 44, marginBottom: 12 }}>🔒</Text>
                 <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.title}</Text>
-                <Text style={[styles.errorDocSub, { color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 20 }]}>
-                  {isGoogleDrive
-                    ? 'Google Drive requires authentication or app launch. Tap below to open directly in the official Google Drive / Docs app.'
-                    : 'Could not load web view directly. Tap below to open in your browser.'}
+                <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
+                  {isDrive
+                    ? 'Google Drive restricts in-app embedding for protected or private accounts. Tap below to view this document directly in Google Drive.'
+                    : 'This web document cannot be previewed in-app. Tap below to open in your browser.'}
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
-                  <TouchableOpacity
-                    style={[styles.openNativeBtn, { backgroundColor: '#2563eb' }]}
-                    onPress={() => Linking.openURL(document.fileUrl || '')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.openNativeBtnText}>
-                      {isGoogleDrive ? '📂 Open in Google Drive App ↗' : '🌐 Open in Web Browser ↗'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.openNativeBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9', borderWidth: 1, borderColor: isDark ? '#38bdf8' : '#cbd5e1' }]}
-                    onPress={() => setViewMode('content')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.openNativeBtnText, { color: isDark ? '#38bdf8' : '#1e293b' }]}>
-                      📝 View Details
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={[styles.openNativeBtn, { backgroundColor: '#2563eb' }]}
+                  onPress={handleOpenExternal}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.openNativeBtnText}>{isDrive ? '🚀 Open in Google Drive' : '🌐 Open in Browser'}</Text>
+                </TouchableOpacity>
               </View>
             )}
           />
@@ -1555,59 +1224,16 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
     }
 
     return (
-      <View style={[styles.errorFallbackContainer, { backgroundColor: isDark ? '#131d31' : '#ffffff', flex: 1, justifyContent: 'center' }]}>
-        <Text style={{ fontSize: 44, marginBottom: 12 }}>📄</Text>
-        <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.title}</Text>
-        <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
-          {document.fileName || document.title} • {document.fileSize || 'Live Document'}
-        </Text>
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
-          <TouchableOpacity
-            style={[styles.openNativeBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
-            onPress={handleOpenExternal}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.openNativeBtnText}>📂 Open in Device App</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.openNativeBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9', borderWidth: 1, borderColor: isDark ? '#38bdf8' : '#cbd5e1' }]}
-            onPress={() => setViewMode('content')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.openNativeBtnText, { color: isDark ? '#38bdf8' : '#1e293b' }]}>
-              📝 View Details
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <WebView
+        source={{ uri: document.fileUrl }}
+        style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#ffffff' }}
+        allowFileAccess={true}
+        allowFileAccessFromFileURLs={true}
+        allowUniversalAccessFromFileURLs={true}
+        originWhitelist={['*']}
+      />
     );
   };
-
-  const articleSections =
-    document.fullContent?.sections && document.fullContent.sections.length > 0
-      ? document.fullContent.sections
-      : articleBodyText
-      ? articleBodyText
-          .split(/\n\n+/)
-          .map((para, idx) => ({
-            heading: idx === 0 ? 'Document Content' : undefined,
-            body: para.trim(),
-          }))
-          .filter((p) => p.body.length > 0)
-      : [
-          {
-            heading: 'Article Overview',
-            body:
-              document.contentSnippet ||
-              `This workspace article "${document.title}" was deposited into DocuVault. Stored securely and indexed for authorized team members.`,
-          },
-          {
-            heading: 'Resource Details',
-            body: document.fileUrl
-              ? `Source Location: ${document.fileUrl}\nVerified and authorized for workspace.`
-              : 'Stored with enterprise end-to-end encryption.',
-          },
-        ];
 
   return (
     <Modal visible={!!document} animationType="slide" onRequestClose={onClose}>
@@ -1632,10 +1258,10 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           </TouchableOpacity>
 
           <View style={styles.navTitleContainer}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Image
                 source={{ uri: getDocumentTypeIcon(document.type, document.title) }}
-                style={{ width: 18, height: 18, flexShrink: 0 }}
+                style={{ width: 20, height: 20 }}
                 resizeMode="contain"
               />
               <Text style={[styles.navDocTitle, { color: colors.textPrimary }]} numberOfLines={1} ellipsizeMode="tail">
@@ -1643,7 +1269,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
               </Text>
             </View>
             <Text style={[styles.navDocSub, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
-              {isCV ? 'Curriculum Vitae' : isDocWord ? 'DOCX' : document.type.toUpperCase()} • {document.fileSize || 'Vault Encrypted'}
+              {isCV ? 'Curriculum Vitae' : isDocWord ? 'DOCX' : isDriveLink ? 'Google Drive' : document.type.toUpperCase()} • {document.fileSize || 'Vault Encrypted'}
             </Text>
           </View>
 
@@ -1731,7 +1357,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                   { color: viewMode === 'embedded' ? '#ffffff' : colors.textPrimary },
                 ]}
               >
-                {isDocWord ? '📝 Live Word Document' : isArticle ? '🌐 Live Web Source' : '📄 Live Document File'}
+                {isDocWord ? '📝 Live Word Document' : isDriveLink ? '🌐 Google Drive' : '📄 Live Document File'}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1749,7 +1375,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                   { color: viewMode === 'content' ? '#ffffff' : colors.textPrimary },
                 ]}
               >
-                {isArticle ? '📰 Formatted Article' : '📝 Formatted Content'}
+                📝 Formatted Content
               </Text>
             </TouchableOpacity>
           </View>
@@ -1771,8 +1397,8 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                 <Text style={[styles.embeddedDocName, { color: colors.textPrimary }]} numberOfLines={1}>
                   📄 {document.fileName || document.title}
                 </Text>
-                <Text style={[styles.embeddedDocSub, { color: colors.textSecondary }]} numberOfLines={1}>
-                  {isDocWord ? 'DOCX' : document.type.toUpperCase()} • {document.fileSize || 'Live Document'} • Full Screen
+                <Text style={[styles.embeddedDocSub, { color: colors.textSecondary }]}>
+                  {isDocWord ? 'DOCX' : isDriveLink ? 'GOOGLE DRIVE' : document.type.toUpperCase()} • {document.fileSize || 'Live Document'} • Full Screen
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -1789,7 +1415,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.embeddedActionBtnText, { color: isDark ? '#38bdf8' : '#1d4ed8' }]}>
-                    {Platform.OS === 'web' ? '↗ New Tab' : '📱 Device Viewer'}
+                    {Platform.OS === 'web' ? '↗ New Tab' : isDriveLink ? '🚀 Open Drive' : isDocWord ? '📝 Word Viewer' : '📱 Device Viewer'}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1831,25 +1457,11 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                   <Text style={[styles.articleMeta, { color: colors.textSecondary }]}>
                     Published by {document.fullContent?.authorOrIssuer || 'HR Operations'} • {document.fullContent?.date || document.subtitle} • 4 min read
                   </Text>
-                  {document.fileUrl && (document.fileUrl.startsWith('http://') || document.fileUrl.startsWith('https://')) && (
-                    <TouchableOpacity
-                      style={[
-                        styles.articleLinkCta,
-                        { backgroundColor: isDark ? '#1e293b' : '#eff6ff', borderColor: isDark ? '#38bdf8' : '#bfdbfe' },
-                      ]}
-                      onPress={() => Linking.openURL(document.fileUrl || '')}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.articleLinkCtaText, { color: isDark ? '#38bdf8' : '#1d4ed8' }]}>
-                        🌐 Open Original Web Article ↗
-                      </Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
 
                 <View style={[styles.articleDivider, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]} />
 
-                {articleSections.map((sec, idx) => (
+                {document.fullContent?.sections.map((sec, idx) => (
                   <View key={idx} style={styles.articleSection}>
                     {sec.heading && <Text style={[styles.articleHeading, { color: colors.textPrimary }]}>{sec.heading}</Text>}
                     <Text style={[styles.articleParagraph, { color: isDark ? '#cbd5e1' : '#334155' }]}>{sec.body}</Text>
@@ -2180,7 +1792,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#f1f5f9',
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0,
   },
   navbar: {
     height: 56,
@@ -2190,14 +1801,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
   },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
-    paddingRight: 8,
-    flexShrink: 0,
+    paddingRight: 10,
   },
   navIcon: {
     width: 20,
@@ -2212,9 +1822,8 @@ const styles = StyleSheet.create({
   navTitleContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 6,
-    minWidth: 100,
+    minWidth: 0,
     overflow: 'hidden',
   },
   navDocTitle: {
@@ -2228,156 +1837,10 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginTop: 1,
     maxWidth: '100%',
-    flexShrink: 1,
   },
   navActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexShrink: 0,
-  },
-  driveActionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-  },
-  driveActionTitle: {
-    fontSize: 13.5,
-    fontWeight: '700',
-  },
-  driveActionSub: {
-    fontSize: 11,
-    marginTop: 1,
-  },
-  openDriveBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  openDriveBtnText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  articleLinkCta: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginTop: 10,
-  },
-  articleLinkCtaText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-  },
-  docxDedicatedCard: {
-    width: '100%',
-    maxWidth: 680,
-    borderRadius: 18,
-    padding: 24,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-    alignSelf: 'center',
-    marginVertical: 10,
-  },
-  docxCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  docxIconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  docxBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
-    marginBottom: 6,
-    flexWrap: 'wrap',
-  },
-  docxTypeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  docxTypeBadgeText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  docxSizeBadge: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  docxCardTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  docxCardDivider: {
-    height: 1,
-    marginVertical: 18,
-  },
-  docxInfoBox: {
-    marginBottom: 20,
-  },
-  docxInfoTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  docxInfoDesc: {
-    fontSize: 13.5,
-    lineHeight: 20,
-  },
-  docxBtnStack: {
-    gap: 10,
-  },
-  docxPrimaryActionBtn: {
-    paddingVertical: 13,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  docxPrimaryActionText: {
-    color: '#ffffff',
-    fontSize: 14.5,
-    fontWeight: '700',
-  },
-  docxSecondaryActionBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  docxSecondaryActionText: {
-    fontSize: 13.5,
-    fontWeight: '700',
-  },
-  docxMetaFooter: {
-    marginTop: 20,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  docxMetaFooterText: {
-    fontSize: 11.5,
-    lineHeight: 16,
-    textAlign: 'center',
   },
   actionIconButton: {
     width: 36,
@@ -3050,4 +2513,33 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     marginTop: 2,
   },
+  driveActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  driveActionTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  driveActionSub: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  openDriveBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  openDriveBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
 });
+
