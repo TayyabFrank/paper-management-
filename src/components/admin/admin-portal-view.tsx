@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   StatusBar,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
@@ -24,7 +25,7 @@ interface AdminPortalViewProps {
 
 export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps = {}) {
   const { isDark, colors } = useDocuVaultTheme();
-  const { registeredAccounts, logout } = useAuth();
+  const { registeredAccounts, logout, user } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTabKey>('dashboard');
   const [selectedEmployee, setSelectedEmployee] = useState<StoredAccount | null>(null);
   const [readingDoc, setReadingDoc] = useState<DocumentReaderItem | null>(null);
@@ -117,6 +118,41 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
               <Text style={[styles.drawerSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
                 Enterprise Administration Console
               </Text>
+
+              {/* Admin User Card in Drawer */}
+              <TouchableOpacity
+                style={[
+                  styles.drawerUserCard,
+                  {
+                    backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+                    borderColor: isDark ? '#334155' : '#e2e8f0',
+                  },
+                ]}
+                onPress={() => {
+                  setActiveTab('profile');
+                  setShowDrawer(false);
+                }}
+                activeOpacity={0.8}
+              >
+                <Image
+                  source={{
+                    uri:
+                      user.avatar ||
+                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+                  }}
+                  style={styles.drawerUserAvatar}
+                  resizeMode="cover"
+                />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={[styles.drawerUserName, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {user.name || 'Alex Smith'}
+                  </Text>
+                  <Text style={[styles.drawerUserEmail, { color: isDark ? '#94a3b8' : '#64748b' }]} numberOfLines={1}>
+                    {user.email || 'admin@enterprise.com'}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 13, color: isDark ? '#38bdf8' : '#2563eb' }}>✏️</Text>
+              </TouchableOpacity>
 
               <View style={[styles.drawerDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }]} />
 
@@ -223,6 +259,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
     marginBottom: 16,
+  },
+  drawerUserCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 6,
+  },
+  drawerUserAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  drawerUserName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  drawerUserEmail: {
+    fontSize: 12,
+    marginTop: 1,
   },
   drawerDivider: {
     height: 1,

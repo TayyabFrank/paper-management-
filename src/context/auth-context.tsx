@@ -535,8 +535,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Update in registered accounts list too
+    let accountMatched = false;
     const updatedAccounts = accounts.map((acc) => {
       if (acc.email.toLowerCase() === previousEmail) {
+        accountMatched = true;
         return {
           ...acc,
           ...data,
@@ -547,6 +549,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return acc;
     });
+
+    if (!accountMatched) {
+      updatedAccounts.push({
+        ...updatedUser,
+        password: newPassword && newPassword.trim() ? newPassword.trim() : 'password123',
+      });
+    }
+
     setAccounts(updatedAccounts);
 
     try {

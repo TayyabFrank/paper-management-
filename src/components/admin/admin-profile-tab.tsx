@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 
@@ -20,6 +21,32 @@ interface AdminProfileTabProps {
   onBack: () => void;
   onSwitchToEmployeeMode?: () => void;
 }
+
+const DEFAULT_ADMIN_AVATAR =
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
+
+const PRESET_ADMIN_AVATARS = [
+  {
+    id: 'avatar-1',
+    label: 'Executive',
+    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'avatar-2',
+    label: 'Director',
+    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'avatar-3',
+    label: 'VP Ops',
+    url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'avatar-4',
+    label: 'Lead Arch',
+    url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+  },
+];
 
 const BACK_ARROW_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -62,29 +89,77 @@ const POLY_BG_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
-export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfileTabProps) {
+export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
   const { isDark, toggleTheme, colors } = useDocuVaultTheme();
   const { user, logout, updateUser } = useAuth();
 
-  const adminName = user.role === 'Admin' ? user.name || 'Alex Smith' : 'Alex Smith';
-  const adminEmail = user.role === 'Admin' ? user.email || 'admin@enterprise.com' : 'admin@enterprise.com';
+  const adminName = user.name || 'Alex Smith';
+  const adminEmail = user.email || 'admin@enterprise.com';
+  const adminAvatar = user.avatar || DEFAULT_ADMIN_AVATAR;
 
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editAvatar, setEditAvatar] = useState(adminAvatar);
   const [editName, setEditName] = useState(adminName);
   const [editEmail, setEditEmail] = useState(adminEmail);
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const handleOpenEdit = () => {
+    setEditAvatar(user.avatar || DEFAULT_ADMIN_AVATAR);
     setEditName(user.name || adminName);
     setEditEmail(user.email || adminEmail);
     setNewPassword('');
+    setConfirmPassword('');
     setShowPassword(false);
+    setShowConfirmPassword(false);
     setEditError(null);
     setEditModalVisible(true);
+  };
+
+  const handlePickAvatar = async () => {
+    try {
+      if (Platform.OS === 'web' && fileInputRef.current) {
+        fileInputRef.current.click();
+        return;
+      }
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setEditAvatar(result.assets[0].uri);
+        if (editError) setEditError(null);
+      }
+    } catch (err) {
+      console.warn('Avatar picker error:', err);
+      if (Platform.OS === 'web' && fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+    }
+  };
+
+  const handleWebFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        if (uploadEvent.target?.result) {
+          setEditAvatar(uploadEvent.target.result as string);
+          if (editError) setEditError(null);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -105,9 +180,41 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
       return;
     }
 
+    // Password validation if entered
+    if (newPassword || confirmPassword) {
+      if (newPassword !== confirmPassword) {
+        setEditError('Passwords do not match. Please verify your new password.');
+        return;
+      }
+      if (newPassword.length < 8) {
+        setEditError('New password must be at least 8 characters long.');
+        return;
+      }
+      if (!/[A-Z]/.test(newPassword)) {
+        setEditError('New password must contain at least one uppercase letter (A-Z).');
+        return;
+      }
+      if (!/[a-z]/.test(newPassword)) {
+        setEditError('New password must contain at least one lowercase letter (a-z).');
+        return;
+      }
+      if (!/[0-9]/.test(newPassword)) {
+        setEditError('New password must contain at least one number (0-9).');
+        return;
+      }
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) {
+        setEditError('New password must contain at least one special character (!@#$%^&*...).');
+        return;
+      }
+    }
+
     setIsSaving(true);
     const result = await updateUser(
-      { name: cleanName, email: cleanEmail },
+      {
+        name: cleanName,
+        email: cleanEmail,
+        avatar: editAvatar,
+      },
       newPassword.trim() ? newPassword.trim() : undefined
     );
     setIsSaving(false);
@@ -118,7 +225,7 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
     }
 
     setEditModalVisible(false);
-    setFeedbackToast('✓ Admin email & profile updated successfully!');
+    setFeedbackToast('✓ Admin profile, photo & credentials updated successfully!');
     setTimeout(() => {
       setFeedbackToast(null);
     }, 3500);
@@ -126,7 +233,18 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? colors.background : '#f5f3ff' }]}>
-      {/* Top Header with Back Arrow matching Screenshot 2 */}
+      {/* Hidden file input for web avatar upload */}
+      {Platform.OS === 'web' && (
+        <input
+          type="file"
+          ref={fileInputRef as any}
+          onChange={handleWebFileChange as any}
+          accept="image/*"
+          style={{ display: 'none' }}
+        />
+      )}
+
+      {/* Top Header with Back Arrow */}
       <View style={styles.topHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
           <Image
@@ -160,7 +278,7 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
           />
         </View>
 
-        {/* Elevated Profile Card matching Screenshot 2 */}
+        {/* Elevated Profile Card */}
         <View
           style={[
             styles.profileCard,
@@ -170,22 +288,44 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
             },
           ]}
         >
-          {/* Overlapping Avatar Circle */}
-          <View
+          {/* Overlapping Avatar Circle with Camera Quick Edit Badge */}
+          <TouchableOpacity
             style={[
               styles.avatarOverlapCircle,
-              { backgroundColor: isDark ? '#1e293b' : '#e0e7ff' },
+              {
+                backgroundColor: isDark ? '#1e293b' : '#e0e7ff',
+                borderColor: isDark ? '#38bdf8' : '#ffffff',
+              },
             ]}
+            onPress={handleOpenEdit}
+            activeOpacity={0.85}
           >
-            <View style={styles.silhouetteHead} />
-            <View style={styles.silhouetteBody} />
-          </View>
+            <Image
+              source={{ uri: adminAvatar }}
+              style={styles.avatarImg}
+              resizeMode="cover"
+            />
+            <View style={styles.avatarBadgeOverlay}>
+              <Text style={{ fontSize: 13 }}>📷</Text>
+            </View>
+          </TouchableOpacity>
 
           {/* Section 1: Admin Name */}
           <View style={styles.cardField}>
-            <Text style={[styles.fieldLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              Admin Name
-            </Text>
+            <View style={styles.fieldLabelRow}>
+              <Text style={[styles.fieldLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                Admin Name
+              </Text>
+              <TouchableOpacity
+                style={[styles.editPill, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}
+                onPress={handleOpenEdit}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.editPillText, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
+                  ✏️ Edit
+                </Text>
+              </TouchableOpacity>
+            </View>
             <Text style={[styles.fieldValueName, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
               {adminName}
             </Text>
@@ -200,11 +340,11 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
                 Admin Email
               </Text>
               <TouchableOpacity
-                style={[styles.editEmailPill, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}
+                style={[styles.editPill, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}
                 onPress={handleOpenEdit}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.editEmailPillText, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
+                <Text style={[styles.editPillText, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
                   ✏️ Edit Email
                 </Text>
               </TouchableOpacity>
@@ -227,9 +367,63 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
                   Password
                 </Text>
                 <Text style={[styles.passwordAsterisks, { color: isDark ? '#94a3b8' : '#334155' }]}>
-                  ********
+                  ••••••••
                 </Text>
               </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.editPill, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}
+              onPress={handleOpenEdit}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.editPillText, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
+                ✏️ Change
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }]} />
+
+          {/* Enterprise Badges Row */}
+          <View style={styles.badgesRow}>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff',
+                  borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                },
+              ]}
+            >
+              <Text style={[styles.badgeText, { color: isDark ? '#60a5fa' : '#1d4ed8' }]}>
+                🛡️ Master Admin
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#ecfdf5',
+                  borderColor: isDark ? '#22c55e' : '#86efac',
+                },
+              ]}
+            >
+              <Text style={[styles.badgeText, { color: isDark ? '#4ade80' : '#15803d' }]}>
+                🪪 {user.employeeId || 'ADM-001'}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: isDark ? 'rgba(234, 179, 8, 0.15)' : '#fefce8',
+                  borderColor: isDark ? '#eab308' : '#fde047',
+                },
+              ]}
+            >
+              <Text style={[styles.badgeText, { color: isDark ? '#facc15' : '#a16207' }]}>
+                🔐 256-Bit TLS
+              </Text>
             </View>
           </View>
 
@@ -253,7 +447,7 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
             />
           </View>
 
-          {/* Edit Profile & Email Action Button */}
+          {/* Edit Profile & Credentials Action Button */}
           <TouchableOpacity
             style={[
               styles.editProfileBtn,
@@ -266,7 +460,7 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
             activeOpacity={0.8}
           >
             <Text style={[styles.editProfileBtnText, { color: isDark ? '#38bdf8' : '#0284c7' }]}>
-              ✏️ Update Admin Profile & Email
+              ✏️ Edit Admin Profile (Photo, Name, Email, Password)
             </Text>
           </TouchableOpacity>
         </View>
@@ -278,12 +472,12 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
             onPress={logout}
             activeOpacity={0.8}
           >
-            <Text style={styles.signOutBtnText}>Sign Out</Text>
+            <Text style={styles.signOutBtnText}>🚪 Sign Out</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Edit Admin Profile & Email Modal */}
+      {/* Edit Admin Profile & Credentials Modal */}
       <Modal
         visible={editModalVisible}
         transparent
@@ -303,129 +497,258 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
               },
             ]}
           >
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              ✏️ Update Admin Details
-            </Text>
-            <Text style={[styles.modalSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              You can update your admin login email, display name, and password.
-            </Text>
-
-            {editError && (
-              <View style={styles.modalErrorBanner}>
-                <Text style={styles.modalErrorText}>⚠️ {editError}</Text>
-              </View>
-            )}
-
-            {/* Admin Work Email */}
-            <View style={styles.modalInputGroup}>
-              <Text style={[styles.modalInputLabel, { color: colors.textPrimary }]}>
-                ✉️ Admin Work Email *
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+                ✏️ Update Admin Profile
               </Text>
-              <TextInput
-                style={[
-                  styles.modalTextInput,
-                  {
-                    backgroundColor: isDark ? '#0f172a' : '#f8fafc',
-                    borderColor: isDark ? '#334155' : '#cbd5e1',
-                    color: colors.textPrimary,
-                  },
-                ]}
-                value={editEmail}
-                onChangeText={(text) => {
-                  setEditEmail(text);
-                  if (editError) setEditError(null);
-                }}
-                placeholder="admin@enterprise.com"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            {/* Admin Name */}
-            <View style={styles.modalInputGroup}>
-              <Text style={[styles.modalInputLabel, { color: colors.textPrimary }]}>
-                👤 Full Name *
+              <Text style={[styles.modalSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                Update your admin avatar, full name, login email, or account password.
               </Text>
-              <TextInput
-                style={[
-                  styles.modalTextInput,
-                  {
-                    backgroundColor: isDark ? '#0f172a' : '#f8fafc',
-                    borderColor: isDark ? '#334155' : '#cbd5e1',
-                    color: colors.textPrimary,
-                  },
-                ]}
-                value={editName}
-                onChangeText={(text) => {
-                  setEditName(text);
-                  if (editError) setEditError(null);
-                }}
-                placeholder="Alex Smith"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-              />
-            </View>
 
-            {/* Change Password (Optional) */}
-            <View style={styles.modalInputGroup}>
-              <View style={styles.modalPwdHeaderRow}>
+              {editError && (
+                <View style={styles.modalErrorBanner}>
+                  <Text style={styles.modalErrorText}>⚠️ {editError}</Text>
+                </View>
+              )}
+
+              {/* 1. Admin Profile Photo Section */}
+              <View style={styles.avatarPickerSection}>
                 <Text style={[styles.modalInputLabel, { color: colors.textPrimary }]}>
-                  🔒 New Password (Optional)
+                  📷 Profile Photo
                 </Text>
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Text style={{ fontSize: 13, color: isDark ? '#38bdf8' : '#2563eb', fontWeight: '600' }}>
-                    {showPassword ? 'Hide' : 'Show'}
+                <View style={styles.avatarRow}>
+                  <TouchableOpacity
+                    style={[styles.avatarPreviewWrapper, { borderColor: isDark ? '#38bdf8' : '#2563eb' }]}
+                    onPress={handlePickAvatar}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={{ uri: editAvatar }}
+                      style={styles.avatarPreviewImg}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.avatarPreviewBadge}>
+                      <Text style={{ fontSize: 11 }}>📷</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <View style={{ flex: 1, gap: 8 }}>
+                    <TouchableOpacity
+                      style={[styles.uploadPhotoBtn, { backgroundColor: isDark ? '#0f172a' : '#eff6ff', borderColor: isDark ? '#38bdf8' : '#bfdbfe' }]}
+                      onPress={handlePickAvatar}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.uploadPhotoBtnText, { color: isDark ? '#38bdf8' : '#1d4ed8' }]}>
+                        📁 Upload Custom Photo
+                      </Text>
+                    </TouchableOpacity>
+                    <Text style={{ fontSize: 11, color: isDark ? '#94a3b8' : '#64748b' }}>
+                      PNG, JPG or WebP image supported.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Preset Avatars Row */}
+                <Text style={[styles.presetSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                  Or pick an executive avatar:
+                </Text>
+                <View style={styles.presetsRow}>
+                  {PRESET_ADMIN_AVATARS.map((preset) => {
+                    const isSelected = editAvatar === preset.url;
+                    return (
+                      <TouchableOpacity
+                        key={preset.id}
+                        style={[
+                          styles.presetAvatarBtn,
+                          isSelected && {
+                            borderColor: '#3b82f6',
+                            borderWidth: 2.5,
+                            transform: [{ scale: 1.05 }],
+                          },
+                        ]}
+                        onPress={() => setEditAvatar(preset.url)}
+                        activeOpacity={0.7}
+                      >
+                        <Image
+                          source={{ uri: preset.url }}
+                          style={styles.presetAvatarImg}
+                          resizeMode="cover"
+                        />
+                        {isSelected && (
+                          <View style={styles.presetCheckmark}>
+                            <Text style={{ fontSize: 10, color: '#ffffff', fontWeight: 'bold' }}>✓</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* 2. Admin Name */}
+              <View style={styles.modalInputGroup}>
+                <Text style={[styles.modalInputLabel, { color: colors.textPrimary }]}>
+                  👤 Full Name *
+                </Text>
+                <TextInput
+                  style={[
+                    styles.modalTextInput,
+                    {
+                      backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+                      borderColor: isDark ? '#334155' : '#cbd5e1',
+                      color: colors.textPrimary,
+                    },
+                  ]}
+                  value={editName}
+                  onChangeText={(text) => {
+                    setEditName(text);
+                    if (editError) setEditError(null);
+                  }}
+                  placeholder="Alex Smith"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                />
+              </View>
+
+              {/* 3. Admin Work Email */}
+              <View style={styles.modalInputGroup}>
+                <Text style={[styles.modalInputLabel, { color: colors.textPrimary }]}>
+                  ✉️ Admin Work Email *
+                </Text>
+                <TextInput
+                  style={[
+                    styles.modalTextInput,
+                    {
+                      backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+                      borderColor: isDark ? '#334155' : '#cbd5e1',
+                      color: colors.textPrimary,
+                    },
+                  ]}
+                  value={editEmail}
+                  onChangeText={(text) => {
+                    setEditEmail(text);
+                    if (editError) setEditError(null);
+                  }}
+                  placeholder="admin@enterprise.com"
+                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              {/* 4. Change Password (Optional) */}
+              <View
+                style={[
+                  styles.passwordCardSection,
+                  {
+                    backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+                    borderColor: isDark ? '#334155' : '#e2e8f0',
+                  },
+                ]}
+              >
+                <View style={styles.modalPwdHeaderRow}>
+                  <Text style={[styles.modalInputLabel, { color: colors.textPrimary, marginBottom: 0 }]}>
+                    🔒 Change Password (Optional)
+                  </Text>
+                  <Text style={{ fontSize: 12, color: isDark ? '#94a3b8' : '#64748b' }}>
+                    Leave blank to keep current
+                  </Text>
+                </View>
+
+                {/* New Password */}
+                <View style={{ marginTop: 10 }}>
+                  <View style={styles.pwdLabelRow}>
+                    <Text style={[styles.innerInputLabel, { color: isDark ? '#cbd5e1' : '#475569' }]}>
+                      New Password
+                    </Text>
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                      <Text style={{ fontSize: 12, color: isDark ? '#38bdf8' : '#2563eb', fontWeight: '600' }}>
+                        {showPassword ? '🙈 Hide' : '👁️ Show'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    style={[
+                      styles.modalTextInput,
+                      {
+                        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                        borderColor: isDark ? '#334155' : '#cbd5e1',
+                        color: colors.textPrimary,
+                      },
+                    ]}
+                    value={newPassword}
+                    onChangeText={(text) => {
+                      setNewPassword(text);
+                      if (editError) setEditError(null);
+                    }}
+                    placeholder="At least 8 chars (Aa1@)"
+                    placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                {/* Confirm Password */}
+                <View style={{ marginTop: 10 }}>
+                  <View style={styles.pwdLabelRow}>
+                    <Text style={[styles.innerInputLabel, { color: isDark ? '#cbd5e1' : '#475569' }]}>
+                      Confirm New Password
+                    </Text>
+                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                      <Text style={{ fontSize: 12, color: isDark ? '#38bdf8' : '#2563eb', fontWeight: '600' }}>
+                        {showConfirmPassword ? '🙈 Hide' : '👁️ Show'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    style={[
+                      styles.modalTextInput,
+                      {
+                        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                        borderColor: isDark ? '#334155' : '#cbd5e1',
+                        color: colors.textPrimary,
+                      },
+                    ]}
+                    value={confirmPassword}
+                    onChangeText={(text) => {
+                      setConfirmPassword(text);
+                      if (editError) setEditError(null);
+                    }}
+                    placeholder="Repeat new password"
+                    placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              {/* Modal Actions */}
+              <View style={styles.modalActionRow}>
+                <TouchableOpacity
+                  style={[styles.modalCancelBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
+                  onPress={() => setEditModalVisible(false)}
+                  disabled={isSaving}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.modalCancelText, { color: isDark ? '#e2e8f0' : '#475569' }]}>
+                    Cancel
                   </Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalSaveBtn}
+                  onPress={handleSaveEdit}
+                  disabled={isSaving}
+                  activeOpacity={0.8}
+                >
+                  {isSaving ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <Text style={styles.modalSaveText}>Save Changes</Text>
+                  )}
+                </TouchableOpacity>
               </View>
-              <TextInput
-                style={[
-                  styles.modalTextInput,
-                  {
-                    backgroundColor: isDark ? '#0f172a' : '#f8fafc',
-                    borderColor: isDark ? '#334155' : '#cbd5e1',
-                    color: colors.textPrimary,
-                  },
-                ]}
-                value={newPassword}
-                onChangeText={(text) => {
-                  setNewPassword(text);
-                  if (editError) setEditError(null);
-                }}
-                placeholder="Leave blank to keep existing"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-            </View>
-
-            {/* Modal Actions */}
-            <View style={styles.modalActionRow}>
-              <TouchableOpacity
-                style={[styles.modalCancelBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
-                onPress={() => setEditModalVisible(false)}
-                disabled={isSaving}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.modalCancelText, { color: isDark ? '#e2e8f0' : '#475569' }]}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleSaveEdit}
-                disabled={isSaving}
-                activeOpacity={0.8}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#ffffff" size="small" />
-                ) : (
-                  <Text style={styles.modalSaveText}>Save Changes</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -492,27 +815,36 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     borderWidth: 4,
-    borderColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
+    elevation: 5,
   },
-  silhouetteHead: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#334155',
-    marginBottom: 4,
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 48,
   },
-  silhouetteBody: {
-    width: 60,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#334155',
+  avatarBadgeOverlay: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#2563eb',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   cardField: {
     width: '100%',
@@ -530,12 +862,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  editEmailPill: {
+  editPill: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
-  editEmailPillText: {
+  editPillText: {
     fontSize: 11,
     fontWeight: '700',
   },
@@ -575,6 +907,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 2,
     marginTop: 2,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 10,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   divider: {
     width: '100%',
@@ -640,7 +989,8 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    maxWidth: 480,
+    maxWidth: 500,
+    maxHeight: '90%',
     borderRadius: 20,
     borderWidth: 1,
     padding: 22,
@@ -674,6 +1024,83 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  avatarPickerSection: {
+    marginBottom: 16,
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 8,
+  },
+  avatarPreviewWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2.5,
+    position: 'relative',
+  },
+  avatarPreviewImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+  },
+  avatarPreviewBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#2563eb',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadPhotoBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  uploadPhotoBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  presetSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  presetsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  presetAvatarBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    position: 'relative',
+  },
+  presetAvatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
+  },
+  presetCheckmark: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#3b82f6',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   modalInputGroup: {
     marginBottom: 14,
   },
@@ -689,16 +1116,32 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 15,
   },
+  passwordCardSection: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
   modalPwdHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+  },
+  pwdLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  innerInputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   modalActionRow: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 8,
+    marginBottom: 6,
   },
   modalCancelBtn: {
     flex: 1,
