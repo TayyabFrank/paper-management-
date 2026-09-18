@@ -44,8 +44,8 @@ export default function HomeScreen() {
     );
   }
 
-  // IF ADMIN MODE IS ACTIVE (or user is an Admin): Render the dedicated Admin Site
-  if (isAdminMode || (isLoggedIn && user.role === 'Admin')) {
+  // IF LOGGED IN AND ADMIN MODE IS ACTIVE: Render the dedicated Admin Site
+  if (isLoggedIn && isAdminMode) {
     return <AdminPortalView onSwitchToEmployeeMode={() => setIsAdminMode(false)} />;
   }
 

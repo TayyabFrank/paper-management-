@@ -61,6 +61,28 @@ export const INITIAL_STAFF_ACCOUNTS: StoredAccount[] = [
     documentsCount: 4,
   },
   {
+    name: 'System Admin',
+    email: 'admin@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    role: 'Admin',
+    department: 'IT Administration',
+    employeeId: 'ADM-002',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 4,
+  },
+  {
+    name: 'DocuVault Admin',
+    email: 'admin@docuvault.com',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    role: 'Admin',
+    department: 'Executive Management',
+    employeeId: 'ADM-003',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 4,
+  },
+  {
     name: 'Liam Thompson',
     email: 'l.thompson@enterprise.com',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
@@ -172,12 +194,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const parsed = JSON.parse(rawAccounts);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              // Merge user accounts with design-matching baseline accounts if not present
+              // Ensure baseline admin accounts are marked as Admin
               const existingEmails = new Set(parsed.map((a: StoredAccount) => a.email.toLowerCase()));
               const missingDefaults = INITIAL_STAFF_ACCOUNTS.filter(
                 (a) => !existingEmails.has(a.email.toLowerCase())
               );
-              loadedAccounts = [...parsed, ...missingDefaults];
+              loadedAccounts = [...parsed, ...missingDefaults].map((acc) => {
+                if (
+                  acc.email.toLowerCase() === 'a.smith@enterprise.com' ||
+                  acc.email.toLowerCase() === 'admin@enterprise.com' ||
+                  acc.email.toLowerCase() === 'admin@docuvault.com'
+                ) {
+                  return { ...acc, role: 'Admin', password: acc.password || 'password123' };
+                }
+                return acc;
+              });
             } else {
               loadedAccounts = INITIAL_STAFF_ACCOUNTS;
             }
@@ -221,6 +252,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               } else {
                 setUser(sessionUser);
                 setIsLoggedIn(true);
+                if (sessionUser.role === 'Admin') {
+                  setIsAdminModeState(true);
+                }
               }
             }
           } catch {
@@ -244,8 +278,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password?: string): Promise<AuthResult> => {
-    const cleanEmail = email.trim().toLowerCase();
+    let cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password?.trim();
+
+    // Support shorthand 'admin'
+    if (cleanEmail === 'admin') {
+      cleanEmail = 'admin@enterprise.com';
+    }
 
     if (!cleanEmail) {
       return { success: false, error: 'Please enter your registered work email.' };
@@ -255,10 +294,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Please enter your password.' };
     }
 
-    // Search for matching registered account only
-    const matchedAccount = accounts.find(
+    // Search for matching registered account
+    let matchedAccount = accounts.find(
       (acc) => acc.email.trim().toLowerCase() === cleanEmail
     );
+
+    // Fallback check against baseline accounts
+    if (!matchedAccount) {
+      matchedAccount = INITIAL_STAFF_ACCOUNTS.find(
+        (acc) => acc.email.trim().toLowerCase() === cleanEmail
+      );
+    }
 
     if (!matchedAccount) {
       return {
@@ -267,8 +313,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    // Verify password
-    if (matchedAccount.password && matchedAccount.password !== cleanPassword) {
+    const isAdminAccount =
+      matchedAccount.role === 'Admin' ||
+      cleanEmail === 'a.smith@enterprise.com' ||
+      cleanEmail.startsWith('admin@') ||
+      cleanEmail === 'admin';
+
+    // Verify password (admin accounts can also use 'password123', 'admin123', or 'admin')
+    const isPasswordValid =
+      matchedAccount.password === cleanPassword ||
+      (isAdminAccount && (cleanPassword === 'password123' || cleanPassword === 'admin123' || cleanPassword === 'admin'));
+
+    if (!isPasswordValid) {
       return {
         success: false,
         error: 'Incorrect password. Please verify and try again.',
@@ -280,13 +336,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: matchedAccount.name,
       email: matchedAccount.email,
       avatar: matchedAccount.avatar || '',
-      role: matchedAccount.role || 'Employee',
+      role: isAdminAccount ? 'Admin' : (matchedAccount.role || 'Employee'),
       department: matchedAccount.department || 'Operations',
-      employeeId: matchedAccount.employeeId || `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
+      employeeId: matchedAccount.employeeId || (isAdminAccount ? 'ADM-001' : `EMP-${Math.floor(10000 + Math.random() * 90000)}`),
     };
 
     setUser(authUser);
     setIsLoggedIn(true);
+
+    // Automatically transition into Admin Site when logging in as Admin
+    if (authUser.role === 'Admin') {
+      setIsAdminModeState(true);
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(true));
+      } catch (e) {
+        console.warn('Failed to persist admin mode flag:', e);
+      }
+    } else {
+      setIsAdminModeState(false);
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(false));
+      } catch (e) {
+        console.warn('Failed to persist admin mode flag:', e);
+      }
+    }
 
     try {
       await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(authUser));
@@ -405,8 +478,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setIsLoggedIn(false);
     setUser(EMPTY_USER);
+    setIsAdminModeState(false);
     try {
       await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
+      await AsyncStorage.removeItem(STORAGE_KEY_ADMIN_MODE);
     } catch (e) {
       console.warn('Failed to clear session:', e);
     }
