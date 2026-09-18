@@ -116,9 +116,11 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
           ]}
         >
           <View style={styles.searchIconBox}>
-            {Platform.OS === 'web' ? (
-              <img src={SEARCH_ICON_SVG} alt="Search" style={{ width: 18, height: 18 }} />
-            ) : null}
+            <Image
+              source={{ uri: SEARCH_ICON_SVG }}
+              style={{ width: 18, height: 18 }}
+              resizeMode="contain"
+            />
           </View>
           <TextInput
             style={[styles.searchInput, { color: isDark ? colors.textPrimary : '#0f172a' }]}
@@ -131,9 +133,11 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
             style={[styles.filterBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
             activeOpacity={0.7}
           >
-            {Platform.OS === 'web' ? (
-              <img src={FILTER_ICON_SVG} alt="Filter" style={{ width: 18, height: 18 }} />
-            ) : null}
+            <Image
+              source={{ uri: FILTER_ICON_SVG }}
+              style={{ width: 18, height: 18 }}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
         </View>
 
@@ -220,15 +224,13 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
                       </View>
 
                       <View style={styles.docCountRow}>
-                        {Platform.OS === 'web' ? (
-                          <img
-                            src={DOC_COUNTER_ICON_SVG}
-                            alt="Docs"
-                            style={{ width: 14, height: 14, marginRight: 5 }}
-                          />
-                        ) : null}
+                        <Image
+                          source={{ uri: DOC_COUNTER_ICON_SVG }}
+                          style={{ width: 14, height: 14, marginRight: 5 }}
+                          resizeMode="contain"
+                        />
                         <Text style={[styles.docCountText, { color: isDark ? '#94a3b8' : '#475569' }]}>
-                          {docCount} Documents
+                          {docCount} {docCount === 1 ? 'Document' : 'Documents'}
                         </Text>
                       </View>
                     </View>
@@ -242,13 +244,11 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
                     onPress={() => onViewEmployeeDocs(employee)}
                     activeOpacity={0.85}
                   >
-                    {Platform.OS === 'web' ? (
-                      <img
-                        src={FOLDER_ICON_SVG}
-                        alt="Folder"
-                        style={{ width: 18, height: 18, marginRight: 6 }}
-                      />
-                    ) : null}
+                    <Image
+                      source={{ uri: FOLDER_ICON_SVG }}
+                      style={{ width: 18, height: 18, marginRight: 6 }}
+                      resizeMode="contain"
+                    />
                     <Text style={styles.viewDocsBtnText}>View Documents</Text>
                   </TouchableOpacity>
 
@@ -257,13 +257,11 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
                     onPress={() => setEmployeeToRemove(employee)}
                     activeOpacity={0.85}
                   >
-                    {Platform.OS === 'web' ? (
-                      <img
-                        src={TRASH_ICON_SVG}
-                        alt="Trash"
-                        style={{ width: 16, height: 16, marginRight: 5 }}
-                      />
-                    ) : null}
+                    <Image
+                      source={{ uri: TRASH_ICON_SVG }}
+                      style={{ width: 16, height: 16, marginRight: 5 }}
+                      resizeMode="contain"
+                    />
                     <Text style={styles.removeBtnText}>Remove</Text>
                   </TouchableOpacity>
                 </View>

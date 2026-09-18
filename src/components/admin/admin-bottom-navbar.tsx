@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
@@ -107,15 +107,11 @@ export function AdminBottomNavbar({
               activeOpacity={0.7}
             >
               <View style={styles.iconContainer}>
-                {Platform.OS === 'web' ? (
-                  <img
-                    src={tab.getIcon(iconColor)}
-                    alt={tab.label}
-                    style={{ width: 22, height: 22, display: 'block' }}
-                  />
-                ) : (
-                  <View style={{ width: 22, height: 22, backgroundColor: 'transparent' }} />
-                )}
+                <Image
+                  source={{ uri: tab.getIcon(iconColor) }}
+                  style={{ width: 22, height: 22 }}
+                  resizeMode="contain"
+                />
 
                 {tab.key === 'approvals' && pendingCount > 0 && (
                   <View style={styles.badgePill}>

@@ -166,15 +166,11 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
       {/* Top Header matching Screenshot 2 */}
       <View style={styles.topHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
-          {Platform.OS === 'web' ? (
-            <img
-              src={BACK_ARROW_SVG(isDark ? '#f8fafc' : '#0f172a')}
-              alt="Back"
-              style={{ width: 22, height: 22, display: 'block' }}
-            />
-          ) : (
-            <Text style={{ fontSize: 20 }}>←</Text>
-          )}
+          <Image
+            source={{ uri: BACK_ARROW_SVG(isDark ? '#f8fafc' : '#0f172a') }}
+            style={{ width: 22, height: 22 }}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
           Admin Profile
@@ -194,15 +190,11 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
       >
         {/* Geometric Polygon Crystal Banner matching Screenshot 2 */}
         <View style={styles.bannerContainer}>
-          {Platform.OS === 'web' ? (
-            <img
-              src={POLY_BG_SVG}
-              alt="Geometric Banner"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            <View style={{ flex: 1, backgroundColor: '#c4b5fd' }} />
-          )}
+          <Image
+            source={{ uri: POLY_BG_SVG }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
         </View>
 
         {/* Elevated Profile Card matching Screenshot 2 */}
@@ -234,11 +226,11 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
             )}
 
             <View style={styles.cameraBadge}>
-              {Platform.OS === 'web' ? (
-                <img src={CAMERA_ICON_SVG} alt="Edit" style={{ width: 14, height: 14 }} />
-              ) : (
-                <Text style={{ fontSize: 10, color: '#ffffff' }}>📷</Text>
-              )}
+              <Image
+                source={{ uri: CAMERA_ICON_SVG }}
+                style={{ width: 14, height: 14 }}
+                resizeMode="contain"
+              />
             </View>
           </TouchableOpacity>
 
@@ -248,9 +240,11 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
             onPress={handleOpenEditModal}
             activeOpacity={0.8}
           >
-            {Platform.OS === 'web' ? (
-              <img src={PENCIL_ICON_SVG} alt="Edit" style={{ width: 14, height: 14, marginRight: 6 }} />
-            ) : null}
+            <Image
+              source={{ uri: PENCIL_ICON_SVG }}
+              style={{ width: 14, height: 14, marginRight: 6 }}
+              resizeMode="contain"
+            />
             <Text style={styles.editChipText}>Edit Profile</Text>
           </TouchableOpacity>
 
@@ -282,11 +276,11 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
           <View style={styles.cardRowField}>
             <View style={styles.rowLeft}>
               <View style={styles.iconBox}>
-                {Platform.OS === 'web' ? (
-                  <img src={KEY_ICON_SVG} alt="Key" style={{ width: 22, height: 22 }} />
-                ) : (
-                  <Text style={{ fontSize: 18 }}>🔑</Text>
-                )}
+                <Image
+                  source={{ uri: KEY_ICON_SVG }}
+                  style={{ width: 22, height: 22 }}
+                  resizeMode="contain"
+                />
               </View>
               <View>
                 <Text style={[styles.rowLabel, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
@@ -313,11 +307,11 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
           <View style={styles.cardRowField}>
             <View style={styles.rowLeft}>
               <View style={styles.iconBox}>
-                {Platform.OS === 'web' ? (
-                  <img src={PALETTE_ICON_SVG} alt="Palette" style={{ width: 22, height: 22 }} />
-                ) : (
-                  <Text style={{ fontSize: 18 }}>🎨</Text>
-                )}
+                <Image
+                  source={{ uri: PALETTE_ICON_SVG }}
+                  style={{ width: 22, height: 22 }}
+                  resizeMode="contain"
+                />
               </View>
               <Text style={[styles.rowLabel, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
                 Enable Dark Mode

@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Image,
   Platform,
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
@@ -77,11 +78,11 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
       <View style={[styles.topHeaderBar, { backgroundColor: isDark ? '#0f172a' : '#172554' }]}>
         <View style={styles.topHeaderContent}>
           <View style={styles.brandRow}>
-            {Platform.OS === 'web' ? (
-              <img src={LOGO_BADGE_SVG} alt="DocuVault" style={{ width: 28, height: 28 }} />
-            ) : (
-              <View style={{ width: 28, height: 28 }} />
-            )}
+            <Image
+              source={{ uri: LOGO_BADGE_SVG }}
+              style={{ width: 28, height: 28 }}
+              resizeMode="contain"
+            />
             <Text style={styles.brandTitle}>DocuVault</Text>
           </View>
 
@@ -90,15 +91,11 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
             onPress={onOpenMenu}
             activeOpacity={0.7}
           >
-            {Platform.OS === 'web' ? (
-              <img
-                src={HAMBURGER_SVG('#ffffff')}
-                alt="Menu"
-                style={{ width: 24, height: 24, display: 'block' }}
-              />
-            ) : (
-              <Text style={{ color: '#ffffff', fontSize: 22 }}>☰</Text>
-            )}
+            <Image
+              source={{ uri: HAMBURGER_SVG('#ffffff') }}
+              style={{ width: 24, height: 24 }}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -130,9 +127,11 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
           activeOpacity={0.8}
         >
           <View style={[styles.metricIconBox, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
-            {Platform.OS === 'web' ? (
-              <img src={USERS_METRIC_SVG} alt="Users" style={{ width: 26, height: 26 }} />
-            ) : null}
+            <Image
+              source={{ uri: USERS_METRIC_SVG }}
+              style={{ width: 26, height: 26 }}
+              resizeMode="contain"
+            />
           </View>
           <View style={styles.metricInfo}>
             <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
@@ -157,9 +156,11 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
           activeOpacity={0.8}
         >
           <View style={[styles.metricIconBox, { backgroundColor: isDark ? '#2a2215' : '#fef3c7' }]}>
-            {Platform.OS === 'web' ? (
-              <img src={CLOCK_METRIC_SVG} alt="Clock" style={{ width: 26, height: 26 }} />
-            ) : null}
+            <Image
+              source={{ uri: CLOCK_METRIC_SVG }}
+              style={{ width: 26, height: 26 }}
+              resizeMode="contain"
+            />
           </View>
           <View style={styles.metricInfo}>
             <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
@@ -184,9 +185,11 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
           activeOpacity={0.8}
         >
           <View style={[styles.metricIconBox, { backgroundColor: isDark ? '#143026' : '#ecfdf5' }]}>
-            {Platform.OS === 'web' ? (
-              <img src={DOCS_METRIC_SVG} alt="Docs" style={{ width: 26, height: 26 }} />
-            ) : null}
+            <Image
+              source={{ uri: DOCS_METRIC_SVG }}
+              style={{ width: 26, height: 26 }}
+              resizeMode="contain"
+            />
           </View>
           <View style={styles.metricInfo}>
             <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>

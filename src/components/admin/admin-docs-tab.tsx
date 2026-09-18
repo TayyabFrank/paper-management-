@@ -154,15 +154,11 @@ export function AdminDocsTab({
           onPress={onBackToUsers}
           activeOpacity={0.7}
         >
-          {Platform.OS === 'web' ? (
-            <img
-              src={BACK_ARROW_SVG(isDark ? '#f8fafc' : '#0f172a')}
-              alt="Back"
-              style={{ width: 22, height: 22, display: 'block' }}
-            />
-          ) : (
-            <Text style={{ fontSize: 20 }}>←</Text>
-          )}
+          <Image
+            source={{ uri: BACK_ARROW_SVG(isDark ? '#f8fafc' : '#0f172a') }}
+            style={{ width: 22, height: 22 }}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
 
         <Text
@@ -215,9 +211,11 @@ export function AdminDocsTab({
           ]}
         >
           <View style={styles.searchIconBox}>
-            {Platform.OS === 'web' ? (
-              <img src={SEARCH_ICON_SVG} alt="Search" style={{ width: 18, height: 18 }} />
-            ) : null}
+            <Image
+              source={{ uri: SEARCH_ICON_SVG }}
+              style={{ width: 18, height: 18 }}
+              resizeMode="contain"
+            />
           </View>
           <TextInput
             style={[styles.searchInput, { color: isDark ? colors.textPrimary : '#0f172a' }]}
@@ -230,9 +228,11 @@ export function AdminDocsTab({
             style={[styles.filterBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
             activeOpacity={0.7}
           >
-            {Platform.OS === 'web' ? (
-              <img src={FILTER_ICON_SVG} alt="Filter" style={{ width: 18, height: 18 }} />
-            ) : null}
+            <Image
+              source={{ uri: FILTER_ICON_SVG }}
+              style={{ width: 18, height: 18 }}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
         </View>
 
@@ -378,15 +378,11 @@ export function AdminDocsTab({
               >
                 {/* File Icon Badge */}
                 <View style={styles.badgeContainer}>
-                  {Platform.OS === 'web' ? (
-                    <img
-                      src={getMiniFileBadge(doc)}
-                      alt={doc.type}
-                      style={{ width: 38, height: 38, display: 'block' }}
-                    />
-                  ) : (
-                    <View style={{ width: 38, height: 38 }} />
-                  )}
+                  <Image
+                    source={{ uri: getMiniFileBadge(doc) }}
+                    style={{ width: 38, height: 38 }}
+                    resizeMode="contain"
+                  />
                 </View>
 
                 {/* Document Information */}
@@ -422,15 +418,11 @@ export function AdminDocsTab({
                   onPress={() => onOpenDocument(doc)}
                   activeOpacity={0.7}
                 >
-                  {Platform.OS === 'web' ? (
-                    <img
-                      src={EYE_ACTION_SVG(isDark ? '#94a3b8' : '#64748b')}
-                      alt="View"
-                      style={{ width: 22, height: 22, display: 'block' }}
-                    />
-                  ) : (
-                    <Text style={{ fontSize: 18 }}>👁️</Text>
-                  )}
+                  <Image
+                    source={{ uri: EYE_ACTION_SVG(isDark ? '#94a3b8' : '#64748b') }}
+                    style={{ width: 22, height: 22 }}
+                    resizeMode="contain"
+                  />
                 </TouchableOpacity>
               </TouchableOpacity>
             );

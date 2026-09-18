@@ -56,9 +56,11 @@ export function AdminApprovalsTab({ onOpenMenu }: AdminApprovalsTabProps) {
       <View style={[styles.topHeaderBar, { backgroundColor: isDark ? '#0f172a' : '#172554' }]}>
         <View style={styles.topHeaderContent}>
           <View style={styles.brandRow}>
-            {Platform.OS === 'web' ? (
-              <img src={LOGO_BADGE_SVG} alt="DocuVault" style={{ width: 28, height: 28 }} />
-            ) : null}
+            <Image
+              source={{ uri: LOGO_BADGE_SVG }}
+              style={{ width: 28, height: 28 }}
+              resizeMode="contain"
+            />
             <Text style={styles.brandTitle}>DocuVault</Text>
           </View>
 
@@ -67,15 +69,11 @@ export function AdminApprovalsTab({ onOpenMenu }: AdminApprovalsTabProps) {
             onPress={onOpenMenu}
             activeOpacity={0.7}
           >
-            {Platform.OS === 'web' ? (
-              <img
-                src={HAMBURGER_SVG('#ffffff')}
-                alt="Menu"
-                style={{ width: 24, height: 24, display: 'block' }}
-              />
-            ) : (
-              <Text style={{ color: '#ffffff', fontSize: 22 }}>☰</Text>
-            )}
+            <Image
+              source={{ uri: HAMBURGER_SVG('#ffffff') }}
+              style={{ width: 24, height: 24 }}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
         </View>
       </View>
