@@ -644,6 +644,9 @@ export interface DocumentReaderItem {
   isSigned?: boolean;
   previewImage?: string;
   contentSnippet?: string;
+  employeeEmail?: string;
+  employeeName?: string;
+  statusNote?: string;
   fullContent?: {
     category: string;
     date: string;

@@ -8,6 +8,8 @@ export interface EmployeeUser {
   role: string;
   department: string;
   employeeId: string;
+  status?: 'active' | 'pending' | 'rejected';
+  documentsCount?: number;
 }
 
 export interface StoredAccount extends EmployeeUser {
@@ -24,6 +26,8 @@ interface AuthContextValue {
   isLoading: boolean;
   user: EmployeeUser;
   registeredAccounts: StoredAccount[];
+  isAdminMode: boolean;
+  setIsAdminMode: (admin: boolean) => void;
   login: (email: string, password?: string) => Promise<AuthResult>;
   register: (accountData: {
     name: string;
@@ -35,10 +39,83 @@ interface AuthContextValue {
   }) => Promise<AuthResult>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<EmployeeUser>, newPassword?: string) => Promise<AuthResult>;
+  approveAccount: (email: string) => Promise<void>;
+  rejectAccount: (email: string) => Promise<void>;
+  removeAccount: (email: string) => Promise<void>;
 }
 
 const STORAGE_KEY_SESSION = '@docuvault_auth_session';
 const STORAGE_KEY_ACCOUNTS = '@docuvault_accounts';
+const STORAGE_KEY_ADMIN_MODE = '@docuvault_admin_mode';
+
+export const INITIAL_STAFF_ACCOUNTS: StoredAccount[] = [
+  {
+    name: 'Alex Smith',
+    email: 'a.smith@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    role: 'Admin',
+    department: 'Executive Management',
+    employeeId: 'ADM-001',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 4,
+  },
+  {
+    name: 'Liam Thompson',
+    email: 'l.thompson@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    role: 'Employee',
+    department: 'Engineering',
+    employeeId: 'EMP-10492',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 31,
+  },
+  {
+    name: 'Fatima Khan',
+    email: 'f.khan@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    role: 'Employee',
+    department: 'Design',
+    employeeId: 'EMP-10493',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 18,
+  },
+  {
+    name: 'Benjamin Garcia',
+    email: 'b.garcia@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+    role: 'Employee',
+    department: 'Operations',
+    employeeId: 'EMP-10494',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 5,
+  },
+  {
+    name: 'Alex Thompson',
+    email: 'alex.t@company.com',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&auto=format&fit=crop&q=80',
+    role: 'Employee',
+    department: 'Marketing',
+    employeeId: 'EMP-10501',
+    status: 'pending',
+    password: 'password123',
+    documentsCount: 0,
+  },
+  {
+    name: 'Rachel Green',
+    email: 'r.green@company.com',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
+    role: 'Employee',
+    department: 'Human Resources',
+    employeeId: 'EMP-10502',
+    status: 'pending',
+    password: 'password123',
+    documentsCount: 0,
+  },
+];
 
 const EMPTY_USER: EmployeeUser = {
   name: '',
@@ -47,6 +124,7 @@ const EMPTY_USER: EmployeeUser = {
   role: 'Employee',
   department: 'Operations',
   employeeId: '',
+  status: 'active',
 };
 
 const AuthContext = createContext<AuthContextValue>({
@@ -54,18 +132,32 @@ const AuthContext = createContext<AuthContextValue>({
   isLoading: true,
   user: EMPTY_USER,
   registeredAccounts: [],
+  isAdminMode: false,
+  setIsAdminMode: () => {},
   login: async () => ({ success: false }),
   register: async () => ({ success: false }),
   logout: async () => {},
   updateUser: async () => ({ success: true }),
+  approveAccount: async () => {},
+  rejectAccount: async () => {},
+  removeAccount: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Authentication strictly requires valid registered user login (no guest access, no demo accounts)
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [user, setUser] = useState<EmployeeUser>(EMPTY_USER);
-  const [accounts, setAccounts] = useState<StoredAccount[]>([]);
+  const [accounts, setAccounts] = useState<StoredAccount[]>(INITIAL_STAFF_ACCOUNTS);
+  const [isAdminMode, setIsAdminModeState] = useState<boolean>(false);
+
+  const setIsAdminMode = async (val: boolean) => {
+    setIsAdminModeState(val);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(val));
+    } catch (e) {
+      console.warn('Failed to save admin mode flag:', e);
+    }
+  };
 
   // Hydrate accounts and active session on startup
   useEffect(() => {
@@ -73,26 +165,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function hydrateAuth() {
       try {
-        // Load registered accounts and remove any legacy demo accounts
+        // Load saved accounts
         const rawAccounts = await AsyncStorage.getItem(STORAGE_KEY_ACCOUNTS);
         let loadedAccounts: StoredAccount[] = [];
         if (rawAccounts) {
           try {
             const parsed = JSON.parse(rawAccounts);
-            if (Array.isArray(parsed)) {
-              // Strictly filter out any demo or guest accounts
-              loadedAccounts = parsed.filter(
-                (a: StoredAccount) =>
-                  a &&
-                  a.email &&
-                  !a.email.toLowerCase().includes('l.thompson') &&
-                  !a.email.toLowerCase().includes('enterprise.com') &&
-                  !a.name?.toLowerCase().includes('guest')
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              // Merge user accounts with design-matching baseline accounts if not present
+              const existingEmails = new Set(parsed.map((a: StoredAccount) => a.email.toLowerCase()));
+              const missingDefaults = INITIAL_STAFF_ACCOUNTS.filter(
+                (a) => !existingEmails.has(a.email.toLowerCase())
               );
+              loadedAccounts = [...parsed, ...missingDefaults];
+            } else {
+              loadedAccounts = INITIAL_STAFF_ACCOUNTS;
             }
           } catch {
-            loadedAccounts = [];
+            loadedAccounts = INITIAL_STAFF_ACCOUNTS;
           }
+        } else {
+          loadedAccounts = INITIAL_STAFF_ACCOUNTS;
         }
         await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(loadedAccounts));
 
@@ -100,30 +193,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAccounts(loadedAccounts);
         }
 
-        // Check active session (strictly require matching real registered user)
+        // Restore admin mode preference
+        const rawAdminMode = await AsyncStorage.getItem(STORAGE_KEY_ADMIN_MODE);
+        if (rawAdminMode && isMounted) {
+          try {
+            setIsAdminModeState(JSON.parse(rawAdminMode));
+          } catch {
+            // ignore
+          }
+        }
+
+        // Check active session
         const rawSession = await AsyncStorage.getItem(STORAGE_KEY_SESSION);
-        if (rawSession) {
+        if (rawSession && isMounted) {
           try {
             const sessionUser = JSON.parse(rawSession) as EmployeeUser;
-            const isDemoOrGuest =
-              !sessionUser ||
-              !sessionUser.email ||
-              sessionUser.email.toLowerCase().includes('l.thompson') ||
-              sessionUser.email.toLowerCase().includes('enterprise.com') ||
-              sessionUser.name?.toLowerCase().includes('guest');
-
-            if (!isDemoOrGuest && isMounted) {
-              const accountExists = loadedAccounts.some(
+            if (sessionUser && sessionUser.email) {
+              const matchedAcc = loadedAccounts.find(
                 (acc) => acc.email.toLowerCase() === sessionUser.email.toLowerCase()
               );
-              if (accountExists) {
+              if (matchedAcc) {
+                setUser({ ...matchedAcc });
+                setIsLoggedIn(true);
+                if (matchedAcc.role === 'Admin') {
+                  setIsAdminModeState(true);
+                }
+              } else {
                 setUser(sessionUser);
                 setIsLoggedIn(true);
-              } else {
-                await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
               }
-            } else {
-              await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
             }
           } catch {
             await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
@@ -369,6 +467,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  const approveAccount = async (email: string) => {
+    const updated = accounts.map((acc) => {
+      if (acc.email.toLowerCase() === email.toLowerCase()) {
+        return { ...acc, status: 'active' as const };
+      }
+      return acc;
+    });
+    setAccounts(updated);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to save approved account:', e);
+    }
+  };
+
+  const rejectAccount = async (email: string) => {
+    const updated = accounts.filter(
+      (acc) => acc.email.toLowerCase() !== email.toLowerCase()
+    );
+    setAccounts(updated);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to remove rejected account:', e);
+    }
+  };
+
+  const removeAccount = async (email: string) => {
+    const updated = accounts.filter(
+      (acc) => acc.email.toLowerCase() !== email.toLowerCase()
+    );
+    setAccounts(updated);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to remove account:', e);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -376,10 +513,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         user,
         registeredAccounts: accounts,
+        isAdminMode,
+        setIsAdminMode,
         login,
         register,
         logout,
         updateUser,
+        approveAccount,
+        rejectAccount,
+        removeAccount,
       }}
     >
       {children}
