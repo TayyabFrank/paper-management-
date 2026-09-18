@@ -327,6 +327,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
+    // Verify approval status for employee accounts
+    if (!isAdminAccount) {
+      if (matchedAccount.status === 'pending') {
+        return {
+          success: false,
+          error: 'Your account registration is pending admin approval. You can only log in once an administrator approves your account.',
+        };
+      }
+      if (matchedAccount.status === 'rejected') {
+        return {
+          success: false,
+          error: 'Your account registration was not approved. Please contact IT / HR administration.',
+        };
+      }
+    }
+
     // Successful authentication with automatically detected role
     const authUser: EmployeeUser = {
       name: matchedAccount.name,
@@ -335,6 +351,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: isAdminAccount ? 'Admin' : (matchedAccount.role || 'Employee'),
       department: matchedAccount.department || 'Operations',
       employeeId: matchedAccount.employeeId || (isAdminAccount ? 'ADM-001' : `EMP-${Math.floor(10000 + Math.random() * 90000)}`),
+      status: matchedAccount.status || 'active',
+      documentsCount: matchedAccount.documentsCount || 0,
     };
 
     setUser(authUser);
@@ -420,7 +438,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    // Create new account
+    // Create new account with pending status awaiting admin approval
     const newAccount: StoredAccount = {
       name: cleanName,
       email: cleanEmail,
@@ -429,6 +447,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: accountData.role || 'Employee',
       department: accountData.department || 'Operations',
       employeeId: `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
+      status: 'pending',
+      documentsCount: 0,
     };
 
     const updatedAccounts = [...accounts, newAccount];
@@ -441,25 +461,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.warn('Failed to save accounts list:', e);
     }
 
-    // Log in the newly registered user
-    const authUser: EmployeeUser = {
-      name: newAccount.name,
-      email: newAccount.email,
-      avatar: newAccount.avatar,
-      role: newAccount.role,
-      department: newAccount.department,
-      employeeId: newAccount.employeeId,
-    };
-
-    setUser(authUser);
-    setIsLoggedIn(true);
-
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(authUser));
-    } catch (e) {
-      console.warn('Failed to save session:', e);
-    }
-
+    // Awaiting administrator approval; do NOT log in automatically
     return { success: true };
   };
 
