@@ -246,9 +246,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (matchedAcc) {
                 setUser({ ...matchedAcc });
                 setIsLoggedIn(true);
+                setIsAdminModeState(matchedAcc.role === 'Admin');
               } else {
                 setUser(sessionUser);
                 setIsLoggedIn(true);
+                setIsAdminModeState(sessionUser.role === 'Admin');
               }
             }
           } catch {
@@ -325,7 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    // Successful authentication
+    // Successful authentication with automatically detected role
     const authUser: EmployeeUser = {
       name: matchedAccount.name,
       email: matchedAccount.email,
@@ -338,10 +340,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(authUser);
     setIsLoggedIn(true);
 
-    // Do not directly route to Admin portal on login
-    setIsAdminModeState(false);
+    // Automatically route to Admin panel if detected as Admin, or Employee panel if Employee
+    const isUserAdmin = authUser.role === 'Admin';
+    setIsAdminModeState(isUserAdmin);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(false));
+      await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(isUserAdmin));
     } catch (e) {
       console.warn('Failed to persist admin mode flag:', e);
     }

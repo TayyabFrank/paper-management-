@@ -18,7 +18,7 @@ import { useAuth } from '@/context/auth-context';
 
 interface AdminProfileTabProps {
   onBack: () => void;
-  onSwitchToEmployeeMode: () => void;
+  onSwitchToEmployeeMode?: () => void;
 }
 
 const BACK_ARROW_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -271,18 +271,8 @@ export function AdminProfileTab({ onBack, onSwitchToEmployeeMode }: AdminProfile
           </TouchableOpacity>
         </View>
 
-        {/* Quick Workspace Switcher & Sign Out */}
+        {/* Sign Out Button */}
         <View style={styles.bottomActionsCol}>
-          <TouchableOpacity
-            style={[styles.switchModeBtn, { backgroundColor: isDark ? '#1e293b' : '#ede9fe' }]}
-            onPress={onSwitchToEmployeeMode}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.switchModeBtnText, { color: isDark ? '#c084fc' : '#6d28d9' }]}>
-              👥 Switch to Employee Workspace
-            </Text>
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.signOutBtn}
             onPress={logout}
@@ -608,16 +598,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     gap: 12,
-  },
-  switchModeBtn: {
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  switchModeBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
   },
   signOutBtn: {
     backgroundColor: '#fee2e2',

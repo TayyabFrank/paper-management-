@@ -19,10 +19,10 @@ import { AdminApprovalsTab } from './admin-approvals-tab';
 import { AdminProfileTab } from './admin-profile-tab';
 
 interface AdminPortalViewProps {
-  onSwitchToEmployeeMode: () => void;
+  onSwitchToEmployeeMode?: () => void;
 }
 
-export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps) {
+export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps = {}) {
   const { isDark, colors } = useDocuVaultTheme();
   const { registeredAccounts, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTabKey>('dashboard');
@@ -75,7 +75,6 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
         {activeTab === 'profile' && (
           <AdminProfileTab
             onBack={() => setActiveTab('dashboard')}
-            onSwitchToEmployeeMode={onSwitchToEmployeeMode}
           />
         )}
       </View>
@@ -172,19 +171,7 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
               <View style={[styles.drawerDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }]} />
 
               <TouchableOpacity
-                style={[styles.drawerActionBtn, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}
-                onPress={() => {
-                  setShowDrawer(false);
-                  onSwitchToEmployeeMode();
-                }}
-              >
-                <Text style={[styles.drawerActionBtnText, { color: '#2563eb' }]}>
-                  🔄 Switch to Employee Workspace
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.drawerActionBtn, { backgroundColor: '#fee2e2', marginTop: 10 }]}
+                style={[styles.drawerActionBtn, { backgroundColor: '#fee2e2' }]}
                 onPress={() => {
                   setShowDrawer(false);
                   logout();

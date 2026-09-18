@@ -44,9 +44,9 @@ export default function HomeScreen() {
     );
   }
 
-  // IF LOGGED IN AND ADMIN MODE IS ACTIVE: Render the dedicated Admin Site
-  if (isLoggedIn && isAdminMode) {
-    return <AdminPortalView onSwitchToEmployeeMode={() => setIsAdminMode(false)} />;
+  // IF LOGGED IN AS ADMIN: Render the dedicated Admin Panel
+  if (isLoggedIn && (isAdminMode || user.role === 'Admin')) {
+    return <AdminPortalView />;
   }
 
   // IF LOGGED IN: Open Home page directly with fixed bottom navbar throughout application
