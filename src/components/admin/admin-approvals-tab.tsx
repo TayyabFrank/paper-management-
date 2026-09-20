@@ -58,6 +58,9 @@ export function AdminApprovalsTab({ onOpenMenu }: AdminApprovalsTabProps) {
           <View style={styles.brandRow}>
             <Image source={{ uri: LOGO_BADGE_SVG }} style={{ width: 28, height: 28 }} resizeMode="contain" />
             <Text style={styles.brandTitle}>DocuVault</Text>
+            <View style={styles.adminTagPill}>
+              <Text style={styles.adminTagText}>🛡️ ADMIN</Text>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -232,6 +235,20 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     letterSpacing: -0.3,
+  },
+  adminTagPill: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#60a5fa',
+  },
+  adminTagText: {
+    color: '#ffffff',
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   hamburgerBtn: {
     padding: 6,
