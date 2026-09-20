@@ -1,5 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  apiLogin,
+  apiRegister,
+  apiFetchUsers,
+  apiApproveUser,
+  apiRejectUser,
+  apiDeleteUser,
+  apiUpdateProfile,
+} from '@/services/api-client';
 
 export interface EmployeeUser {
   name: string;
@@ -42,6 +51,7 @@ interface AuthContextValue {
   approveAccount: (email: string) => Promise<void>;
   rejectAccount: (email: string) => Promise<void>;
   removeAccount: (email: string) => Promise<void>;
+  syncWithBackend: () => Promise<void>;
 }
 
 const STORAGE_KEY_SESSION = '@docuvault_auth_session';
@@ -83,56 +93,67 @@ export const INITIAL_STAFF_ACCOUNTS: StoredAccount[] = [
     documentsCount: 4,
   },
   {
+    name: 'Sarah Jenkins',
+    email: 's.jenkins@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    role: 'Senior Financial Analyst',
+    department: 'Corporate Finance',
+    employeeId: 'FIN-042',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 4,
+  },
+  {
+    name: 'Michael Chen',
+    email: 'm.chen@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    role: 'Lead Infrastructure Engineer',
+    department: 'Cloud Operations',
+    employeeId: 'ENG-108',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 3,
+  },
+  {
+    name: 'Elena Rostova',
+    email: 'e.rostova@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
+    role: 'Compliance Officer',
+    department: 'Legal & Risk',
+    employeeId: 'LEG-019',
+    status: 'active',
+    password: 'password123',
+    documentsCount: 3,
+  },
+  {
     name: 'Liam Thompson',
     email: 'l.thompson@enterprise.com',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
-    role: 'Employee',
-    department: 'Engineering',
-    employeeId: 'EMP-10492',
-    status: 'active',
-    password: 'password123',
-    documentsCount: 31,
-  },
-  {
-    name: 'Fatima Khan',
-    email: 'f.khan@enterprise.com',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
-    role: 'Employee',
-    department: 'Design',
-    employeeId: 'EMP-10493',
-    status: 'active',
-    password: 'password123',
-    documentsCount: 18,
-  },
-  {
-    name: 'Benjamin Garcia',
-    email: 'b.garcia@enterprise.com',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
-    role: 'Employee',
-    department: 'Operations',
-    employeeId: 'EMP-10494',
+    role: 'Senior Software Engineer',
+    department: 'Product Engineering',
+    employeeId: 'ENG-204',
     status: 'active',
     password: 'password123',
-    documentsCount: 5,
+    documentsCount: 4,
   },
   {
-    name: 'Alex Thompson',
-    email: 'alex.t@company.com',
-    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&auto=format&fit=crop&q=80',
-    role: 'Employee',
-    department: 'Marketing',
-    employeeId: 'EMP-10501',
+    name: 'Marcus Brody',
+    email: 'm.brody@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80',
+    role: 'DevOps Specialist',
+    department: 'Cloud Operations',
+    employeeId: 'ENG-305',
     status: 'pending',
     password: 'password123',
     documentsCount: 0,
   },
   {
-    name: 'Rachel Green',
-    email: 'r.green@company.com',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
-    role: 'Employee',
-    department: 'Human Resources',
-    employeeId: 'EMP-10502',
+    name: 'Priya Patel',
+    email: 'p.patel@enterprise.com',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80',
+    role: 'UX Architect',
+    department: 'Product Design',
+    employeeId: 'DES-102',
     status: 'pending',
     password: 'password123',
     documentsCount: 0,
@@ -143,10 +164,11 @@ const EMPTY_USER: EmployeeUser = {
   name: '',
   email: '',
   avatar: '',
-  role: 'Employee',
-  department: 'Operations',
+  role: 'Staff',
+  department: '',
   employeeId: '',
   status: 'active',
+  documentsCount: 0,
 };
 
 const AuthContext = createContext<AuthContextValue>({
@@ -163,6 +185,7 @@ const AuthContext = createContext<AuthContextValue>({
   approveAccount: async () => {},
   rejectAccount: async () => {},
   removeAccount: async () => {},
+  syncWithBackend: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -181,34 +204,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Sync users from backend API
+  const syncWithBackend = useCallback(async () => {
+    try {
+      const res = await apiFetchUsers();
+      if (res.success && Array.isArray(res.users) && res.users.length > 0) {
+        setAccounts(res.users);
+        await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(res.users)).catch(() => {});
+      }
+    } catch {
+      // Backend offline or error - keep cached accounts
+    }
+  }, []);
+
   // Hydrate accounts and active session on startup
   useEffect(() => {
     let isMounted = true;
 
     async function hydrateAuth() {
       try {
-        // Load saved accounts
+        // Step 1: Load from local cache for instant UI rendering
         const rawAccounts = await AsyncStorage.getItem(STORAGE_KEY_ACCOUNTS);
         let loadedAccounts: StoredAccount[] = [];
         if (rawAccounts) {
           try {
             const parsed = JSON.parse(rawAccounts);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              // Ensure baseline admin accounts are marked as Admin
               const existingEmails = new Set(parsed.map((a: StoredAccount) => a.email.toLowerCase()));
               const missingDefaults = INITIAL_STAFF_ACCOUNTS.filter(
                 (a) => !existingEmails.has(a.email.toLowerCase())
               );
-              loadedAccounts = [...parsed, ...missingDefaults].map((acc) => {
-                if (
-                  acc.email.toLowerCase() === 'a.smith@enterprise.com' ||
-                  acc.email.toLowerCase() === 'admin@enterprise.com' ||
-                  acc.email.toLowerCase() === 'admin@docuvault.com'
-                ) {
-                  return { ...acc, role: 'Admin', password: acc.password || 'password123' };
-                }
-                return acc;
-              });
+              loadedAccounts = [...parsed, ...missingDefaults];
             } else {
               loadedAccounts = INITIAL_STAFF_ACCOUNTS;
             }
@@ -218,7 +244,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           loadedAccounts = INITIAL_STAFF_ACCOUNTS;
         }
-        await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(loadedAccounts));
 
         if (isMounted) {
           setAccounts(loadedAccounts);
@@ -257,6 +282,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
           }
         }
+
+        // Step 2: Fetch latest users from MongoDB backend if reachable
+        try {
+          const res = await apiFetchUsers();
+          if (res.success && Array.isArray(res.users) && res.users.length > 0 && isMounted) {
+            setAccounts(res.users);
+            await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(res.users)).catch(() => {});
+          }
+        } catch {
+          // ignore offline
+        }
       } catch (err) {
         console.warn('Error loading auth state from storage:', err);
       } finally {
@@ -277,7 +313,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password?.trim();
 
-    // Support shorthand 'admin'
     if (cleanEmail === 'admin') {
       cleanEmail = 'admin@enterprise.com';
     }
@@ -290,12 +325,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Please enter your password.' };
     }
 
-    // Search for matching registered account
+    // Attempt backend API login first
+    try {
+      const apiRes = await apiLogin(cleanEmail, cleanPassword);
+      if (apiRes.success && apiRes.user) {
+        const authUser: EmployeeUser = {
+          name: apiRes.user.name,
+          email: apiRes.user.email,
+          avatar: apiRes.user.avatar || '',
+          role: apiRes.user.role || 'Staff',
+          department: apiRes.user.department || 'Operations',
+          employeeId: apiRes.user.employeeId || 'EMP-1001',
+          status: apiRes.user.status || 'active',
+          documentsCount: apiRes.user.documentsCount || 0,
+        };
+
+        setUser(authUser);
+        setIsLoggedIn(true);
+
+        const isUserAdmin = authUser.role === 'Admin';
+        setIsAdminModeState(isUserAdmin);
+        await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(isUserAdmin)).catch(() => {});
+        await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(authUser)).catch(() => {});
+
+        // Refresh user list from backend
+        syncWithBackend();
+
+        return { success: true };
+      } else if (!apiRes.offline && apiRes.message) {
+        // Backend replied with a real rejection/approval error
+        return { success: false, error: apiRes.message };
+      }
+    } catch {
+      // Backend offline: fall back to local accounts cache
+    }
+
+    // Fallback: Local accounts authentication
     let matchedAccount = accounts.find(
       (acc) => acc.email.trim().toLowerCase() === cleanEmail
     );
 
-    // Fallback check against baseline accounts
     if (!matchedAccount) {
       matchedAccount = INITIAL_STAFF_ACCOUNTS.find(
         (acc) => acc.email.trim().toLowerCase() === cleanEmail
@@ -315,7 +384,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cleanEmail.startsWith('admin@') ||
       cleanEmail === 'admin';
 
-    // Verify password (admin accounts can also use 'password123', 'admin123', or 'admin')
     const isPasswordValid =
       matchedAccount.password === cleanPassword ||
       (isAdminAccount && (cleanPassword === 'password123' || cleanPassword === 'admin123' || cleanPassword === 'admin'));
@@ -327,7 +395,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    // Verify approval status for employee accounts
     if (!isAdminAccount) {
       if (matchedAccount.status === 'pending') {
         return {
@@ -343,7 +410,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Successful authentication with automatically detected role
     const authUser: EmployeeUser = {
       name: matchedAccount.name,
       email: matchedAccount.email,
@@ -358,20 +424,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(authUser);
     setIsLoggedIn(true);
 
-    // Automatically route to Admin panel if detected as Admin, or Employee panel if Employee
     const isUserAdmin = authUser.role === 'Admin';
     setIsAdminModeState(isUserAdmin);
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(isUserAdmin));
-    } catch (e) {
-      console.warn('Failed to persist admin mode flag:', e);
-    }
-
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(authUser));
-    } catch (e) {
-      console.warn('Failed to persist session:', e);
-    }
+    await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(isUserAdmin)).catch(() => {});
+    await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(authUser)).catch(() => {});
 
     return { success: true };
   };
@@ -389,12 +445,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const cleanPassword = accountData.password?.trim() || '';
     const cleanAvatar = accountData.avatar?.trim() || '';
 
-    // Compulsory Name
     if (!cleanName) {
       return { success: false, error: 'Full name is required.' };
     }
 
-    // Compulsory Email
     if (!cleanEmail) {
       return { success: false, error: 'Work email is required.' };
     }
@@ -402,12 +456,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Please enter a valid work email address.' };
     }
 
-    // Compulsory Face / Profile Image
     if (!cleanAvatar) {
       return { success: false, error: 'Profile photo is required. Please upload your photo to register.' };
     }
 
-    // Compulsory Strong Password
     if (!cleanPassword) {
       return { success: false, error: 'Password is required.' };
     }
@@ -427,23 +479,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Password must contain at least one special character (!@#$%^&*...).' };
     }
 
-    // Check if account already exists
-    const existing = accounts.find(
-      (acc) => acc.email.trim().toLowerCase() === cleanEmail
-    );
-    if (existing) {
-      return {
-        success: false,
-        error: 'An account with this email is already registered. Please sign in.',
-      };
+    // Call backend API to register in MongoDB
+    try {
+      const apiRes = await apiRegister({
+        name: cleanName,
+        email: cleanEmail,
+        password: cleanPassword,
+        avatar: cleanAvatar,
+        role: accountData.role || 'Staff',
+        department: accountData.department || 'Operations',
+      });
+
+      if (!apiRes.success && !apiRes.offline) {
+        return { success: false, error: apiRes.message || 'Registration failed on server.' };
+      }
+    } catch {
+      // Backend offline: continue with local registration
     }
 
-    // Create new account with pending status awaiting admin approval
+    // Local account cache
     const newAccount: StoredAccount = {
       name: cleanName,
       email: cleanEmail,
       password: cleanPassword,
-      avatar: accountData.avatar || '',
+      avatar: cleanAvatar,
       role: accountData.role || 'Employee',
       department: accountData.department || 'Operations',
       employeeId: `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
@@ -451,17 +510,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       documentsCount: 0,
     };
 
-    const updatedAccounts = [...accounts, newAccount];
+    const updatedAccounts = [...accounts.filter((a) => a.email.toLowerCase() !== cleanEmail), newAccount];
     setAccounts(updatedAccounts);
 
-    // Persist accounts list
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccounts));
-    } catch (e) {
-      console.warn('Failed to save accounts list:', e);
-    }
+    await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccounts)).catch(() => {});
 
-    // Awaiting administrator approval; do NOT log in automatically
     return { success: true };
   };
 
@@ -481,7 +534,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     data: Partial<EmployeeUser>,
     newPassword?: string
   ): Promise<AuthResult> => {
-    // Validate new password if provided
     if (newPassword && newPassword.trim()) {
       const cleanPassword = newPassword.trim();
       if (cleanPassword.length < 8) {
@@ -501,20 +553,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Validate email if provided
     let cleanNewEmail: string | undefined;
     if (data.email && data.email.trim()) {
       cleanNewEmail = data.email.trim().toLowerCase();
       if (!/\S+@\S+\.\S+/.test(cleanNewEmail)) {
         return { success: false, error: 'Please enter a valid email address.' };
-      }
-      const isDuplicate = accounts.some(
-        (acc) =>
-          acc.email.toLowerCase() === cleanNewEmail &&
-          acc.email.toLowerCase() !== user.email.toLowerCase()
-      );
-      if (isDuplicate) {
-        return { success: false, error: 'An account with this email already exists.' };
       }
     }
 
@@ -527,14 +570,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     setUser(updatedUser);
+    await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(updatedUser)).catch(() => {});
 
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(updatedUser));
-    } catch (e) {
-      console.warn('Failed to update session:', e);
-    }
-
-    // Update in registered accounts list too
+    // Update in local accounts list
     let accountMatched = false;
     const updatedAccounts = accounts.map((acc) => {
       if (acc.email.toLowerCase() === previousEmail) {
@@ -558,17 +596,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setAccounts(updatedAccounts);
+    await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccounts)).catch(() => {});
 
+    // Persist to backend
     try {
-      await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccounts));
-    } catch (e) {
-      console.warn('Failed to update stored account:', e);
+      await apiUpdateProfile({ email: previousEmail, ...data }, newPassword);
+    } catch (err) {
+      console.warn('Failed to update profile on backend:', err);
     }
 
     return { success: true };
   };
 
   const approveAccount = async (email: string) => {
+    // 1. Optimistically update local state
     const updated = accounts.map((acc) => {
       if (acc.email.toLowerCase() === email.toLowerCase()) {
         return { ...acc, status: 'active' as const };
@@ -576,34 +617,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return acc;
     });
     setAccounts(updated);
+    await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updated)).catch(() => {});
+
+    // 2. Persist to MongoDB backend
     try {
-      await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Failed to save approved account:', e);
+      await apiApproveUser(email);
+    } catch (err) {
+      console.warn('Failed to approve account on backend:', err);
     }
   };
 
   const rejectAccount = async (email: string) => {
+    // 1. Optimistically update local state
     const updated = accounts.filter(
       (acc) => acc.email.toLowerCase() !== email.toLowerCase()
     );
     setAccounts(updated);
+    await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updated)).catch(() => {});
+
+    // 2. Persist to MongoDB backend
     try {
-      await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Failed to remove rejected account:', e);
+      await apiRejectUser(email);
+    } catch (err) {
+      console.warn('Failed to reject account on backend:', err);
     }
   };
 
   const removeAccount = async (email: string) => {
+    // 1. Optimistically update local state
     const updated = accounts.filter(
       (acc) => acc.email.toLowerCase() !== email.toLowerCase()
     );
     setAccounts(updated);
+    await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updated)).catch(() => {});
+
+    // 2. Persist to MongoDB backend
     try {
-      await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Failed to remove account:', e);
+      await apiDeleteUser(email);
+    } catch (err) {
+      console.warn('Failed to remove account on backend:', err);
     }
   };
 
@@ -623,6 +675,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         approveAccount,
         rejectAccount,
         removeAccount,
+        syncWithBackend,
       }}
     >
       {children}

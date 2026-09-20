@@ -44,6 +44,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "backend": "node backend/server.js",
+    "backend:dev": "nodemon backend/server.js",
     "lint": "expo lint"
   },
   "private": true

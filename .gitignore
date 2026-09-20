@@ -38,6 +38,13 @@ yarn-error.*
 
 example
 
+# Backend
+backend/node_modules/
+backend/.env
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+
 # generated native folders
 /ios
 /android
