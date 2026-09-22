@@ -109,6 +109,17 @@ export function DocuVaultThemeProvider({ children }: { children: React.ReactNode
   const isDark = themeMode === 'dark';
   const colors = isDark ? darkColors : lightColors;
 
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', themeMode);
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [themeMode, isDark]);
+
   return (
     <ThemeContext.Provider
       value={{
