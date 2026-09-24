@@ -69,7 +69,7 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
     (a) => a.role === 'Employee' && a.status !== 'pending' && a.status !== 'rejected'
   );
   const pendingApprovals = registeredAccounts.filter((a) => a.status === 'pending');
-  const totalDocumentsCount = documents.length > 0 ? documents.length : 4;
+  const totalDocumentsCount = documents.length;
 
   return (
     <View style={[styles.screenContainer, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>

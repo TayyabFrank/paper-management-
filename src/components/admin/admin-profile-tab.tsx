@@ -93,7 +93,7 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
   const { isDark, toggleTheme, colors } = useDocuVaultTheme();
   const { user, logout, updateUser } = useAuth();
 
-  const adminName = user.name || 'Alex Smith';
+  const adminName = user.name || 'System Administrator';
   const adminEmail = user.email || 'admin@enterprise.com';
   const adminAvatar = user.avatar || DEFAULT_ADMIN_AVATAR;
 
@@ -604,7 +604,7 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
                     setEditName(text);
                     if (editError) setEditError(null);
                   }}
-                  placeholder="Alex Smith"
+                  placeholder="System Administrator"
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                 />
               </View>

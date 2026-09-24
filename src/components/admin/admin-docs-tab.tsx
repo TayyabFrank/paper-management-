@@ -111,18 +111,14 @@ export function AdminDocsTab({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
-  // If no employee was explicitly chosen, default to Liam Thompson
-  const employeeName = selectedEmployee?.name || 'Liam Thompson';
-  const employeeEmail = selectedEmployee?.email || 'l.thompson@enterprise.com';
-  const employeeAvatar =
-    selectedEmployee?.avatar ||
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80';
+  const employeeName = selectedEmployee?.name || 'All Staff Documents';
+  const employeeEmail = selectedEmployee?.email || '';
+  const employeeAvatar = selectedEmployee?.avatar || '';
 
-  // Gather documents for this employee (including both mock baseline and user uploaded docs)
-  const employeeDocs = [
-    ...documents.filter((d: DocumentReaderItem) => !d.employeeEmail || d.employeeEmail.toLowerCase() === employeeEmail.toLowerCase()),
-    ...BASE_STAFF_DOCUMENTS.filter((d: DocumentReaderItem) => d.employeeEmail?.toLowerCase() === employeeEmail.toLowerCase()),
-  ].filter((v, i, a) => a.findIndex((t) => t.id === v.id || t.title === v.title) === i);
+  // Gather documents for this employee (real user uploaded docs only)
+  const employeeDocs = employeeEmail
+    ? documents.filter((d: DocumentReaderItem) => d.employeeEmail && d.employeeEmail.toLowerCase() === employeeEmail.toLowerCase())
+    : documents;
 
   const filteredDocs = employeeDocs.filter((d) => {
     const matchesSearch =

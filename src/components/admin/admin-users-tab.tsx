@@ -148,7 +148,7 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
           </View>
         ) : (
           filteredStaff.map((employee) => {
-            const docCount = employee.documentsCount ?? 8;
+            const docCount = employee.documentsCount ?? 0;
 
             return (
               <View

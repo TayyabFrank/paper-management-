@@ -145,7 +145,7 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
                 />
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={[styles.drawerUserName, { color: colors.textPrimary }]} numberOfLines={1}>
-                    {user.name || 'Alex Smith'}
+                    {user.name || 'System Administrator'}
                   </Text>
                   <Text style={[styles.drawerUserEmail, { color: isDark ? '#94a3b8' : '#64748b' }]} numberOfLines={1}>
                     {user.email || 'admin@enterprise.com'}
