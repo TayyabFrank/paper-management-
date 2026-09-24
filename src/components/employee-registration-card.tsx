@@ -598,19 +598,9 @@ export function EmployeeRegistrationCard({
             {errors.workEmail ? <Text style={styles.errorText}>{errors.workEmail}</Text> : null}
           </View>
 
-          {/* Password with Forgot Password? link */}
+          {/* Password */}
           <View style={styles.fieldGroup}>
-            <View style={styles.passwordHeaderRow}>
-              <Text style={[styles.label, labelThemeStyle]}>🔒 Password</Text>
-              <TouchableOpacity
-                onPress={() => setForgotModalVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.forgotPasswordLink, { color: isDark ? '#38bdf8' : '#3b82f6' }]}>
-                  Forgot Password❓
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={[styles.label, labelThemeStyle]}>🔒 Password</Text>
 
             <View style={[styles.passwordInputContainer, inputThemeStyle]}>
               <TextInput
