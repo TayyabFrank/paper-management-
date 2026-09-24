@@ -11,12 +11,13 @@ import {
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useDocuments } from '@/context/documents-context';
-import { StoredAccount } from '@/context/auth-context';
+import { useAuth, StoredAccount } from '@/context/auth-context';
 import { DocumentReaderItem } from '@/components/document-reader';
 import { BASE_STAFF_DOCUMENTS } from '@/constants/staff-documents';
 
 interface AdminDocsTabProps {
   selectedEmployee: StoredAccount | null;
+  onSelectEmployee?: (emp: StoredAccount | null) => void;
   onBackToUsers: () => void;
   onOpenDocument: (doc: DocumentReaderItem) => void;
 }
@@ -103,27 +104,38 @@ function getMiniFileBadge(doc: DocumentReaderItem) {
 
 export function AdminDocsTab({
   selectedEmployee,
+  onSelectEmployee,
   onBackToUsers,
   onOpenDocument,
 }: AdminDocsTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
   const { documents } = useDocuments();
+  const { registeredAccounts } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
-  const employeeName = selectedEmployee?.name || 'All Staff Documents';
-  const employeeEmail = selectedEmployee?.email || '';
-  const employeeAvatar = selectedEmployee?.avatar || '';
+  // Active employees registered in the system
+  const activeEmployees = registeredAccounts.filter((a) => a.role === 'employee' && a.status === 'active');
 
-  // Gather documents for this employee (real user uploaded docs only)
-  const employeeDocs = employeeEmail
-    ? documents.filter((d: DocumentReaderItem) => d.employeeEmail && d.employeeEmail.toLowerCase() === employeeEmail.toLowerCase())
+  const isAllDocsMode = !selectedEmployee;
+  const employeeName = selectedEmployee ? selectedEmployee.name : 'All Staff Documents';
+  const employeeEmail = selectedEmployee?.email || '';
+  const employeeAvatar = selectedEmployee?.avatar ||
+    (selectedEmployee
+      ? `https://ui-avatars.com/api/?name=${encodeURIComponent(employeeName)}&background=2563eb&color=fff&size=128`
+      : 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&auto=format&fit=crop&q=80');
+
+  // Filter documents: if an employee is selected, show ONLY that employee's docs. Otherwise show ALL documents.
+  const employeeDocs = selectedEmployee?.email
+    ? documents.filter((d: DocumentReaderItem) => d.employeeEmail && d.employeeEmail.toLowerCase() === selectedEmployee.email.toLowerCase())
     : documents;
 
   const filteredDocs = employeeDocs.filter((d) => {
     const matchesSearch =
       d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.subtitle.toLowerCase().includes(searchQuery.toLowerCase());
+      d.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (d.employeeName && d.employeeName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (d.employeeEmail && d.employeeEmail.toLowerCase().includes(searchQuery.toLowerCase()));
     if (activeCategory === 'all') return matchesSearch;
     return matchesSearch && d.type === activeCategory;
   });
@@ -136,7 +148,7 @@ export function AdminDocsTab({
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>
-      {/* Top Header with Back Arrow matching Screenshot 3 */}
+      {/* Top Header with Back Arrow and Title */}
       <View style={[styles.topHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0' }]}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -154,8 +166,18 @@ export function AdminDocsTab({
           style={[styles.headerTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}
           numberOfLines={1}
         >
-          All Documents for {employeeName}
+          {selectedEmployee ? `Documents: ${employeeName}` : 'All Employee Documents'}
         </Text>
+
+        {selectedEmployee && onSelectEmployee && (
+          <TouchableOpacity
+            style={styles.allDocsHeaderBtn}
+            onPress={() => onSelectEmployee(null)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.allDocsHeaderBtnText}>All Docs</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView
@@ -163,7 +185,62 @@ export function AdminDocsTab({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Employee Summary Card matching Screenshot 3 */}
+        {/* Employee Switcher Pills */}
+        <View style={styles.employeeFilterContainer}>
+          <Text style={[styles.filterSectionLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+            FILTER BY EMPLOYEE:
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.employeeFilterScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.empFilterPill,
+                isAllDocsMode && styles.empFilterPillActive,
+                { borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#cbd5e1' },
+              ]}
+              onPress={() => onSelectEmployee?.(null)}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.empFilterPillText,
+                isAllDocsMode && styles.empFilterPillTextActive,
+                { color: isAllDocsMode ? '#ffffff' : (isDark ? '#e2e8f0' : '#334155') },
+              ]}>
+                📁 All Documents ({documents.length})
+              </Text>
+            </TouchableOpacity>
+
+            {activeEmployees.map((emp) => {
+              const isSelected = selectedEmployee?.email?.toLowerCase() === emp.email.toLowerCase();
+              const empDocCount = documents.filter((d) => d.employeeEmail && d.employeeEmail.toLowerCase() === emp.email.toLowerCase()).length;
+              return (
+                <TouchableOpacity
+                  key={emp.email}
+                  style={[
+                    styles.empFilterPill,
+                    isSelected && styles.empFilterPillActive,
+                    { borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#cbd5e1' },
+                  ]}
+                  onPress={() => onSelectEmployee?.(emp)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.empFilterPillText,
+                    isSelected && styles.empFilterPillTextActive,
+                    { color: isSelected ? '#ffffff' : (isDark ? '#e2e8f0' : '#334155') },
+                  ]}>
+                    👤 {emp.name} ({empDocCount})
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Employee Summary Card or All-Docs Hub Card */}
         <View
           style={[
             styles.employeeSummaryCard,
@@ -177,15 +254,29 @@ export function AdminDocsTab({
           <View style={styles.summaryInfo}>
             <View style={styles.summaryNameRow}>
               <Text style={[styles.summaryName, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                {employeeName}
+                {isAllDocsMode ? 'All Employee Documents' : employeeName}
               </Text>
-              <View style={styles.activePill}>
-                <Text style={styles.activePillText}>Active</Text>
+              <View style={[styles.activePill, isAllDocsMode && { backgroundColor: '#f0fdf4' }]}>
+                <Text style={[styles.activePillText, isAllDocsMode && { color: '#16a34a' }]}>
+                  {isAllDocsMode ? `${documents.length} Total Docs` : 'Active Staff'}
+                </Text>
               </View>
             </View>
             <Text style={[styles.summaryEmail, { color: isDark ? '#94a3b8' : '#475569' }]}>
-              {employeeEmail}
+              {isAllDocsMode
+                ? `Showing uploads across all registered staff members (${activeEmployees.length} employees)`
+                : employeeEmail}
             </Text>
+
+            {selectedEmployee && onSelectEmployee && (
+              <TouchableOpacity
+                style={styles.switchAllBtn}
+                onPress={() => onSelectEmployee(null)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.switchAllBtnText}>← View All Employee Documents</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -204,7 +295,7 @@ export function AdminDocsTab({
           </View>
           <TextInput
             style={[styles.searchInput, { color: isDark ? colors.textPrimary : '#0f172a' }]}
-            placeholder={`Search ${employeeName.split(' ')[0]}'s documents...`}
+            placeholder={isAllDocsMode ? "Search all uploaded documents..." : `Search ${employeeName.split(' ')[0]}'s documents...`}
             placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -337,7 +428,9 @@ export function AdminDocsTab({
             ]}
           >
             <Text style={[styles.emptyText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              No documents found for this category.
+              {selectedEmployee
+                ? `No documents found for ${employeeName}.`
+                : 'No documents uploaded yet.'}
             </Text>
           </View>
         ) : (
@@ -391,6 +484,19 @@ export function AdminDocsTab({
                   >
                     {doc.subtitle}
                   </Text>
+
+                  {/* Uploaded By Author Chip */}
+                  <View style={styles.uploaderRow}>
+                    <Text
+                      style={[
+                        styles.uploaderBadgeText,
+                        { color: isDark ? '#60a5fa' : '#2563eb' },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      👤 {doc.employeeName || 'Staff Member'}{doc.employeeEmail ? ` • ${doc.employeeEmail}` : ''}
+                    </Text>
+                  </View>
                 </View>
 
                 {/* Eye Icon Action Button */}
@@ -439,6 +545,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     flex: 1,
   },
+  allDocsHeaderBtn: {
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  allDocsHeaderBtnText: {
+    color: '#2563eb',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 16,
@@ -446,6 +563,40 @@ const styles = StyleSheet.create({
     maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
+  },
+  employeeFilterContainer: {
+    marginBottom: 16,
+  },
+  filterSectionLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  employeeFilterScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingBottom: 4,
+  },
+  empFilterPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+  },
+  empFilterPillActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  empFilterPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+  },
+  empFilterPillTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
   employeeSummaryCard: {
     flexDirection: 'row',
@@ -493,7 +644,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   summaryEmail: {
-    fontSize: 13.5,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  switchAllBtn: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  switchAllBtnText: {
+    color: '#2563eb',
+    fontSize: 12,
+    fontWeight: '700',
   },
   searchBarWrapper: {
     flexDirection: 'row',
@@ -576,11 +737,19 @@ const styles = StyleSheet.create({
   docTitle: {
     fontSize: 15.5,
     fontWeight: '700',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   docSubtitle: {
     fontSize: 13,
     fontWeight: '500',
+    marginBottom: 4,
+  },
+  uploaderRow: {
+    marginTop: 2,
+  },
+  uploaderBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '600',
   },
   eyeBtn: {
     padding: 8,

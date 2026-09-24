@@ -47,7 +47,12 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
       <View style={styles.body}>
         {activeTab === 'dashboard' && (
           <AdminDashboardTab
-            onNavigateTab={(tab) => setActiveTab(tab)}
+            onNavigateTab={(tab) => {
+              if (tab === 'docs') {
+                setSelectedEmployee(null);
+              }
+              setActiveTab(tab);
+            }}
             onOpenMenu={() => setShowDrawer(true)}
           />
         )}
@@ -64,7 +69,11 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
         {activeTab === 'docs' && (
           <AdminDocsTab
             selectedEmployee={selectedEmployee}
-            onBackToUsers={() => setActiveTab('users')}
+            onSelectEmployee={(emp) => setSelectedEmployee(emp)}
+            onBackToUsers={() => {
+              setSelectedEmployee(null);
+              setActiveTab('users');
+            }}
             onOpenDocument={(doc) => setReadingDoc(doc)}
           />
         )}
@@ -83,7 +92,12 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
       {/* Admin Bottom Navigation Bar matching Screenshot 2 */}
       <AdminBottomNavbar
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab)}
+        onTabChange={(tab) => {
+          if (tab === 'docs') {
+            setSelectedEmployee(null);
+          }
+          setActiveTab(tab);
+        }}
         pendingCount={pendingApprovalsCount}
       />
 

@@ -456,6 +456,8 @@ export function DocumentsDashboard({
       fileUrl: item.url,
       fileName: item.name,
       previewImage: item.previewImage,
+      employeeEmail: employeeEmail || 'employee@enterprise.com',
+      employeeName: employeeName || 'Employee',
       fullContent: isCV
         ? {
             category: 'Curriculum Vitae / Resume',
@@ -518,6 +520,8 @@ export function DocumentsDashboard({
           fileUrl: blobUrl,
           fileName: file.name,
           previewImage: isImg && uploadEvent.target?.result ? (uploadEvent.target.result as string) : undefined,
+          employeeEmail: employeeEmail || 'employee@enterprise.com',
+          employeeName: employeeName || 'Employee',
           fullContent: isCV
             ? {
                 category: 'Curriculum Vitae / Resume',
