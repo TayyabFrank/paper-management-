@@ -14,7 +14,7 @@ import { EmployeeRegistrationCard } from '@/components/employee-registration-car
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const router = useRouter();
   const { isDark, colors } = useDocuVaultTheme();
 
@@ -40,12 +40,12 @@ export default function LoginScreen() {
           automaticallyAdjustKeyboardInsets={true}
         >
           <View style={styles.innerContainer}>
-            <DocuVaultLogo subtitle="Enterprise Document Management System" />
+            <DocuVaultLogo subtitle="Create your enterprise account" />
             <EmployeeRegistrationCard
-              initialMode="login"
+              initialMode="register"
               onModeChange={(mode) => {
-                if (mode === 'register') {
-                  router.push('/register');
+                if (mode === 'login') {
+                  router.push('/login');
                 }
               }}
               onLoginSuccess={() => {
@@ -88,4 +88,3 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-

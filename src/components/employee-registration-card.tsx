@@ -23,20 +23,51 @@ const DEFAULT_AVATAR_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
-// Eye icons for password toggle
-const EYE_OPEN_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-  <circle cx="12" cy="12" r="3"/>
-</svg>
-`)}`;
+// Cross-platform crisp eye icon for show/hide password toggle
+function PasswordEyeIcon({ visible, color }: { visible: boolean; color: string }) {
+  if (Platform.OS === 'web') {
+    if (visible) {
+      // Eye Open (password visible)
+      return (
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ display: 'block' } as any}
+        >
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      );
+    }
+    // Eye Slashed / Closed (password hidden)
+    return (
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ display: 'block' } as any}
+      >
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+        <line x1="1" y1="1" x2="23" y2="23" />
+      </svg>
+    );
+  }
 
-const EYE_OFF_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-  <line x1="1" y1="1" x2="23" y2="23"/>
-</svg>
-`)}`;
+  // Native iOS / Android fallback
+  return <Text style={{ fontSize: 16 }}>{visible ? '👁️' : '🙈'}</Text>;
+}
+
 
 const DEMO_FACES = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
@@ -301,6 +332,51 @@ export function EmployeeRegistrationCard({
         />
       )}
 
+      {/* Interactive Switcher Tabs: Sign In vs Register */}
+      <View style={[styles.modeTabsContainer, { backgroundColor: isDark ? '#162033' : '#dbe5f1' }]}>
+        <TouchableOpacity
+          style={[
+            styles.modeTab,
+            mode === 'login' && [styles.modeTabActive, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }],
+          ]}
+          onPress={() => switchMode('login')}
+          activeOpacity={0.8}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: mode === 'login' }}
+        >
+          <Text
+            style={[
+              styles.modeTabText,
+              mode === 'login' && styles.modeTabTextActive,
+              { color: mode === 'login' ? '#ffffff' : (isDark ? '#94a3b8' : '#556882') },
+            ]}
+          >
+            🔐 Sign In
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.modeTab,
+            mode === 'register' && [styles.modeTabActive, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }],
+          ]}
+          onPress={() => switchMode('register')}
+          activeOpacity={0.8}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: mode === 'register' }}
+        >
+          <Text
+            style={[
+              styles.modeTabText,
+              mode === 'register' && styles.modeTabTextActive,
+              { color: mode === 'register' ? '#ffffff' : (isDark ? '#94a3b8' : '#556882') },
+            ]}
+          >
+            📝 Register
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Card Header Title */}
       <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
         {mode === 'register' ? '📝 Employee Registration' : '🔐 Sign In to Workspace'}
@@ -371,11 +447,13 @@ export function EmployeeRegistrationCard({
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeButton}
                 activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                accessibilityRole="button"
               >
-                <Image
-                  source={{ uri: showPassword ? EYE_OFF_SVG : EYE_OPEN_SVG }}
-                  style={styles.eyeIcon}
-                  resizeMode="contain"
+                <PasswordEyeIcon
+                  visible={showPassword}
+                  color={showPassword ? (isDark ? '#38bdf8' : '#1b3569') : (isDark ? '#94a3b8' : '#64748b')}
                 />
               </TouchableOpacity>
             </View>
@@ -551,11 +629,13 @@ export function EmployeeRegistrationCard({
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeButton}
                 activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                accessibilityRole="button"
               >
-                <Image
-                  source={{ uri: showPassword ? EYE_OFF_SVG : EYE_OPEN_SVG }}
-                  style={styles.eyeIcon}
-                  resizeMode="contain"
+                <PasswordEyeIcon
+                  visible={showPassword}
+                  color={showPassword ? (isDark ? '#38bdf8' : '#1b3569') : (isDark ? '#94a3b8' : '#64748b')}
                 />
               </TouchableOpacity>
             </View>
@@ -812,12 +892,40 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 3,
   },
+  modeTabsContainer: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 18,
+  },
+  modeTab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeTabActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modeTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  modeTabTextActive: {
+    fontWeight: '700',
+  },
   cardTitle: {
-    fontSize: 21,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1a2333',
     textAlign: 'center',
-    marginBottom: 22,
+    marginBottom: 20,
     letterSpacing: -0.2,
   },
   formContent: {
