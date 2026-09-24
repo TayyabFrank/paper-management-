@@ -282,6 +282,10 @@ export function EmployeeRegistrationCard({
   const handleReset = () => {
     setSubmittedModalVisible(false);
     if (mode === 'register') {
+      switchMode('login');
+      setPassword('');
+      setShowPassword(false);
+    } else {
       if (onLoginSuccess) {
         onLoginSuccess();
       } else {
@@ -565,7 +569,7 @@ export function EmployeeRegistrationCard({
             {isSubmitting ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
-              <Text style={styles.primaryButtonText}>Create Account & Enter Workspace</Text>
+              <Text style={styles.primaryButtonText}>📤 Submit Registration for Approval</Text>
             )}
           </TouchableOpacity>
 
@@ -781,15 +785,17 @@ export function EmployeeRegistrationCard({
               },
             ]}
           >
-            <View style={styles.successIconCircle}>
-              <Text style={styles.checkmarkText}>✓</Text>
+            <View style={[styles.successIconCircle, mode === 'register' ? { backgroundColor: '#fef3c7' } : null]}>
+              <Text style={[styles.checkmarkText, mode === 'register' ? { color: '#d97706' } : null]}>
+                {mode === 'register' ? '⏳' : '✓'}
+              </Text>
             </View>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {mode === 'register' ? 'Account Created!' : 'Welcome Back!'}
+              {mode === 'register' ? 'Approval Request Sent!' : 'Welcome Back!'}
             </Text>
             <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
               {mode === 'register'
-                ? `Welcome, ${fullName || 'Employee'}! Your account (${workEmail}) has been created successfully. You can now access your workspace.`
+                ? `Thank you, ${fullName || 'Employee'}! Your registration request has been submitted and sent to the Administrator for approval.\n\nOnce an admin reviews and approves your account, you will be able to log in with your work email and password.`
                 : `Successfully authenticated as ${workEmail}. Redirecting to your workspace...`}
             </Text>
 
@@ -798,7 +804,9 @@ export function EmployeeRegistrationCard({
               onPress={handleReset}
               activeOpacity={0.8}
             >
-              <Text style={styles.modalButtonText}>Enter Workspace 🚀</Text>
+              <Text style={styles.modalButtonText}>
+                {mode === 'register' ? 'Return to Sign In 🔐' : 'Enter Workspace 🚀'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
