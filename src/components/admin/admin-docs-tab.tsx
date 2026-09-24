@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,13 @@ import {
   ScrollView,
   Platform,
   Image,
+  RefreshControl,
+  Modal,
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useDocuments } from '@/context/documents-context';
 import { useAuth, StoredAccount } from '@/context/auth-context';
 import { DocumentReaderItem } from '@/components/document-reader';
-import { BASE_STAFF_DOCUMENTS } from '@/constants/staff-documents';
 
 interface AdminDocsTabProps {
   selectedEmployee: StoredAccount | null;
@@ -95,6 +96,15 @@ const MINI_IMAGE_BADGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+const TRASH_ACTION_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="3 6 5 6 21 6"></polyline>
+  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+  <line x1="10" y1="11" x2="10" y2="17"></line>
+  <line x1="14" y1="11" x2="14" y2="17"></line>
+</svg>
+`)}`;
+
 function getMiniFileBadge(doc: DocumentReaderItem) {
   if (doc.type === 'image') return MINI_IMAGE_BADGE;
   if (doc.type === 'docx') return MINI_DOCX_BADGE;
@@ -109,13 +119,28 @@ export function AdminDocsTab({
   onOpenDocument,
 }: AdminDocsTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
-  const { documents } = useDocuments();
-  const { registeredAccounts } = useAuth();
+  const { documents, refreshDocuments, deleteDocument } = useDocuments();
+  const { registeredAccounts, syncWithBackend } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [refreshing, setRefreshing] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<DocumentReaderItem | null>(null);
 
-  // Active employees registered in the system
-  const activeEmployees = registeredAccounts.filter((a) => a.role === 'employee' && a.status === 'active');
+  useEffect(() => {
+    refreshDocuments();
+    syncWithBackend();
+  }, [refreshDocuments, syncWithBackend]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refreshDocuments(), syncWithBackend()]);
+    setRefreshing(false);
+  };
+
+  // Active employees registered in the system (all staff except admin)
+  const activeEmployees = registeredAccounts.filter(
+    (a) => a.role?.toLowerCase() !== 'admin' && a.status !== 'pending' && a.status !== 'rejected'
+  );
 
   const isAllDocsMode = !selectedEmployee;
   const employeeName = selectedEmployee ? selectedEmployee.name : 'All Staff Documents';
@@ -127,7 +152,13 @@ export function AdminDocsTab({
 
   // Filter documents: if an employee is selected, show ONLY that employee's docs. Otherwise show ALL documents.
   const employeeDocs = selectedEmployee?.email
-    ? documents.filter((d: DocumentReaderItem) => d.employeeEmail && d.employeeEmail.toLowerCase() === selectedEmployee.email.toLowerCase())
+    ? documents.filter((d: DocumentReaderItem) => {
+        const docEmail = (d.employeeEmail || '').trim().toLowerCase();
+        const selEmail = (selectedEmployee.email || '').trim().toLowerCase();
+        const docName = (d.employeeName || '').trim().toLowerCase();
+        const selName = (selectedEmployee.name || '').trim().toLowerCase();
+        return (docEmail && docEmail === selEmail) || (docName && selName && docName === selName);
+      })
     : documents;
 
   const filteredDocs = employeeDocs.filter((d) => {
@@ -184,6 +215,13 @@ export function AdminDocsTab({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={isDark ? '#38bdf8' : '#2563eb'}
+          />
+        }
       >
         {/* Employee Switcher Pills */}
         <View style={styles.employeeFilterContainer}>
@@ -214,8 +252,15 @@ export function AdminDocsTab({
             </TouchableOpacity>
 
             {activeEmployees.map((emp) => {
-              const isSelected = selectedEmployee?.email?.toLowerCase() === emp.email.toLowerCase();
-              const empDocCount = documents.filter((d) => d.employeeEmail && d.employeeEmail.toLowerCase() === emp.email.toLowerCase()).length;
+              const empEmail = (emp.email || '').trim().toLowerCase();
+              const empName = (emp.name || '').trim().toLowerCase();
+              const isSelected = selectedEmployee?.email?.trim().toLowerCase() === empEmail;
+              const empDocCount = documents.filter((d) => {
+                const docEmail = (d.employeeEmail || '').trim().toLowerCase();
+                const docName = (d.employeeName || '').trim().toLowerCase();
+                return (docEmail && docEmail === empEmail) || (docName && empName && docName === empName);
+              }).length;
+
               return (
                 <TouchableOpacity
                   key={emp.email}
@@ -432,6 +477,17 @@ export function AdminDocsTab({
                 ? `No documents found for ${employeeName}.`
                 : 'No documents uploaded yet.'}
             </Text>
+            {selectedEmployee && onSelectEmployee && (
+              <TouchableOpacity
+                style={styles.emptyViewAllBtn}
+                onPress={() => onSelectEmployee(null)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.emptyViewAllBtnText}>
+                  View All Uploaded Documents ({documents.length})
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           filteredDocs.map((doc) => {
@@ -499,23 +555,83 @@ export function AdminDocsTab({
                   </View>
                 </View>
 
-                {/* Eye Icon Action Button */}
-                <TouchableOpacity
-                  style={styles.eyeBtn}
-                  onPress={() => onOpenDocument(doc)}
-                  activeOpacity={0.7}
-                >
-                  <Image
-                    source={{ uri: EYE_ACTION_SVG(isDark ? '#94a3b8' : '#64748b') }}
-                    style={{ width: 22, height: 22 }}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
+                {/* Actions: Eye View & Trash Delete */}
+                <View style={styles.cardActionsCol}>
+                  <TouchableOpacity
+                    style={styles.eyeBtn}
+                    onPress={() => onOpenDocument(doc)}
+                    activeOpacity={0.7}
+                  >
+                    <Image
+                      source={{ uri: EYE_ACTION_SVG(isDark ? '#94a3b8' : '#64748b') }}
+                      style={{ width: 20, height: 20 }}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.trashBtn}
+                    onPress={(e) => {
+                      e.stopPropagation?.();
+                      setDocToDelete(doc);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Image
+                      source={{ uri: TRASH_ACTION_SVG('#ef4444') }}
+                      style={{ width: 17, height: 17 }}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+                </View>
               </TouchableOpacity>
             );
           })
         )}
       </ScrollView>
+
+      {/* Delete Confirmation Modal */}
+      {docToDelete && (
+        <Modal transparent animationType="fade" visible={Boolean(docToDelete)}>
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.modalCard,
+                {
+                  backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                  borderColor: isDark ? '#334155' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                Delete Document?
+              </Text>
+              <Text style={[styles.modalDesc, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                Are you sure you want to delete "{docToDelete.title}"? This will remove the document from both the employee profile and administration.
+              </Text>
+              <View style={styles.modalActionsRow}>
+                <TouchableOpacity
+                  style={[styles.modalCancelBtn, { borderColor: isDark ? '#475569' : '#cbd5e1' }]}
+                  onPress={() => setDocToDelete(null)}
+                >
+                  <Text style={[styles.modalCancelText, { color: isDark ? '#cbd5e1' : '#475569' }]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalDeleteBtn}
+                  onPress={async () => {
+                    await deleteDocument(docToDelete.id);
+                    setDocToDelete(null);
+                  }}
+                >
+                  <Text style={styles.modalDeleteText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -751,10 +867,22 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '600',
   },
+  cardActionsCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   eyeBtn: {
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 8,
+  },
+  trashBtn: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
   },
   emptyCard: {
     padding: 30,
@@ -765,5 +893,73 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14.5,
+    textAlign: 'center',
+  },
+  emptyViewAllBtn: {
+    marginTop: 14,
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  emptyViewAllBtnText: {
+    color: '#2563eb',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  modalDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalDeleteBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#ef4444',
+  },
+  modalDeleteText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

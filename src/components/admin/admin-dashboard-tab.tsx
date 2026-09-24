@@ -66,7 +66,7 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
   const { documents } = useDocuments();
 
   const activeEmployees = registeredAccounts.filter(
-    (a) => a.role === 'Employee' && a.status !== 'pending' && a.status !== 'rejected'
+    (a) => a.role?.toLowerCase() !== 'admin' && a.status !== 'pending' && a.status !== 'rejected'
   );
   const pendingApprovals = registeredAccounts.filter((a) => a.status === 'pending');
   const totalDocumentsCount = documents.length;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth, StoredAccount } from '@/context/auth-context';
+import { useDocuments } from '@/context/documents-context';
 import { DocumentReader, DocumentReaderItem } from '@/components/document-reader';
 import { AdminBottomNavbar, AdminTabKey } from './admin-bottom-navbar';
 import { AdminDashboardTab } from './admin-dashboard-tab';
@@ -25,11 +26,17 @@ interface AdminPortalViewProps {
 
 export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps = {}) {
   const { isDark, colors } = useDocuVaultTheme();
-  const { registeredAccounts, logout, user } = useAuth();
+  const { registeredAccounts, logout, user, syncWithBackend } = useAuth();
+  const { refreshDocuments } = useDocuments();
   const [activeTab, setActiveTab] = useState<AdminTabKey>('dashboard');
   const [selectedEmployee, setSelectedEmployee] = useState<StoredAccount | null>(null);
   const [readingDoc, setReadingDoc] = useState<DocumentReaderItem | null>(null);
   const [showDrawer, setShowDrawer] = useState(false);
+
+  useEffect(() => {
+    refreshDocuments();
+    syncWithBackend();
+  }, [activeTab]);
 
   const pendingApprovalsCount = registeredAccounts.filter((a) => a.status === 'pending').length;
 

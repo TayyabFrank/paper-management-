@@ -26,11 +26,43 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   // Sync documents from backend API with fallback to AsyncStorage
   const refreshDocuments = useCallback(async () => {
     try {
+      // 1. Read current local cache from AsyncStorage
+      const rawDocs = await AsyncStorage.getItem(STORAGE_KEY_DOCS);
+      let localDocs: DocumentReaderItem[] = [];
+      if (rawDocs) {
+        try {
+          const parsed = JSON.parse(rawDocs);
+          if (Array.isArray(parsed)) {
+            localDocs = parsed;
+          }
+        } catch {
+          // ignore parse error
+        }
+      }
+
+      // 2. Fetch latest from MongoDB backend if reachable
       const res = await apiFetchDocuments();
-      if (res.success && Array.isArray(res.documents) && res.documents.length > 0) {
-        setDocuments(res.documents);
-        await AsyncStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(res.documents)).catch(() => {});
+      if (res.success && Array.isArray(res.documents)) {
+        // Merge backend documents with local documents by ID
+        const docMap = new Map<string, DocumentReaderItem>();
+        localDocs.forEach((d) => docMap.set(d.id, d));
+        res.documents.forEach((d) => docMap.set(d.id, d));
+        const merged = Array.from(docMap.values());
+        setDocuments(merged);
+        await AsyncStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(merged)).catch(() => {});
+
+        // Auto-push any local documents missing from backend to MongoDB
+        const backendDocIds = new Set(res.documents.map((d) => d.id));
+        const unsyncedDocs = localDocs.filter((d) => !backendDocIds.has(d.id));
+        if (unsyncedDocs.length > 0) {
+          unsyncedDocs.forEach((d) => apiCreateDocument(d).catch(() => {}));
+        }
         return;
+      }
+
+      // If backend is unreachable or returned error, ensure localDocs are displayed
+      if (localDocs.length > 0) {
+        setDocuments(localDocs);
       }
     } catch {
       // Backend offline or error - keep cached documents
@@ -45,19 +77,33 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       try {
         // Step 1: Load from local cache for instant UI rendering
         const rawDocs = await AsyncStorage.getItem(STORAGE_KEY_DOCS);
+        let localDocs: DocumentReaderItem[] = [];
         if (rawDocs && isMounted) {
-          const parsed = JSON.parse(rawDocs);
-          if (Array.isArray(parsed)) {
-            setDocuments(parsed);
+          try {
+            const parsed = JSON.parse(rawDocs);
+            if (Array.isArray(parsed)) {
+              localDocs = parsed;
+              setDocuments(parsed);
+            }
+          } catch {
+            // ignore
           }
         }
 
         // Step 2: Fetch latest from MongoDB backend if reachable
         const res = await apiFetchDocuments();
         if (res.success && Array.isArray(res.documents) && isMounted) {
-          if (res.documents.length > 0) {
-            setDocuments(res.documents);
-            await AsyncStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(res.documents)).catch(() => {});
+          const docMap = new Map<string, DocumentReaderItem>();
+          localDocs.forEach((d) => docMap.set(d.id, d));
+          res.documents.forEach((d) => docMap.set(d.id, d));
+          const merged = Array.from(docMap.values());
+          setDocuments(merged);
+          await AsyncStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(merged)).catch(() => {});
+
+          const backendDocIds = new Set(res.documents.map((d) => d.id));
+          const unsyncedDocs = localDocs.filter((d) => !backendDocIds.has(d.id));
+          if (unsyncedDocs.length > 0) {
+            unsyncedDocs.forEach((d) => apiCreateDocument(d).catch(() => {}));
           }
         }
       } catch (err) {
@@ -77,9 +123,15 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addDocument = async (doc: DocumentReaderItem) => {
+    const formattedDoc: DocumentReaderItem = {
+      ...doc,
+      employeeEmail: (doc.employeeEmail || 'employee@enterprise.com').trim().toLowerCase(),
+      employeeName: (doc.employeeName || 'Employee').trim(),
+    };
+
     // 1. Optimistically update local UI & cache
     setDocuments((prev) => {
-      const updated = [doc, ...prev.filter((d) => d.id !== doc.id)];
+      const updated = [formattedDoc, ...prev.filter((d) => d.id !== formattedDoc.id)];
       AsyncStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(updated)).catch((err) =>
         console.warn('Failed to persist document to storage:', err)
       );
@@ -88,7 +140,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
 
     // 2. Persist to MongoDB backend
     try {
-      await apiCreateDocument(doc);
+      await apiCreateDocument(formattedDoc);
     } catch (err) {
       console.warn('Failed to save document to backend:', err);
     }

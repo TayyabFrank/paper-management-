@@ -119,10 +119,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sync users from backend API
   const syncWithBackend = useCallback(async () => {
     try {
+      const rawAccounts = await AsyncStorage.getItem(STORAGE_KEY_ACCOUNTS);
+      let localAccounts: StoredAccount[] = [];
+      if (rawAccounts) {
+        try {
+          const parsed = JSON.parse(rawAccounts);
+          if (Array.isArray(parsed)) localAccounts = parsed;
+        } catch {}
+      }
+
       const res = await apiFetchUsers();
-      if (res.success && Array.isArray(res.users) && res.users.length > 0) {
-        setAccounts(res.users);
-        await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(res.users)).catch(() => {});
+      if (res.success && Array.isArray(res.users)) {
+        const accMap = new Map<string, StoredAccount>();
+        // Add backend users first
+        res.users.forEach((u) => accMap.set(u.email.toLowerCase(), u));
+        // Merge local accounts
+        localAccounts.forEach((u) => {
+          const emailLower = u.email.toLowerCase();
+          if (!accMap.has(emailLower)) {
+            accMap.set(emailLower, u);
+            // Push missing local account to backend
+            apiRegister({
+              name: u.name,
+              email: u.email,
+              password: u.password || 'password123',
+              avatar: u.avatar,
+              role: u.role,
+              department: u.department,
+            })
+              .then(() => {
+                if (u.status === 'active') {
+                  apiApproveUser(u.email).catch(() => {});
+                }
+              })
+              .catch(() => {});
+          }
+        });
+        const merged = Array.from(accMap.values());
+        setAccounts(merged);
+        await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(merged)).catch(() => {});
       }
     } catch {
       // Backend offline or error - keep cached accounts
@@ -198,9 +233,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Step 2: Fetch latest users from MongoDB backend if reachable
         try {
           const res = await apiFetchUsers();
-          if (res.success && Array.isArray(res.users) && res.users.length > 0 && isMounted) {
-            setAccounts(res.users);
-            await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(res.users)).catch(() => {});
+          if (res.success && Array.isArray(res.users) && isMounted) {
+            const accMap = new Map<string, StoredAccount>();
+            res.users.forEach((u) => accMap.set(u.email.toLowerCase(), u));
+            loadedAccounts.forEach((u) => {
+              if (!accMap.has(u.email.toLowerCase())) {
+                accMap.set(u.email.toLowerCase(), u);
+              }
+            });
+            const merged = Array.from(accMap.values());
+            setAccounts(merged);
+            await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(merged)).catch(() => {});
           }
         } catch {
           // ignore offline

@@ -32,11 +32,15 @@ exports.createDocument = async (req, res) => {
 
     const documentId = docData.id || `doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    const document = await Document.create({
-      ...docData,
-      id: documentId,
-      employeeEmail: (docData.employeeEmail || 'general@enterprise.com').toLowerCase(),
-    });
+    const document = await Document.findOneAndUpdate(
+      { id: documentId },
+      {
+        ...docData,
+        id: documentId,
+        employeeEmail: (docData.employeeEmail || 'general@enterprise.com').toLowerCase(),
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     // Increment user document count if employee exists
     if (docData.employeeEmail) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,11 @@ import {
   Platform,
   Image,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth, StoredAccount } from '@/context/auth-context';
+import { useDocuments } from '@/context/documents-context';
 
 interface AdminUsersTabProps {
   onViewEmployeeDocs: (employee: StoredAccount) => void;
@@ -63,13 +65,26 @@ const DOC_COUNTER_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 
 export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
-  const { registeredAccounts, removeAccount } = useAuth();
+  const { registeredAccounts, removeAccount, syncWithBackend } = useAuth();
+  const { documents, refreshDocuments } = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
   const [employeeToRemove, setEmployeeToRemove] = useState<StoredAccount | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    refreshDocuments();
+    syncWithBackend();
+  }, [refreshDocuments, syncWithBackend]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refreshDocuments(), syncWithBackend()]);
+    setRefreshing(false);
+  };
 
   // Active staff only (excluding pending approvals and admins)
   const activeStaff = registeredAccounts.filter(
-    (a) => a.role === 'Employee' && a.status !== 'pending' && a.status !== 'rejected'
+    (a) => a.role?.toLowerCase() !== 'admin' && a.status !== 'pending' && a.status !== 'rejected'
   );
 
   const filteredStaff = activeStaff.filter(
@@ -92,6 +107,13 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={isDark ? '#38bdf8' : '#2563eb'}
+          />
+        }
       >
         {/* Header matching Screenshot 1 */}
         <View style={styles.headerSection}>
@@ -148,7 +170,19 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
           </View>
         ) : (
           filteredStaff.map((employee) => {
-            const docCount = employee.documentsCount ?? 0;
+            const employeeEmailClean = (employee.email || '').trim().toLowerCase();
+            const employeeNameClean = (employee.name || '').trim().toLowerCase();
+
+            const empUploadedDocs = documents.filter((d) => {
+              const docEmailClean = (d.employeeEmail || '').trim().toLowerCase();
+              const docNameClean = (d.employeeName || '').trim().toLowerCase();
+              return (
+                (docEmailClean && docEmailClean === employeeEmailClean) ||
+                (docNameClean && employeeNameClean && docNameClean === employeeNameClean)
+              );
+            });
+
+            const docCount = empUploadedDocs.length > 0 ? empUploadedDocs.length : (employee.documentsCount ?? 0);
 
             return (
               <View

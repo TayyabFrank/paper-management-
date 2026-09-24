@@ -571,6 +571,8 @@ export function DocumentsDashboard({
       icon: getDocumentTypeIcon(type, name),
       fileSize: '2.5 MB',
       previewImage: type === 'image' ? 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80' : undefined,
+      employeeEmail: employeeEmail || 'employee@enterprise.com',
+      employeeName: employeeName || 'Employee',
       fullContent: {
         category: 'Employee Uploads',
         date: 'Today',
