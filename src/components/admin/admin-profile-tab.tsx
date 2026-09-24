@@ -22,6 +22,48 @@ interface AdminProfileTabProps {
   onSwitchToEmployeeMode?: () => void;
 }
 
+// Crisp cross-platform eye icon to show/hide password
+function PasswordEyeIcon({ visible, color }: { visible: boolean; color: string }) {
+  if (Platform.OS === 'web') {
+    if (visible) {
+      return (
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ display: 'block' } as any}
+        >
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      );
+    }
+    return (
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ display: 'block' } as any}
+      >
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+        <line x1="1" y1="1" x2="23" y2="23" />
+      </svg>
+    );
+  }
+  return <Text style={{ fontSize: 16 }}>{visible ? '👁️' : '👁️‍🗨️'}</Text>;
+}
+
+
 const DEFAULT_ADMIN_AVATAR =
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
 
@@ -657,68 +699,86 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
 
                 {/* New Password */}
                 <View style={{ marginTop: 10 }}>
-                  <View style={styles.pwdLabelRow}>
-                    <Text style={[styles.innerInputLabel, { color: isDark ? '#cbd5e1' : '#475569' }]}>
-                      New Password
-                    </Text>
-                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                      <Text style={{ fontSize: 12, color: isDark ? '#38bdf8' : '#2563eb', fontWeight: '600' }}>
-                        {showPassword ? '🙈 Hide' : '👁️ Show'}
-                      </Text>
+                  <Text style={[styles.innerInputLabel, { color: isDark ? '#cbd5e1' : '#475569', marginBottom: 6 }]}>
+                    New Password
+                  </Text>
+                  <View style={styles.passwordInputWrapper}>
+                    <TextInput
+                      style={[
+                        styles.modalTextInput,
+                        styles.passwordInputInner,
+                        {
+                          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                          borderColor: isDark ? '#334155' : '#cbd5e1',
+                          color: colors.textPrimary,
+                        },
+                      ]}
+                      value={newPassword}
+                      onChangeText={(text) => {
+                        setNewPassword(text);
+                        if (editError) setEditError(null);
+                      }}
+                      placeholder="At least 8 chars (Aa1@)"
+                      placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeBtn}
+                      onPress={() => setShowPassword(!showPassword)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                      accessibilityRole="button"
+                    >
+                      <PasswordEyeIcon
+                        visible={showPassword}
+                        color={showPassword ? (isDark ? '#38bdf8' : '#2563eb') : (isDark ? '#94a3b8' : '#64748b')}
+                      />
                     </TouchableOpacity>
                   </View>
-                  <TextInput
-                    style={[
-                      styles.modalTextInput,
-                      {
-                        backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                        borderColor: isDark ? '#334155' : '#cbd5e1',
-                        color: colors.textPrimary,
-                      },
-                    ]}
-                    value={newPassword}
-                    onChangeText={(text) => {
-                      setNewPassword(text);
-                      if (editError) setEditError(null);
-                    }}
-                    placeholder="At least 8 chars (Aa1@)"
-                    placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                  />
                 </View>
 
                 {/* Confirm Password */}
-                <View style={{ marginTop: 10 }}>
-                  <View style={styles.pwdLabelRow}>
-                    <Text style={[styles.innerInputLabel, { color: isDark ? '#cbd5e1' : '#475569' }]}>
-                      Confirm New Password
-                    </Text>
-                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                      <Text style={{ fontSize: 12, color: isDark ? '#38bdf8' : '#2563eb', fontWeight: '600' }}>
-                        {showConfirmPassword ? '🙈 Hide' : '👁️ Show'}
-                      </Text>
+                <View style={{ marginTop: 12 }}>
+                  <Text style={[styles.innerInputLabel, { color: isDark ? '#cbd5e1' : '#475569', marginBottom: 6 }]}>
+                    Confirm New Password
+                  </Text>
+                  <View style={styles.passwordInputWrapper}>
+                    <TextInput
+                      style={[
+                        styles.modalTextInput,
+                        styles.passwordInputInner,
+                        {
+                          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                          borderColor: isDark ? '#334155' : '#cbd5e1',
+                          color: colors.textPrimary,
+                        },
+                      ]}
+                      value={confirmPassword}
+                      onChangeText={(text) => {
+                        setConfirmPassword(text);
+                        if (editError) setEditError(null);
+                      }}
+                      placeholder="Repeat new password"
+                      placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                      secureTextEntry={!showConfirmPassword}
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeBtn}
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      accessibilityLabel={showConfirmPassword ? 'Hide password' : 'Show password'}
+                      accessibilityRole="button"
+                    >
+                      <PasswordEyeIcon
+                        visible={showConfirmPassword}
+                        color={showConfirmPassword ? (isDark ? '#38bdf8' : '#2563eb') : (isDark ? '#94a3b8' : '#64748b')}
+                      />
                     </TouchableOpacity>
                   </View>
-                  <TextInput
-                    style={[
-                      styles.modalTextInput,
-                      {
-                        backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                        borderColor: isDark ? '#334155' : '#cbd5e1',
-                        color: colors.textPrimary,
-                      },
-                    ]}
-                    value={confirmPassword}
-                    onChangeText={(text) => {
-                      setConfirmPassword(text);
-                      if (editError) setEditError(null);
-                    }}
-                    placeholder="Repeat new password"
-                    placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                    secureTextEntry={!showConfirmPassword}
-                    autoCapitalize="none"
-                  />
                 </View>
               </View>
 
@@ -1171,5 +1231,17 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  passwordInputWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  passwordInputInner: {
+    paddingRight: 42,
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: 12,
+    padding: 6,
   },
 });

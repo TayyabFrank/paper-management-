@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema(
     },
     avatar: {
       type: String,
-      default: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+      default: 'https://drive.google.com/file/d/1o5KZ73inU6E4itVyk6F15giWt9VWyS8X/view?usp=drive_link',
     },
     role: {
       type: String,
