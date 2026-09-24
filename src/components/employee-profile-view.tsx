@@ -70,6 +70,14 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
   const { user, logout, updateUser } = useAuth();
   const { documents } = useDocuments();
 
+  const userDocuments = documents.filter((d) => {
+    const docEmail = (d.employeeEmail || '').trim().toLowerCase();
+    const userEmail = (user.email || '').trim().toLowerCase();
+    const docName = (d.employeeName || '').trim().toLowerCase();
+    const userName = (user.name || '').trim().toLowerCase();
+    return (userEmail && docEmail === userEmail) || (userName && docName === userName);
+  });
+
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editAvatar, setEditAvatar] = useState(user.avatar);
@@ -360,7 +368,7 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
           >
             <Text style={styles.metricEmoji}>📑</Text>
             <Text style={[styles.metricNumber, { color: isDark ? '#38bdf8' : '#1e40af' }]}>
-              {documents.length}
+              {userDocuments.length}
             </Text>
             <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
               Uploaded Docs

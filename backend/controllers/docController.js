@@ -9,7 +9,8 @@ exports.getDocuments = async (req, res) => {
     let query = {};
 
     if (email && email !== 'all') {
-      query.employeeEmail = email.toLowerCase();
+      const cleanEmail = email.trim().toLowerCase();
+      query.employeeEmail = { $regex: new RegExp(`^${cleanEmail}$`, 'i') };
     }
 
     const documents = await Document.find(query).sort({ createdAt: -1 });

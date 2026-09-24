@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DocumentReaderItem } from '@/components/document-reader';
+import { useAuth } from '@/context/auth-context';
 import {
   apiFetchDocuments,
   apiCreateDocument,
@@ -11,6 +12,7 @@ const STORAGE_KEY_DOCS = '@docuvault_uploaded_documents';
 
 interface DocumentsContextType {
   documents: DocumentReaderItem[];
+  allDocuments: DocumentReaderItem[];
   addDocument: (doc: DocumentReaderItem) => Promise<void>;
   deleteDocument: (id: string) => Promise<void>;
   refreshDocuments: () => Promise<void>;
@@ -20,6 +22,9 @@ interface DocumentsContextType {
 const DocumentsContext = createContext<DocumentsContextType | undefined>(undefined);
 
 export function DocumentsProvider({ children }: { children: ReactNode }) {
+  const { user, isAdminMode } = useAuth();
+  const isUserAdmin = isAdminMode || user.role === 'Admin';
+
   const [documents, setDocuments] = useState<DocumentReaderItem[]>([]);
   const [isLoadingDocs, setIsLoadingDocs] = useState<boolean>(true);
 
@@ -40,8 +45,9 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // 2. Fetch latest from MongoDB backend if reachable
-      const res = await apiFetchDocuments();
+      // 2. Fetch from MongoDB: If Admin fetch all, if Employee fetch only their own
+      const queryEmail = isUserAdmin ? undefined : (user.email ? user.email.toLowerCase() : undefined);
+      const res = await apiFetchDocuments(queryEmail);
       if (res.success && Array.isArray(res.documents)) {
         // Merge backend documents with local documents by ID
         const docMap = new Map<string, DocumentReaderItem>();
@@ -67,7 +73,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     } catch {
       // Backend offline or error - keep cached documents
     }
-  }, []);
+  }, [isUserAdmin, user.email]);
 
   // Hydrate documents on startup
   useEffect(() => {
@@ -91,7 +97,8 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         }
 
         // Step 2: Fetch latest from MongoDB backend if reachable
-        const res = await apiFetchDocuments();
+        const queryEmail = isUserAdmin ? undefined : (user.email ? user.email.toLowerCase() : undefined);
+        const res = await apiFetchDocuments(queryEmail);
         if (res.success && Array.isArray(res.documents) && isMounted) {
           const docMap = new Map<string, DocumentReaderItem>();
           localDocs.forEach((d) => docMap.set(d.id, d));
@@ -120,13 +127,13 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isUserAdmin, user.email]);
 
   const addDocument = async (doc: DocumentReaderItem) => {
     const formattedDoc: DocumentReaderItem = {
       ...doc,
-      employeeEmail: (doc.employeeEmail || 'employee@enterprise.com').trim().toLowerCase(),
-      employeeName: (doc.employeeName || 'Employee').trim(),
+      employeeEmail: (doc.employeeEmail || user.email || 'employee@enterprise.com').trim().toLowerCase(),
+      employeeName: (doc.employeeName || user.name || 'Employee').trim(),
     };
 
     // 1. Optimistically update local UI & cache
@@ -164,10 +171,24 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Privacy isolation:
+  // - Admin sees all documents across the organization.
+  // - Employee only sees documents that belong to their own account.
+  const visibleDocuments = isUserAdmin
+    ? documents
+    : documents.filter((d) => {
+        const docEmail = (d.employeeEmail || '').trim().toLowerCase();
+        const userEmail = (user.email || '').trim().toLowerCase();
+        const docName = (d.employeeName || '').trim().toLowerCase();
+        const userName = (user.name || '').trim().toLowerCase();
+        return (userEmail && docEmail === userEmail) || (userName && docName === userName);
+      });
+
   return (
     <DocumentsContext.Provider
       value={{
-        documents,
+        documents: visibleDocuments,
+        allDocuments: documents,
         addDocument,
         deleteDocument,
         refreshDocuments,

@@ -22,6 +22,14 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
   const { user } = useAuth();
   const { documents } = useDocuments();
 
+  const userDocuments = documents.filter((d) => {
+    const docEmail = (d.employeeEmail || '').trim().toLowerCase();
+    const userEmail = (user.email || '').trim().toLowerCase();
+    const docName = (d.employeeName || '').trim().toLowerCase();
+    const userName = (user.name || '').trim().toLowerCase();
+    return (userEmail && docEmail === userEmail) || (userName && docName === userName);
+  });
+
   return (
     <ScrollView
       contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
@@ -82,7 +90,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             ]}
           >
             <Text style={[styles.metricNumber, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
-              {documents.length}
+              {userDocuments.length}
             </Text>
             <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>📁 Total Documents</Text>
           </View>

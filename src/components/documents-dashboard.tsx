@@ -15,6 +15,7 @@ import { DocumentReader, DocumentReaderItem } from './document-reader';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useDocuments } from '@/context/documents-context';
+import { useAuth } from '@/context/auth-context';
 import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
 
 // Vector icons as crisp SVG URIs
@@ -399,6 +400,11 @@ export function DocumentsDashboard({
 }: DocumentsDashboardProps) {
   const router = useRouter();
   const { isDark, colors } = useDocuVaultTheme();
+  const { user, isAdminMode } = useAuth();
+  const isUserAdmin = isAdminMode || user.role === 'Admin';
+  const currentEmail = (employeeEmail || user.email || '').trim().toLowerCase();
+  const currentName = (employeeName || user.name || '').trim().toLowerCase();
+
   const { documents, addDocument, deleteDocument } = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -590,7 +596,19 @@ export function DocumentsDashboard({
     setTimeout(() => setUploadNotification(null), 3500);
   };
 
-  const filteredDocs = documents.filter((doc) => {
+  // Strict privacy guarantee:
+  // - Administrators can view all employee documents or inspect a specific employee.
+  // - Non-admin employees strictly and only view their own private documents.
+  const employeeOwnedDocs = documents.filter((d) => {
+    if (isUserAdmin && !employeeEmail) {
+      return true;
+    }
+    const docEmail = (d.employeeEmail || '').trim().toLowerCase();
+    const docName = (d.employeeName || '').trim().toLowerCase();
+    return (currentEmail && docEmail === currentEmail) || (currentName && docName === currentName);
+  });
+
+  const filteredDocs = employeeOwnedDocs.filter((doc) => {
     const matchesSearch =
       doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.subtitle.toLowerCase().includes(searchQuery.toLowerCase());
@@ -598,12 +616,12 @@ export function DocumentsDashboard({
     return matchesSearch && doc.type === activeCategory;
   });
 
-  const pdfCount = documents.filter((d) => d.type === 'pdf').length;
-  const docxCount = documents.filter((d) => d.type === 'docx').length;
-  const articleCount = documents.filter((d) => d.type === 'article').length;
-  const linkCount = documents.filter((d) => d.type === 'link').length;
-  const imageCount = documents.filter((d) => d.type === 'image').length;
-  const otherCount = documents.filter((d) => d.type === 'other').length;
+  const pdfCount = employeeOwnedDocs.filter((d) => d.type === 'pdf').length;
+  const docxCount = employeeOwnedDocs.filter((d) => d.type === 'docx').length;
+  const articleCount = employeeOwnedDocs.filter((d) => d.type === 'article').length;
+  const linkCount = employeeOwnedDocs.filter((d) => d.type === 'link').length;
+  const imageCount = employeeOwnedDocs.filter((d) => d.type === 'image').length;
+  const otherCount = employeeOwnedDocs.filter((d) => d.type === 'other').length;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -664,13 +682,13 @@ export function DocumentsDashboard({
         ]}
       >
         <Image
-          source={{ uri: employeeAvatar || DEFAULT_AVATAR_SVG }}
+          source={{ uri: employeeAvatar || user.avatar || DEFAULT_AVATAR_SVG }}
           style={styles.profileAvatar}
           resizeMode="cover"
         />
         <View style={styles.profileDetails}>
-          <Text style={[styles.profileName, { color: colors.textPrimary }]}>{employeeName}</Text>
-          <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{employeeEmail}</Text>
+          <Text style={[styles.profileName, { color: colors.textPrimary }]}>{employeeName || user.name || 'Employee'}</Text>
+          <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{employeeEmail || user.email}</Text>
         </View>
         <View
           style={[
