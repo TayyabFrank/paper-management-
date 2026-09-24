@@ -37,7 +37,6 @@ app.get('/api/health', (req, res) => {
     message: 'DocuVault Backend API is running',
     database: dbConnected ? 'connected' : 'disconnected',
     databaseState: mongoose.connection.readyState,
-    mongoUri: MONGODB_URI.replace(/:([^:@]{3,})@/, ':***@'), // Mask password in uri
     timestamp: new Date().toISOString(),
   });
 });
@@ -59,7 +58,7 @@ app.use((err, req, res, next) => {
 // Start listening immediately
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[DocuVault Server] Running on port ${PORT} (http://localhost:${PORT})`);
-  console.log(`[DocuVault Server] Connecting to MongoDB: ${MONGODB_URI.replace(/:([^:@]{3,})@/, ':***@')}`);
+  console.log('[DocuVault Server] Connecting to database...');
 
   // Connect to MongoDB asynchronously with 5 second timeout
   mongoose
