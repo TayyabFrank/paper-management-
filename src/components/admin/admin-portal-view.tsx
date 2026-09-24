@@ -13,6 +13,7 @@ import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth, StoredAccount } from '@/context/auth-context';
 import { useDocuments } from '@/context/documents-context';
 import { DocumentReader, DocumentReaderItem } from '@/components/document-reader';
+import { APP_LOGO } from '@/components/docuvault-logo';
 import { AdminBottomNavbar, AdminTabKey } from './admin-bottom-navbar';
 import { AdminDashboardTab } from './admin-dashboard-tab';
 import { AdminUsersTab } from './admin-users-tab';
@@ -133,6 +134,20 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
                 },
               ]}
             >
+              <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                <Image
+                  source={APP_LOGO}
+                  style={{
+                    width: 140,
+                    height: 76,
+                    borderRadius: 12,
+                    backgroundColor: '#ffffff',
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#e2e8f0',
+                  }}
+                  resizeMode="contain"
+                />
+              </View>
               <Text style={[styles.drawerTitle, { color: isDark ? colors.textPrimary : '#1e3a8a' }]}>
                 DocuVault Admin
               </Text>

@@ -12,6 +12,7 @@ import { useAuth } from '@/context/auth-context';
 import { useDocuments } from '@/context/documents-context';
 import { TabKey } from './bottom-navbar';
 import { ThemeToggleButton } from './theme-toggle-button';
+import { APP_LOGO } from '@/components/docuvault-logo';
 
 interface HomeDashboardViewProps {
   onNavigateTab: (tab: TabKey) => void;
@@ -36,15 +37,29 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.maxWidthWrapper}>
-        {/* Header with Welcome Greeting and Theme Toggle */}
+        {/* Header with Welcome Greeting, DocuVault Logo and Theme Toggle */}
         <View style={styles.topHeaderRow}>
-          <View style={styles.greetingCol}>
-            <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
-              Welcome back,
-            </Text>
-            <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>
-              {user.name}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Image
+              source={APP_LOGO}
+              style={{
+                width: 48,
+                height: 36,
+                borderRadius: 8,
+                backgroundColor: '#ffffff',
+                borderWidth: isDark ? 1 : 0.5,
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.4)' : '#e2e8f0',
+              }}
+              resizeMode="contain"
+            />
+            <View style={styles.greetingCol}>
+              <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
+                Welcome back,
+              </Text>
+              <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>
+                {user.name}
+              </Text>
+            </View>
           </View>
           <ThemeToggleButton compact showLabel={false} />
         </View>

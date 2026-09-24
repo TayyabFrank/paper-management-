@@ -10,6 +10,7 @@ import {
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 import { useDocuments } from '@/context/documents-context';
+import { APP_LOGO } from '@/components/docuvault-logo';
 import { AdminTabKey } from './admin-bottom-navbar';
 
 interface AdminDashboardTabProps {
@@ -77,7 +78,11 @@ export function AdminDashboardTab({ onNavigateTab, onOpenMenu }: AdminDashboardT
       <View style={[styles.topHeaderBar, { backgroundColor: isDark ? '#0f172a' : '#172554' }]}>
         <View style={styles.topHeaderContent}>
           <View style={styles.brandRow}>
-            <Image source={{ uri: LOGO_BADGE_SVG }} style={{ width: 28, height: 28 }} resizeMode="contain" />
+            <Image
+              source={APP_LOGO}
+              style={{ width: 34, height: 26, borderRadius: 6, backgroundColor: '#ffffff', marginRight: 4 }}
+              resizeMode="contain"
+            />
             <Text style={styles.brandTitle}>DocuVault</Text>
             <View style={styles.adminTagPill}>
               <Text style={styles.adminTagText}>🛡️ ADMIN</Text>
