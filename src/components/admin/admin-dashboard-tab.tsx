@@ -316,7 +316,6 @@ export function AdminDashboardTab({
           Boolean(d.fileUrl && (d.fileUrl.includes('drive.google.com') || d.fileUrl.includes('docs.google.com')))
       ).length;
 
-  // Video count (folded into the "Other" folder/category as requested)
   const videoCount = backendStats?.countsByType?.video ??
     documents.filter((d) => d.type === 'video').length;
 
@@ -327,12 +326,13 @@ export function AdminDashboardTab({
         (!['article', 'pdf', 'docx', 'image', 'link', 'video'].includes(d.type || ''))
     ).length;
 
-  const otherWithVideoCount = rawOtherCount + videoCount;
+  // Other folder includes both Google Drive Links and miscellaneous archives
+  const otherWithLinksCount = rawOtherCount + linkCount;
 
   // Safe percentage calculation
   const calcPct = (count: number) => (totalCount > 0 ? Math.round((count / totalCount) * 100) : 0);
 
-  // Six-way file type breakdown categories with Links on the main line and Videos in Other
+  // Six-way file type breakdown categories: Video on main line, Links inside Other folder
   const categories: CategoryMetric[] = useMemo(
     () => [
       {
@@ -384,31 +384,31 @@ export function AdminDashboardTab({
         description: 'Facility blueprints, architectural maps & schematic photos',
       },
       {
-        key: 'link',
-        label: 'Links',
-        emoji: '🔗',
-        count: linkCount,
-        pct: calcPct(linkCount),
-        color: '#06b6d4',
-        darkColor: '#38bdf8',
-        bgLight: '#ecfeff',
-        bgDark: '#083344',
-        description: 'Google Drive links, web URLs & shared cloud document repositories',
+        key: 'video',
+        label: 'Videos',
+        emoji: '🎥',
+        count: videoCount,
+        pct: calcPct(videoCount),
+        color: '#e11d48',
+        darkColor: '#fb7185',
+        bgLight: '#fff1f2',
+        bgDark: '#4c0519',
+        description: 'Compliance briefings, training seminars & video walkthroughs',
       },
       {
         key: 'other',
-        label: 'Other',
+        label: 'Other & Links',
         emoji: '📁',
-        count: otherWithVideoCount,
-        pct: calcPct(otherWithVideoCount),
+        count: otherWithLinksCount,
+        pct: calcPct(otherWithLinksCount),
         color: '#f59e0b',
         darkColor: '#fbbf24',
         bgLight: '#fffbeb',
         bgDark: '#451a03',
-        description: 'Training videos, media recordings & miscellaneous vault archives',
+        description: 'Google Drive links, cloud drives & miscellaneous vault archives',
       },
     ],
-    [articleCount, pdfCount, docxCount, imageCount, linkCount, otherWithVideoCount, totalCount]
+    [articleCount, pdfCount, docxCount, imageCount, videoCount, otherWithLinksCount, totalCount]
   );
 
   // Maximum count for vertical graph scaling

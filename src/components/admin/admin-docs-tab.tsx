@@ -156,17 +156,26 @@ export function AdminDocsTab({
   const { registeredAccounts, syncWithBackend } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory || 'all');
+  const [otherSubFilter, setOtherSubFilter] = useState<'all' | 'links' | 'misc'>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [docToDelete, setDocToDelete] = useState<DocumentReaderItem | null>(null);
 
   useEffect(() => {
     if (initialCategory) {
-      setActiveCategory(initialCategory);
+      if (initialCategory === 'link') {
+        setActiveCategory('other');
+        setOtherSubFilter('links');
+      } else {
+        setActiveCategory(initialCategory);
+      }
     }
   }, [initialCategory]);
 
   const selectCategory = (cat: string) => {
     setActiveCategory(cat);
+    if (cat === 'other') {
+      setOtherSubFilter('all');
+    }
     onCategoryChange?.(cat);
   };
 
@@ -214,10 +223,11 @@ export function AdminDocsTab({
           d.fileUrl.startsWith('http'))
     );
 
+  // Other folder contains Google Drive links and miscellaneous archives
   const isOtherDoc = (d: DocumentReaderItem) =>
+    isLinkDoc(d) ||
     d.type === 'other' ||
-    d.type === 'video' ||
-    (!['pdf', 'docx', 'article', 'image'].includes(d.type || '') && !isLinkDoc(d));
+    !['pdf', 'docx', 'article', 'image', 'video'].includes(d.type || '');
 
   const filteredDocs = employeeDocs.filter((d) => {
     const matchesSearch =
@@ -229,8 +239,13 @@ export function AdminDocsTab({
     if (!matchesSearch) return false;
 
     if (activeCategory === 'all') return true;
-    if (activeCategory === 'link') return isLinkDoc(d);
-    if (activeCategory === 'other') return isOtherDoc(d);
+    if (activeCategory === 'video') return d.type === 'video';
+    if (activeCategory === 'other' || activeCategory === 'link') {
+      if (!isOtherDoc(d)) return false;
+      if (otherSubFilter === 'links' || activeCategory === 'link') return isLinkDoc(d);
+      if (otherSubFilter === 'misc') return !isLinkDoc(d);
+      return true;
+    }
     return d.type === activeCategory;
   });
 
@@ -238,8 +253,9 @@ export function AdminDocsTab({
   const docxCount = employeeDocs.filter((d) => d.type === 'docx').length;
   const articleCount = employeeDocs.filter((d) => d.type === 'article').length;
   const imageCount = employeeDocs.filter((d) => d.type === 'image').length;
-  const linkCount = employeeDocs.filter(isLinkDoc).length;
-  const otherCount = employeeDocs.filter(isOtherDoc).length;
+  const videoCount = employeeDocs.filter((d) => d.type === 'video').length;
+  const linkDocsCount = employeeDocs.filter(isLinkDoc).length;
+  const otherTotalCount = employeeDocs.filter(isOtherDoc).length;
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>
@@ -507,42 +523,176 @@ export function AdminDocsTab({
             </Text>
           </TouchableOpacity>
 
-          {/* Links / Google Drive on the same line */}
+          {/* Videos */}
           <TouchableOpacity
             style={[
               styles.categoryPill,
-              activeCategory === 'link' && styles.categoryPillActive,
+              activeCategory === 'video' && styles.categoryPillActive,
             ]}
-            onPress={() => selectCategory('link')}
+            onPress={() => selectCategory('video')}
             activeOpacity={0.7}
           >
-            <Text style={styles.categoryPillEmoji}>🔗</Text>
+            <Text style={styles.categoryPillEmoji}>🎥</Text>
             <Text style={[styles.categoryCount, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-              {linkCount}
+              {videoCount}
             </Text>
             <Text style={[styles.categoryLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              Links / Drive
+              Videos
             </Text>
           </TouchableOpacity>
 
-          {/* Other / Videos in the Other folder */}
+          {/* Other (contains Google Drive Links & Other files) */}
           <TouchableOpacity
             style={[
               styles.categoryPill,
-              activeCategory === 'other' && styles.categoryPillActive,
+              (activeCategory === 'other' || activeCategory === 'link') && styles.categoryPillActive,
             ]}
             onPress={() => selectCategory('other')}
             activeOpacity={0.7}
           >
             <Text style={styles.categoryPillEmoji}>📁</Text>
             <Text style={[styles.categoryCount, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-              {otherCount}
+              {otherTotalCount}
             </Text>
             <Text style={[styles.categoryLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
               Other
             </Text>
           </TouchableOpacity>
         </ScrollView>
+
+        {/* Prominent Google Drive Links Folder inside the "Other" folder */}
+        {(activeCategory === 'other' || activeCategory === 'link') && (
+          <View
+            style={[
+              styles.otherFolderBanner,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+              },
+            ]}
+          >
+            <View style={styles.otherFolderHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={[styles.folderIconBox, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
+                  <Text style={{ fontSize: 20 }}>📁</Text>
+                </View>
+                <View>
+                  <Text style={[styles.otherFolderTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                    Other Repository Vault
+                  </Text>
+                  <Text style={[styles.otherFolderSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                    {otherTotalCount} items • {linkDocsCount} Google Drive Links
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.otherSubTabsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.otherSubTabBtn,
+                  otherSubFilter === 'all' && styles.otherSubTabBtnActive,
+                  {
+                    backgroundColor:
+                      otherSubFilter === 'all'
+                        ? '#2563eb'
+                        : isDark
+                        ? '#1e293b'
+                        : '#f1f5f9',
+                  },
+                ]}
+                onPress={() => setOtherSubFilter('all')}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.otherSubTabText,
+                    {
+                      color:
+                        otherSubFilter === 'all'
+                          ? '#ffffff'
+                          : isDark
+                          ? '#cbd5e1'
+                          : '#475569',
+                    },
+                  ]}
+                >
+                  All Other ({otherTotalCount})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.otherSubTabBtn,
+                  otherSubFilter === 'links' && styles.otherSubTabBtnActive,
+                  {
+                    backgroundColor:
+                      otherSubFilter === 'links'
+                        ? '#0891b2'
+                        : isDark
+                        ? '#083344'
+                        : '#ecfeff',
+                    borderColor: isDark ? '#155e75' : '#a5f3fc',
+                    borderWidth: 1,
+                  },
+                ]}
+                onPress={() => setOtherSubFilter('links')}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 13, marginRight: 2 }}>🔗</Text>
+                <Text
+                  style={[
+                    styles.otherSubTabText,
+                    {
+                      color:
+                        otherSubFilter === 'links'
+                          ? '#ffffff'
+                          : isDark
+                          ? '#38bdf8'
+                          : '#0891b2',
+                      fontWeight: '700',
+                    },
+                  ]}
+                >
+                  Google Drive Links ({linkDocsCount})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.otherSubTabBtn,
+                  otherSubFilter === 'misc' && styles.otherSubTabBtnActive,
+                  {
+                    backgroundColor:
+                      otherSubFilter === 'misc'
+                        ? '#475569'
+                        : isDark
+                        ? '#1e293b'
+                        : '#f1f5f9',
+                  },
+                ]}
+                onPress={() => setOtherSubFilter('misc')}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.otherSubTabText,
+                    {
+                      color:
+                        otherSubFilter === 'misc'
+                          ? '#ffffff'
+                          : isDark
+                          ? '#cbd5e1'
+                          : '#475569',
+                    },
+                  ]}
+                >
+                  Other Files ({otherTotalCount - linkDocsCount})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Document Cards List */}
         {filteredDocs.length === 0 ? (
@@ -1081,5 +1231,59 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  otherFolderBanner: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  otherFolderHeader: {
+    marginBottom: 12,
+  },
+  folderIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otherFolderTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  otherFolderSub: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  otherSubTabsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  otherSubTabBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  otherSubTabBtnActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  otherSubTabText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
