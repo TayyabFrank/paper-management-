@@ -890,14 +890,14 @@ export function DocumentsDashboard({
             <Text style={[styles.emptySub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
               {searchQuery
                 ? 'No documents match your search.'
-                : 'All mock documents have been removed. Go to the Upload page to upload documents, images, or Google Drive links.'}
+                : 'Your private vault is ready. Upload documents, PDFs, images, or media to access them securely anytime.'}
             </Text>
             <TouchableOpacity
               style={[styles.emptyActionBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
               onPress={handleUploadNew}
               activeOpacity={0.8}
             >
-              <Text style={styles.emptyActionBtnText}>📤 Go to Upload Page</Text>
+              <Text style={styles.emptyActionBtnText}>📤 Upload New Document</Text>
             </TouchableOpacity>
           </View>
         ) : (

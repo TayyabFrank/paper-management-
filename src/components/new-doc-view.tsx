@@ -192,7 +192,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
     }
 
     const isDrive = Boolean(driveLink.trim());
-    const detectedType: 'link' | 'pdf' | 'docx' | 'image' | 'article' | 'other' = isDrive
+    const detectedType: 'link' | 'pdf' | 'docx' | 'image' | 'video' | 'article' | 'other' = isDrive
       ? 'link'
       : selectedFile
         ? detectFileType(selectedFile.name)

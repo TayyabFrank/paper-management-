@@ -400,10 +400,10 @@ export function AdminDashboardTab({
           </View>
 
           <Text style={[styles.pageTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-            Enterprise Content Dashboard
+            Enterprise Content Vault
           </Text>
-          <Text style={[styles.pageSubtitle, { color: isDark ? '#94a3b8' : '#475569' }]}>
-            Dynamic breakdown of total documents, articles, PDFs, DOCX, images, videos, and uploaded content.
+          <Text style={[styles.pageSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+            Real-time repository analytics and distribution across all encrypted enterprise assets.
           </Text>
         </View>
 
@@ -433,13 +433,13 @@ export function AdminDashboardTab({
             </View>
 
             <Text style={styles.kpiBigNumber}>{totalCount}</Text>
-            <Text style={styles.kpiMainLabel}>Total Content Uploaded</Text>
+            <Text style={styles.kpiMainLabel}>Total Vault Documents</Text>
             <Text style={styles.kpiSubLabel}>
-              Total count across all documents, articles, images, PDFs, videos & media
+              Active assets secured under enterprise cryptographic storage
             </Text>
 
             <View style={styles.kpiFooterAction}>
-              <Text style={styles.kpiFooterText}>Explore All Content ({totalCount})</Text>
+              <Text style={styles.kpiFooterText}>Browse Entire Repository ({totalCount})</Text>
               <Image source={{ uri: ARROW_RIGHT_SVG('#ffffff') }} style={{ width: 14, height: 14 }} resizeMode="contain" />
             </View>
           </TouchableOpacity>
@@ -556,11 +556,11 @@ export function AdminDashboardTab({
               <View style={styles.chartTitleRow}>
                 <Text style={styles.chartIconEmoji}>📊</Text>
                 <Text style={[styles.chartTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  File Type Breakdown Chart
+                  Distribution by File Type
                 </Text>
               </View>
               <Text style={[styles.chartSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                Live distribution: Articles, PDFs, DOCX, Images, Videos & Other (tap bar to filter)
+                Interactive breakdown: Tap any column to inspect & filter
               </Text>
             </View>
 
@@ -917,130 +917,184 @@ export function AdminDashboardTab({
         {/* RECENT UPLOADS STREAM */}
         <View style={styles.recentSection}>
           <View style={styles.recentHeaderRow}>
-            <Text style={[styles.recentSectionTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-              Recent Content Uploads
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 18 }}>⏱️</Text>
+              <Text style={[styles.recentSectionTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                Recent Content Uploads
+              </Text>
+            </View>
             <TouchableOpacity
               onPress={() => onNavigateTab('docs', 'all')}
               activeOpacity={0.7}
+              style={[
+                styles.recentViewAllBtn,
+                { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }
+              ]}
             >
               <Text style={[styles.recentViewAllText, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
-                View All →
+                View All ({totalCount}) →
               </Text>
             </TouchableOpacity>
           </View>
 
-          {recentDocs.map((doc) => {
-            const isArticle = doc.type === 'article';
-            const isPdf = doc.type === 'pdf';
-            const isDocx = doc.type === 'docx';
-            const isImg = doc.type === 'image';
-            const isVid = doc.type === 'video';
+          {recentDocs.length === 0 ? (
+            <View
+              style={[
+                styles.emptyRecentCard,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Text style={{ fontSize: 32, marginBottom: 8 }}>📁</Text>
+              <Text style={[styles.emptyRecentTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                No Uploads Yet
+              </Text>
+              <Text style={[styles.emptyRecentSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                New documents uploaded to DocuVault will appear here in real time.
+              </Text>
+            </View>
+          ) : (
+            recentDocs.map((doc) => {
+              const isArticle = doc.type === 'article';
+              const isPdf = doc.type === 'pdf';
+              const isDocx = doc.type === 'docx';
+              const isImg = doc.type === 'image';
+              const isVid = doc.type === 'video';
 
-            const badgeBg = isArticle
-              ? isDark ? '#3b0764' : '#f3e8ff'
-              : isPdf
-              ? isDark ? '#450a0a' : '#fee2e2'
-              : isDocx
-              ? isDark ? '#082f49' : '#e0f2fe'
-              : isImg
-              ? isDark ? '#064e3b' : '#dcfce7'
-              : isVid
-              ? isDark ? '#4c0519' : '#ffe4e6'
-              : isDark ? '#451a03' : '#fef3c7';
+              const badgeBg = isArticle
+                ? isDark ? '#3b0764' : '#f3e8ff'
+                : isPdf
+                ? isDark ? '#450a0a' : '#fee2e2'
+                : isDocx
+                ? isDark ? '#082f49' : '#e0f2fe'
+                : isImg
+                ? isDark ? '#064e3b' : '#dcfce7'
+                : isVid
+                ? isDark ? '#4c0519' : '#ffe4e6'
+                : isDark ? '#451a03' : '#fef3c7';
 
-            const badgeColor = isArticle
-              ? isDark ? '#d8b4fe' : '#7e22ce'
-              : isPdf
-              ? isDark ? '#fca5a5' : '#dc2626'
-              : isDocx
-              ? isDark ? '#7dd3fc' : '#0284c7'
-              : isImg
-              ? isDark ? '#86efac' : '#16a34a'
-              : isVid
-              ? isDark ? '#fda4af' : '#e11d48'
-              : isDark ? '#fcd34d' : '#d97706';
+              const badgeColor = isArticle
+                ? isDark ? '#d8b4fe' : '#7e22ce'
+                : isPdf
+                ? isDark ? '#fca5a5' : '#dc2626'
+                : isDocx
+                ? isDark ? '#7dd3fc' : '#0284c7'
+                : isImg
+                ? isDark ? '#86efac' : '#16a34a'
+                : isVid
+                ? isDark ? '#fda4af' : '#e11d48'
+                : isDark ? '#fcd34d' : '#d97706';
 
-            return (
-              <TouchableOpacity
-                key={doc.id}
-                style={[
-                  styles.recentDocCard,
-                  {
-                    backgroundColor: isDark ? '#111827' : '#ffffff',
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
-                  },
-                ]}
-                onPress={() => onOpenDocument?.(doc as DocumentReaderItem)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.recentDocLeft}>
-                  <Text style={styles.recentDocEmoji}>{doc.icon || (isVid ? '🎥' : isImg ? '🖼️' : '📄')}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[styles.recentDocTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}
-                      numberOfLines={1}
-                    >
-                      {doc.title}
-                    </Text>
-                    <Text
-                      style={[styles.recentDocSub, { color: isDark ? '#94a3b8' : '#64748b' }]}
-                      numberOfLines={1}
-                    >
-                      {doc.employeeName || 'Staff Member'} • {doc.fileSize || 'Standard'}
-                    </Text>
+              const docIcon = isArticle
+                ? '📰'
+                : isPdf
+                ? '📄'
+                : isDocx
+                ? '📝'
+                : isImg
+                ? '🖼️'
+                : isVid
+                ? '🎥'
+                : '📁';
+
+              return (
+                <TouchableOpacity
+                  key={doc.id}
+                  style={[
+                    styles.recentDocCard,
+                    {
+                      backgroundColor: isDark ? '#111827' : '#ffffff',
+                      borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                    },
+                  ]}
+                  onPress={() => onOpenDocument?.(doc as DocumentReaderItem)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.recentDocLeft}>
+                    <View style={[styles.recentIconBox, { backgroundColor: badgeBg }]}>
+                      <Text style={styles.recentDocEmoji}>{doc.icon || docIcon}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[styles.recentDocTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}
+                        numberOfLines={1}
+                      >
+                        {doc.title}
+                      </Text>
+                      <View style={styles.recentMetaRow}>
+                        <Text
+                          style={[styles.recentDocSub, { color: isDark ? '#94a3b8' : '#64748b' }]}
+                          numberOfLines={1}
+                        >
+                          👤 {doc.employeeName || 'Staff Member'}
+                        </Text>
+                        <Text style={[styles.recentMetaDot, { color: isDark ? '#475569' : '#cbd5e1' }]}>•</Text>
+                        <Text
+                          style={[styles.recentDocSub, { color: isDark ? '#94a3b8' : '#64748b' }]}
+                        >
+                          💾 {doc.fileSize || 'Standard'}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                </View>
 
-                <View style={styles.recentDocRight}>
-                  <View style={[styles.recentTypePill, { backgroundColor: badgeBg }]}>
-                    <Text style={[styles.recentTypePillText, { color: badgeColor }]}>
-                      {(doc.type || 'DOC').toUpperCase()}
-                    </Text>
+                  <View style={styles.recentDocRight}>
+                    <View style={[styles.recentTypePill, { backgroundColor: badgeBg }]}>
+                      <Text style={[styles.recentTypePillText, { color: badgeColor }]}>
+                        {(doc.type || 'DOC').toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={[styles.recentReadBtn, { backgroundColor: isDark ? 'rgba(96, 165, 250, 0.12)' : '#eff6ff' }]}>
+                      <Text style={[styles.recentOpenPrompt, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
+                        Open →
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={[styles.recentOpenPrompt, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
-                    Read
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
 
-        {/* Action Required Banner for Pending Staff Approvals */}
-        {pendingStaffCount > 0 && (
-          <View
-            style={[
-              styles.actionCard,
-              {
-                backgroundColor: isDark ? '#1f1b16' : '#fffbeb',
-                borderColor: isDark ? '#b45309' : '#fde68a',
-              },
-            ]}
-          >
-            <View style={styles.actionCardTop}>
-              <Text style={{ fontSize: 20 }}>⏳</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.actionCardTitle, { color: isDark ? '#fde68a' : '#78350f' }]}>
-                  Staff Action Required
-                </Text>
-                <Text style={[styles.actionCardBody, { color: isDark ? '#fef3c7' : '#92400e' }]}>
-                  There are {pendingStaffCount} employee registration requests waiting for your administrative review.
-                </Text>
-              </View>
+        {/* Security & Vault Compliance Footer Strip */}
+        <View
+          style={[
+            styles.securityStrip,
+            {
+              backgroundColor: isDark ? 'rgba(17, 24, 39, 0.7)' : '#ffffff',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+            },
+          ]}
+        >
+          <View style={styles.securityStripRow}>
+            <View style={styles.securityChip}>
+              <Text style={{ fontSize: 13 }}>🛡️</Text>
+              <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                AES-256 Encrypted
+              </Text>
             </View>
 
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#d97706' }]}
-              onPress={() => onNavigateTab('approvals')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.actionButtonText}>
-                Review Pending Staff ({pendingStaffCount})
+            <View style={[styles.securityDot, { backgroundColor: isDark ? '#334155' : '#cbd5e1' }]} />
+
+            <View style={styles.securityChip}>
+              <Text style={{ fontSize: 13 }}>⚡</Text>
+              <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                MongoDB Live Sync
               </Text>
-            </TouchableOpacity>
+            </View>
+
+            <View style={[styles.securityDot, { backgroundColor: isDark ? '#334155' : '#cbd5e1' }]} />
+
+            <View style={styles.securityChip}>
+              <Text style={{ fontSize: 13 }}>🔒</Text>
+              <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                RBAC Privacy Enforced
+              </Text>
+            </View>
           </View>
-        )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -1630,56 +1684,100 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   recentSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   recentHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   recentSectionTitle: {
-    fontSize: 17,
+    fontSize: 17.5,
     fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  recentViewAllBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
   recentViewAllText: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '700',
+  },
+  emptyRecentCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 28,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    marginBottom: 8,
+  },
+  emptyRecentTitle: {
+    fontSize: 15.5,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  emptyRecentSub: {
+    fontSize: 13,
+    textAlign: 'center',
+    maxWidth: 320,
+    lineHeight: 18,
   },
   recentDocCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 8,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   recentDocLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     flex: 1,
+    marginRight: 10,
+  },
+  recentIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   recentDocEmoji: {
-    fontSize: 24,
+    fontSize: 22,
   },
   recentDocTitle: {
     fontSize: 14.5,
     fontWeight: '700',
-    marginBottom: 2,
+    letterSpacing: -0.2,
+    marginBottom: 3,
+  },
+  recentMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   recentDocSub: {
+    fontSize: 11.5,
+    fontWeight: '500',
+  },
+  recentMetaDot: {
     fontSize: 12,
   },
   recentDocRight: {
     alignItems: 'flex-end',
-    gap: 4,
+    gap: 6,
   },
   recentTypePill: {
     paddingHorizontal: 8,
@@ -1687,44 +1785,48 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   recentTypePillText: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
+  },
+  recentReadBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   recentOpenPrompt: {
     fontSize: 11.5,
     fontWeight: '700',
   },
-  actionCard: {
-    borderRadius: 18,
-    borderWidth: 1.2,
-    padding: 20,
+  securityStrip: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
     marginTop: 4,
+    marginBottom: 20,
+    alignItems: 'center',
   },
-  actionCardTop: {
+  securityStripRow: {
     flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-start',
-    marginBottom: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
   },
-  actionCardTitle: {
-    fontSize: 16.5,
-    fontWeight: '800',
-    marginBottom: 4,
+  securityChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  actionCardBody: {
-    fontSize: 14,
-    lineHeight: 20,
+  securityChipText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
-  actionButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
-  },
-  actionButtonText: {
-    color: '#ffffff',
-    fontSize: 14.5,
-    fontWeight: '700',
+  securityDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
 });
