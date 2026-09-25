@@ -115,7 +115,6 @@ export function AdminDashboardTab({
   const fadeHero = useRef(new Animated.Value(0)).current;
   const fadeKpi = useRef(new Animated.Value(0)).current;
   const fadeChart = useRef(new Animated.Value(0)).current;
-  const fadeRecent = useRef(new Animated.Value(0)).current;
   const chartGrowthAnim = useRef(new Animated.Value(0)).current;
   const complianceAnim = useRef(new Animated.Value(0)).current;
   const inspectorScale = useRef(new Animated.Value(1)).current;
@@ -181,12 +180,6 @@ export function AdminDashboardTab({
       Animated.timing(fadeChart, {
         toValue: 1,
         duration: 550,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeRecent, {
-        toValue: 1,
-        duration: 600,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -280,7 +273,6 @@ export function AdminDashboardTab({
   const heroTranslateY = fadeHero.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
   const kpiTranslateY = fadeKpi.interpolate({ inputRange: [0, 1], outputRange: [24, 0] });
   const chartTranslateY = fadeChart.interpolate({ inputRange: [0, 1], outputRange: [28, 0] });
-  const recentTranslateY = fadeRecent.interpolate({ inputRange: [0, 1], outputRange: [32, 0] });
 
   // Staff metrics (live from backendStats or local accounts fallback)
   const activeStaffCount = backendStats?.activeStaffCount ??
@@ -434,14 +426,6 @@ export function AdminDashboardTab({
     inputRange: [0, 1],
     outputRange: ['0%', `${100 - signedPct}%`],
   });
-
-  // Recent documents stream
-  const recentDocs = useMemo(() => {
-    if (backendStats?.recentDocuments && backendStats.recentDocuments.length > 0) {
-      return backendStats.recentDocuments as DocumentReaderItem[];
-    }
-    return documents.slice(0, 5);
-  }, [backendStats, documents]);
 
   return (
     <View style={[styles.screenContainer, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>
@@ -1153,171 +1137,6 @@ export function AdminDashboardTab({
                 </View>
               </View>
             </View>
-          </View>
-        </Animated.View>
-
-        {/* Animated RECENT UPLOADS STREAM & SECURITY STRIP */}
-        <Animated.View
-          style={{
-            opacity: fadeRecent,
-            transform: [{ translateY: recentTranslateY }],
-          }}
-        >
-          <View style={styles.recentSection}>
-            <View style={styles.recentHeaderRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 18 }}>⏱️</Text>
-                <Text style={[styles.recentSectionTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  Recent Content Uploads
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => onNavigateTab('docs', 'all')}
-                activeOpacity={0.7}
-                style={[
-                  styles.recentViewAllBtn,
-                  { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }
-                ]}
-              >
-                <Text style={[styles.recentViewAllText, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
-                  View All ({totalCount}) →
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {recentDocs.length === 0 ? (
-              <View
-                style={[
-                  styles.emptyRecentCard,
-                  {
-                    backgroundColor: isDark ? '#111827' : '#ffffff',
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>📁</Text>
-                <Text style={[styles.emptyRecentTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  No Uploads Yet
-                </Text>
-                <Text style={[styles.emptyRecentSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                  New documents uploaded to DocuVault will appear here in real time.
-                </Text>
-              </View>
-            ) : (
-              recentDocs.map((doc) => {
-                const isArticle = doc.type === 'article';
-                const isPdf = doc.type === 'pdf';
-                const isDocx = doc.type === 'docx';
-                const isImg = doc.type === 'image';
-                const isVid = doc.type === 'video';
-                const isLink =
-                  doc.type === 'link' ||
-                  Boolean(
-                    doc.fileUrl &&
-                      (doc.fileUrl.includes('drive.google.com') ||
-                        doc.fileUrl.includes('docs.google.com') ||
-                        doc.fileUrl.startsWith('http'))
-                  );
-
-                const badgeBg = isArticle
-                  ? isDark ? '#3b0764' : '#f3e8ff'
-                  : isPdf
-                  ? isDark ? '#450a0a' : '#fee2e2'
-                  : isDocx
-                  ? isDark ? '#082f49' : '#e0f2fe'
-                  : isImg
-                  ? isDark ? '#064e3b' : '#dcfce7'
-                  : isLink
-                  ? isDark ? '#083344' : '#ecfeff'
-                  : isVid
-                  ? isDark ? '#4c0519' : '#ffe4e6'
-                  : isDark ? '#451a03' : '#fef3c7';
-
-                const badgeColor = isArticle
-                  ? isDark ? '#d8b4fe' : '#7e22ce'
-                  : isPdf
-                  ? isDark ? '#fca5a5' : '#dc2626'
-                  : isDocx
-                  ? isDark ? '#7dd3fc' : '#0284c7'
-                  : isImg
-                  ? isDark ? '#86efac' : '#16a34a'
-                  : isLink
-                  ? isDark ? '#38bdf8' : '#0891b2'
-                  : isVid
-                  ? isDark ? '#fda4af' : '#e11d48'
-                  : isDark ? '#fcd34d' : '#d97706';
-
-                const docIcon = isArticle
-                  ? '📰'
-                  : isPdf
-                  ? '📄'
-                  : isDocx
-                  ? '📝'
-                  : isImg
-                  ? '🖼️'
-                  : isLink
-                  ? '🔗'
-                  : isVid
-                  ? '🎥'
-                  : '📁';
-
-                return (
-                  <TouchableOpacity
-                    key={doc.id}
-                    style={[
-                      styles.recentDocCard,
-                      {
-                        backgroundColor: isDark ? '#111827' : '#ffffff',
-                        borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
-                      },
-                    ]}
-                    onPress={() => onOpenDocument?.(doc as DocumentReaderItem)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.recentDocLeft}>
-                      <View style={[styles.recentIconBox, { backgroundColor: badgeBg }]}>
-                        <Text style={styles.recentDocEmoji}>{doc.icon || docIcon}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[styles.recentDocTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}
-                          numberOfLines={1}
-                        >
-                          {doc.title}
-                        </Text>
-                        <View style={styles.recentMetaRow}>
-                          <Text
-                            style={[styles.recentDocSub, { color: isDark ? '#94a3b8' : '#64748b' }]}
-                            numberOfLines={1}
-                          >
-                            👤 {doc.employeeName || 'Staff Member'}
-                          </Text>
-                          <Text style={[styles.recentMetaDot, { color: isDark ? '#475569' : '#cbd5e1' }]}>•</Text>
-                          <Text
-                            style={[styles.recentDocSub, { color: isDark ? '#94a3b8' : '#64748b' }]}
-                          >
-                            {isLink ? '🌐 Cloud Link' : `💾 ${doc.fileSize || 'Standard'}`}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.recentDocRight}>
-                      <View style={[styles.recentTypePill, { backgroundColor: badgeBg }]}>
-                        <Text style={[styles.recentTypePillText, { color: badgeColor }]}>
-                          {isLink ? 'DRIVE / LINK' : (doc.type || 'DOC').toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={[styles.recentReadBtn, { backgroundColor: isDark ? 'rgba(96, 165, 250, 0.12)' : '#eff6ff' }]}>
-                        <Text style={[styles.recentOpenPrompt, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
-                          Open →
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
-            )}
           </View>
         </Animated.View>
       </ScrollView>
