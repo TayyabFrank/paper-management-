@@ -90,4 +90,15 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   connectWithRetry();
 });
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ Error: Port ${PORT} is already in use by another process.`);
+    console.error(`👉 Run the following in PowerShell to free port ${PORT}:`);
+    console.error(`   Get-NetTCPConnection -LocalPort ${PORT} | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }\n`);
+    process.exit(1);
+  } else {
+    console.error('Server error:', err);
+  }
+});
+
 module.exports = { app, server };
