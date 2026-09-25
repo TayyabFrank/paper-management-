@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
@@ -107,6 +109,105 @@ export function AdminDashboardTab({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string>('article');
 
+  // Animation References
+  const beaconAnim = useRef(new Animated.Value(0)).current;
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  const fadeHero = useRef(new Animated.Value(0)).current;
+  const fadeKpi = useRef(new Animated.Value(0)).current;
+  const fadeChart = useRef(new Animated.Value(0)).current;
+  const fadeRecent = useRef(new Animated.Value(0)).current;
+  const chartGrowthAnim = useRef(new Animated.Value(0)).current;
+  const complianceAnim = useRef(new Animated.Value(0)).current;
+  const inspectorScale = useRef(new Animated.Value(1)).current;
+
+  // Beacon pulse animation for Live DB
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(beaconAnim, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(beaconAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [beaconAnim]);
+
+  // Spin rotation when isRefreshing
+  useEffect(() => {
+    let spinLoop: Animated.CompositeAnimation | null = null;
+    if (isRefreshing) {
+      spinLoop = Animated.loop(
+        Animated.timing(spinAnim, {
+          toValue: 1,
+          duration: 850,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      );
+      spinLoop.start();
+    } else {
+      spinAnim.stopAnimation();
+      spinAnim.setValue(0);
+    }
+    return () => {
+      if (spinLoop) spinLoop.stop();
+    };
+  }, [isRefreshing, spinAnim]);
+
+  // Entrance animations on mount
+  useEffect(() => {
+    Animated.stagger(90, [
+      Animated.timing(fadeHero, {
+        toValue: 1,
+        duration: 450,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeKpi, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeChart, {
+        toValue: 1,
+        duration: 550,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeRecent, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    Animated.parallel([
+      Animated.spring(chartGrowthAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 42,
+        useNativeDriver: false,
+      }),
+      Animated.spring(complianceAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 38,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, []);
+
   // Load stats dynamically from backend API
   const fetchLiveStats = useCallback(async () => {
     try {
@@ -130,9 +231,56 @@ export function AdminDashboardTab({
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
+    chartGrowthAnim.setValue(0);
+    complianceAnim.setValue(0);
     await Promise.all([fetchLiveStats(), refreshDocuments(), syncWithBackend()]);
+    Animated.parallel([
+      Animated.spring(chartGrowthAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 42,
+        useNativeDriver: false,
+      }),
+      Animated.spring(complianceAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 38,
+        useNativeDriver: false,
+      }),
+    ]).start();
     setIsRefreshing(false);
   };
+
+  const handleSelectCategory = (key: string) => {
+    setSelectedCategoryKey(key);
+    inspectorScale.setValue(0.92);
+    Animated.spring(inspectorScale, {
+      toValue: 1,
+      friction: 5,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Interpolated Animation Values
+  const beaconScale = beaconAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 2.4],
+  });
+  const beaconOpacity = beaconAnim.interpolate({
+    inputRange: [0, 0.4, 1],
+    outputRange: [0.8, 0.4, 0],
+  });
+
+  const spinDegrees = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const heroTranslateY = fadeHero.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
+  const kpiTranslateY = fadeKpi.interpolate({ inputRange: [0, 1], outputRange: [24, 0] });
+  const chartTranslateY = fadeChart.interpolate({ inputRange: [0, 1], outputRange: [28, 0] });
+  const recentTranslateY = fadeRecent.interpolate({ inputRange: [0, 1], outputRange: [32, 0] });
 
   // Staff metrics (live from backendStats or local accounts fallback)
   const activeStaffCount = backendStats?.activeStaffCount ??
@@ -262,6 +410,16 @@ export function AdminDashboardTab({
   const unsignedCount = totalCount - signedCount;
   const signedPct = totalCount > 0 ? Math.round((signedCount / totalCount) * 100) : 0;
 
+  const signedBarWidth = complianceAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', `${signedPct}%`],
+  });
+
+  const unsignedBarWidth = complianceAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', `${100 - signedPct}%`],
+  });
+
   // Recent documents stream
   const recentDocs = useMemo(() => {
     if (backendStats?.recentDocuments && backendStats.recentDocuments.length > 0) {
@@ -293,30 +451,68 @@ export function AdminDashboardTab({
           </View>
 
           <View style={styles.headerRightActions}>
-            {/* Live Backend Connection Indicator */}
+            {/* Live Backend Connection Indicator with Pulsing Beacon */}
             <View
               style={[
                 styles.liveIndicator,
                 {
                   backgroundColor: isLiveConnected
-                    ? 'rgba(16, 185, 129, 0.18)'
-                    : 'rgba(245, 158, 11, 0.18)',
+                    ? isDark
+                      ? 'rgba(6, 78, 59, 0.45)'
+                      : '#ecfdf5'
+                    : isDark
+                    ? '#1e293b'
+                    : '#f1f5f9',
                   borderColor: isLiveConnected
-                    ? 'rgba(16, 185, 129, 0.4)'
-                    : 'rgba(245, 158, 11, 0.4)',
+                    ? isDark
+                      ? '#059669'
+                      : '#a7f3d0'
+                    : isDark
+                    ? '#334155'
+                    : '#cbd5e1',
                 },
               ]}
             >
-              <View
-                style={[
-                  styles.liveDot,
-                  { backgroundColor: isLiveConnected ? '#10b981' : '#f59e0b' },
-                ]}
-              />
+              <View style={styles.beaconContainer}>
+                {isLiveConnected && (
+                  <Animated.View
+                    style={[
+                      styles.beaconRing,
+                      {
+                        backgroundColor: isDark ? '#34d399' : '#10b981',
+                        transform: [{ scale: beaconScale }],
+                        opacity: beaconOpacity,
+                      },
+                    ]}
+                  />
+                )}
+                <View
+                  style={[
+                    styles.liveDot,
+                    {
+                      backgroundColor: isLiveConnected
+                        ? isDark
+                          ? '#34d399'
+                          : '#059669'
+                        : isDark
+                        ? '#94a3b8'
+                        : '#64748b',
+                    },
+                  ]}
+                />
+              </View>
               <Text
                 style={[
                   styles.liveText,
-                  { color: isLiveConnected ? '#34d399' : '#fbbf24' },
+                  {
+                    color: isLiveConnected
+                      ? isDark
+                        ? '#6ee7b7'
+                        : '#047857'
+                      : isDark
+                      ? '#94a3b8'
+                      : '#64748b',
+                  },
                 ]}
               >
                 {isLiveConnected ? 'LIVE DB' : 'LOCAL CACHE'}
@@ -349,8 +545,16 @@ export function AdminDashboardTab({
           />
         }
       >
-        {/* Hero Section & Live Refresh Ribbon */}
-        <View style={styles.heroSection}>
+        {/* Animated Hero Section & Live Refresh Ribbon */}
+        <Animated.View
+          style={[
+            styles.heroSection,
+            {
+              opacity: fadeHero,
+              transform: [{ translateY: heroTranslateY }],
+            },
+          ]}
+        >
           <View style={styles.heroTopRow}>
             <View style={styles.heroBadgeRow}>
               <Image
@@ -382,20 +586,19 @@ export function AdminDashboardTab({
               activeOpacity={0.7}
               disabled={isRefreshing}
             >
-              {isRefreshing ? (
-                <ActivityIndicator size="small" color="#2563eb" />
-              ) : (
-                <>
-                  <Image
-                    source={{ uri: REFRESH_ICON_SVG(isDark ? '#60a5fa' : '#2563eb') }}
-                    style={{ width: 12, height: 12, marginRight: 5 }}
-                    resizeMode="contain"
-                  />
-                  <Text style={[styles.refreshPillText, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
-                    Sync DB
-                  </Text>
-                </>
-              )}
+              <Animated.Image
+                source={{ uri: REFRESH_ICON_SVG(isDark ? '#60a5fa' : '#2563eb') }}
+                style={{
+                  width: 12,
+                  height: 12,
+                  marginRight: 5,
+                  transform: [{ rotate: spinDegrees }],
+                }}
+                resizeMode="contain"
+              />
+              <Text style={[styles.refreshPillText, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
+                {isRefreshing ? 'Syncing...' : 'Sync DB'}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -405,10 +608,18 @@ export function AdminDashboardTab({
           <Text style={[styles.pageSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
             Real-time repository analytics and distribution across all encrypted enterprise assets.
           </Text>
-        </View>
+        </Animated.View>
 
-        {/* PRIMARY TOTALS CARDS GRID */}
-        <View style={styles.kpiGrid}>
+        {/* Animated PRIMARY TOTALS CARDS GRID */}
+        <Animated.View
+          style={[
+            styles.kpiGrid,
+            {
+              opacity: fadeKpi,
+              transform: [{ translateY: kpiTranslateY }],
+            },
+          ]}
+        >
           {/* Main Total Documents Card */}
           <TouchableOpacity
             style={[
@@ -539,562 +750,585 @@ export function AdminDashboardTab({
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
 
-        {/* PRIMARY GRAPH 1: Document Volume Distribution Bar / Column Chart */}
-        <View
-          style={[
-            styles.chartCard,
-            {
-              backgroundColor: isDark ? '#111827' : '#ffffff',
-              borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
-            },
-          ]}
+        {/* Animated Charts & Visual Analytics Section */}
+        <Animated.View
+          style={{
+            opacity: fadeChart,
+            transform: [{ translateY: chartTranslateY }],
+          }}
         >
-          <View style={styles.chartHeader}>
-            <View>
-              <View style={styles.chartTitleRow}>
-                <Text style={styles.chartIconEmoji}>📊</Text>
-                <Text style={[styles.chartTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  Distribution by File Type
+          {/* PRIMARY GRAPH 1: Document Volume Distribution Bar / Column Chart */}
+          <View
+            style={[
+              styles.chartCard,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+              },
+            ]}
+          >
+            <View style={styles.chartHeader}>
+              <View>
+                <View style={styles.chartTitleRow}>
+                  <Text style={styles.chartIconEmoji}>📊</Text>
+                  <Text style={[styles.chartTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                    Distribution by File Type
+                  </Text>
+                </View>
+                <Text style={[styles.chartSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                  Interactive breakdown: Tap any column to inspect & filter
                 </Text>
               </View>
-              <Text style={[styles.chartSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                Interactive breakdown: Tap any column to inspect & filter
-              </Text>
-            </View>
 
-            <TouchableOpacity
-              style={[styles.allDocsPillBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
-              onPress={() => onNavigateTab('docs', 'all')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.allDocsPillText, { color: isDark ? '#93c5fd' : '#2563eb' }]}>
-                View All {totalCount}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Graph Visual Area */}
-          <View style={styles.graphWrapper}>
-            {/* Background Horizontal Guide Lines */}
-            <View style={styles.gridLinesContainer}>
-              <View style={[styles.gridLine, { borderColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
-                <Text style={[styles.gridLineLabel, { color: isDark ? '#64748b' : '#94a3b8' }]}>{maxCount}</Text>
-              </View>
-              <View style={[styles.gridLine, { borderColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
-                <Text style={[styles.gridLineLabel, { color: isDark ? '#64748b' : '#94a3b8' }]}>
-                  {Math.round(maxCount / 2)}
+              <TouchableOpacity
+                style={[styles.allDocsPillBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
+                onPress={() => onNavigateTab('docs', 'all')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.allDocsPillText, { color: isDark ? '#93c5fd' : '#2563eb' }]}>
+                  View All {totalCount}
                 </Text>
-              </View>
-              <View style={[styles.gridLine, { borderColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
-                <Text style={[styles.gridLineLabel, { color: isDark ? '#64748b' : '#94a3b8' }]}>0</Text>
-              </View>
+              </TouchableOpacity>
             </View>
 
-            {/* Vertical Columns for Each File Type */}
-            <View style={styles.columnsRow}>
-              {categories.map((cat) => {
-                const isSelected = selectedCategoryKey === cat.key;
-                const columnHeightPct = maxCount > 0 ? (cat.count / maxCount) * 100 : 0;
-                // Minimum bar height for visibility even if 0
-                const displayHeightPct = Math.max(columnHeightPct, cat.count > 0 ? 14 : 4);
+            {/* Graph Visual Area */}
+            <View style={styles.graphWrapper}>
+              {/* Background Horizontal Guide Lines */}
+              <View style={styles.gridLinesContainer}>
+                <View style={[styles.gridLine, { borderColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
+                  <Text style={[styles.gridLineLabel, { color: isDark ? '#64748b' : '#94a3b8' }]}>{maxCount}</Text>
+                </View>
+                <View style={[styles.gridLine, { borderColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
+                  <Text style={[styles.gridLineLabel, { color: isDark ? '#64748b' : '#94a3b8' }]}>
+                    {Math.round(maxCount / 2)}
+                  </Text>
+                </View>
+                <View style={[styles.gridLine, { borderColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
+                  <Text style={[styles.gridLineLabel, { color: isDark ? '#64748b' : '#94a3b8' }]}>0</Text>
+                </View>
+              </View>
 
-                return (
-                  <TouchableOpacity
-                    key={cat.key}
-                    style={styles.columnContainer}
-                    onPress={() => setSelectedCategoryKey(cat.key)}
-                    activeOpacity={0.75}
-                  >
-                    {/* Top Floating Count Badge */}
-                    <View
-                      style={[
-                        styles.barValueBadge,
-                        {
-                          backgroundColor: isSelected
-                            ? isDark
-                              ? cat.darkColor
-                              : cat.color
-                            : isDark
-                            ? '#1e293b'
-                            : '#f8fafc',
-                          borderColor: isSelected ? '#ffffff' : isDark ? '#334155' : '#e2e8f0',
-                        },
-                      ]}
+              {/* Vertical Columns for Each File Type */}
+              <View style={styles.columnsRow}>
+                {categories.map((cat) => {
+                  const isSelected = selectedCategoryKey === cat.key;
+                  const columnHeightPct = maxCount > 0 ? (cat.count / maxCount) * 100 : 0;
+                  // Minimum bar height for visibility even if 0
+                  const displayHeightPct = Math.max(columnHeightPct, cat.count > 0 ? 14 : 4);
+                  const animatedBarHeight = chartGrowthAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['4%', `${displayHeightPct}%`],
+                  });
+
+                  return (
+                    <TouchableOpacity
+                      key={cat.key}
+                      style={styles.columnContainer}
+                      onPress={() => handleSelectCategory(cat.key)}
+                      activeOpacity={0.75}
                     >
-                      <Text
-                        style={[
-                          styles.barValueText,
-                          {
-                            color: isSelected
-                              ? '#ffffff'
-                              : isDark
-                              ? colors.textPrimary
-                              : '#0f172a',
-                          },
-                        ]}
-                      >
-                        {cat.count}
-                      </Text>
-                    </View>
-
-                    {/* Bar Pillar */}
-                    <View style={styles.barTrack}>
+                      {/* Top Floating Count Badge */}
                       <View
                         style={[
-                          styles.barFill,
+                          styles.barValueBadge,
                           {
-                            height: `${displayHeightPct}%`,
-                            backgroundColor: isDark ? cat.darkColor : cat.color,
-                            opacity: isSelected ? 1 : 0.8,
-                            borderWidth: isSelected ? 2 : 0,
-                            borderColor: '#ffffff',
-                          },
-                        ]}
-                      />
-                    </View>
-
-                    {/* Category Label & Emoji at Foot */}
-                    <View style={styles.barFoot}>
-                      <Text style={styles.barFootEmoji}>{cat.emoji}</Text>
-                      <Text
-                        style={[
-                          styles.barFootLabel,
-                          {
-                            color: isSelected
+                            backgroundColor: isSelected
                               ? isDark
                                 ? cat.darkColor
                                 : cat.color
                               : isDark
-                              ? '#94a3b8'
-                              : '#64748b',
-                            fontWeight: isSelected ? '800' : '600',
+                              ? '#1e293b'
+                              : '#f8fafc',
+                            borderColor: isSelected ? '#ffffff' : isDark ? '#334155' : '#e2e8f0',
                           },
                         ]}
-                        numberOfLines={1}
                       >
-                        {cat.label}
-                      </Text>
-                      <Text style={[styles.barFootPct, { color: isDark ? '#64748b' : '#94a3b8' }]}>
-                        {cat.pct}%
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+                        <Text
+                          style={[
+                            styles.barValueText,
+                            {
+                              color: isSelected
+                                ? '#ffffff'
+                                : isDark
+                                ? colors.textPrimary
+                                : '#0f172a',
+                            },
+                          ]}
+                        >
+                          {cat.count}
+                        </Text>
+                      </View>
 
-          {/* Active Category Drilldown / Inspector Card */}
-          <View
-            style={[
-              styles.inspectorCard,
-              {
-                backgroundColor: isDark ? activeCategoryMetric.bgDark : activeCategoryMetric.bgLight,
-                borderColor: isDark ? activeCategoryMetric.darkColor : activeCategoryMetric.color,
-              },
-            ]}
-          >
-            <View style={styles.inspectorLeft}>
-              <View style={styles.inspectorHeader}>
-                <Text style={styles.inspectorEmoji}>{activeCategoryMetric.emoji}</Text>
-                <View>
-                  <Text
-                    style={[
-                      styles.inspectorTitle,
-                      { color: isDark ? '#f8fafc' : '#0f172a' },
-                    ]}
-                  >
-                    {activeCategoryMetric.label} Overview
-                  </Text>
-                  <Text
-                    style={[
-                      styles.inspectorSub,
-                      { color: isDark ? '#cbd5e1' : '#475569' },
-                    ]}
-                  >
-                    {activeCategoryMetric.description}
-                  </Text>
-                </View>
-              </View>
+                      {/* Bar Pillar */}
+                      <View style={styles.barTrack}>
+                        <Animated.View
+                          style={[
+                            styles.barFill,
+                            {
+                              height: animatedBarHeight,
+                              backgroundColor: isDark ? cat.darkColor : cat.color,
+                              opacity: isSelected ? 1 : 0.82,
+                              borderWidth: isSelected ? 2 : 0,
+                              borderColor: '#ffffff',
+                            },
+                          ]}
+                        />
+                      </View>
 
-              <View style={styles.inspectorStatsRow}>
-                <View style={styles.inspectorStatItem}>
-                  <Text style={[styles.inspectorStatValue, { color: isDark ? '#ffffff' : '#0f172a' }]}>
-                    {activeCategoryMetric.count}
-                  </Text>
-                  <Text style={[styles.inspectorStatLabel, { color: isDark ? '#cbd5e1' : '#64748b' }]}>
-                    Total Files
-                  </Text>
-                </View>
-
-                <View style={styles.inspectorStatDivider} />
-
-                <View style={styles.inspectorStatItem}>
-                  <Text style={[styles.inspectorStatValue, { color: isDark ? '#ffffff' : '#0f172a' }]}>
-                    {activeCategoryMetric.pct}%
-                  </Text>
-                  <Text style={[styles.inspectorStatLabel, { color: isDark ? '#cbd5e1' : '#64748b' }]}>
-                    Vault Share
-                  </Text>
-                </View>
+                      {/* Category Label & Emoji at Foot */}
+                      <View style={styles.barFoot}>
+                        <Text style={styles.barFootEmoji}>{cat.emoji}</Text>
+                        <Text
+                          style={[
+                            styles.barFootLabel,
+                            {
+                              color: isSelected
+                                ? isDark
+                                  ? cat.darkColor
+                                  : cat.color
+                                : isDark
+                                ? '#94a3b8'
+                                : '#64748b',
+                              fontWeight: isSelected ? '800' : '600',
+                            },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {cat.label}
+                        </Text>
+                        <Text style={[styles.barFootPct, { color: isDark ? '#64748b' : '#94a3b8' }]}>
+                          {cat.pct}%
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
 
-            <TouchableOpacity
+            {/* Active Category Drilldown / Inspector Card with Spring Animation */}
+            <Animated.View
               style={[
-                styles.inspectorActionBtn,
-                { backgroundColor: isDark ? activeCategoryMetric.darkColor : activeCategoryMetric.color },
-              ]}
-              onPress={() => onNavigateTab('docs', activeCategoryMetric.key)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.inspectorActionBtnText}>
-                Filter {activeCategoryMetric.label} ({activeCategoryMetric.count})
-              </Text>
-              <Image source={{ uri: ARROW_RIGHT_SVG('#ffffff') }} style={{ width: 14, height: 14 }} resizeMode="contain" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* PRIMARY GRAPH 2: Stacked Composition Spectrum Bar */}
-        <View
-          style={[
-            styles.spectrumCard,
-            {
-              backgroundColor: isDark ? '#111827' : '#ffffff',
-              borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
-            },
-          ]}
-        >
-          <View style={styles.spectrumHeader}>
-            <View>
-              <Text style={[styles.spectrumTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                Proportional Vault Composition
-              </Text>
-              <Text style={[styles.spectrumSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                Visual proportion of each file type across {totalCount} total assets
-              </Text>
-            </View>
-          </View>
-
-          {/* Continuous Stacked Segment Bar */}
-          <View style={styles.stackedBarContainer}>
-            {categories.map((cat) => {
-              if (cat.count <= 0) return null;
-              return (
-                <View
-                  key={cat.key}
-                  style={[
-                    styles.stackedBarSegment,
-                    {
-                      flex: cat.count || 1,
-                      backgroundColor: isDark ? cat.darkColor : cat.color,
-                    },
-                  ]}
-                />
-              );
-            })}
-          </View>
-
-          {/* Interactive Legend Pills with Counts and Percentages */}
-          <View style={styles.legendGrid}>
-            {categories.map((cat) => (
-              <TouchableOpacity
-                key={cat.key}
-                style={[
-                  styles.legendPill,
-                  {
-                    backgroundColor: isDark ? '#1e293b' : '#f8fafc',
-                    borderColor: isDark ? '#334155' : '#e2e8f0',
-                  },
-                ]}
-                onPress={() => onNavigateTab('docs', cat.key)}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.legendColorDot,
-                    { backgroundColor: isDark ? cat.darkColor : cat.color },
-                  ]}
-                />
-                <Text style={styles.legendEmoji}>{cat.emoji}</Text>
-                <Text style={[styles.legendLabel, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  {cat.label}
-                </Text>
-                <Text style={[styles.legendCount, { color: isDark ? cat.darkColor : cat.color }]}>
-                  {cat.count}
-                </Text>
-                <Text style={[styles.legendPct, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                  ({cat.pct}%)
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* PRIMARY GRAPH 3: Compliance & Verification Status */}
-        <View
-          style={[
-            styles.complianceCard,
-            {
-              backgroundColor: isDark ? '#111827' : '#ffffff',
-              borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
-            },
-          ]}
-        >
-          <View style={styles.complianceHeaderRow}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Image source={{ uri: SHIELD_CHECK_SVG(isDark ? '#34d399' : '#059669') }} style={{ width: 22, height: 22 }} resizeMode="contain" />
-              <View>
-                <Text style={[styles.complianceTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  Verification & Compliance Status
-                </Text>
-                <Text style={[styles.complianceSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                  Signed corporate records vs standard operational files
-                </Text>
-              </View>
-            </View>
-
-            <View style={[styles.complianceBadge, { backgroundColor: isDark ? '#064e3b' : '#d1fae5' }]}>
-              <Text style={[styles.complianceBadgeText, { color: isDark ? '#6ee7b7' : '#065f46' }]}>
-                {signedPct}% Signed
-              </Text>
-            </View>
-          </View>
-
-          {/* Dual Bar Comparison */}
-          <View style={styles.dualBarSection}>
-            {/* Signed bar */}
-            <View style={styles.dualBarItem}>
-              <View style={styles.dualBarLabelRow}>
-                <Text style={[styles.dualBarLabel, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  ✅ Signed & Legally Verified
-                </Text>
-                <Text style={[styles.dualBarCount, { color: isDark ? '#34d399' : '#059669' }]}>
-                  {signedCount} ({signedPct}%)
-                </Text>
-              </View>
-              <View style={[styles.dualBarTrack, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
-                <View
-                  style={[
-                    styles.dualBarFill,
-                    {
-                      width: `${signedPct}%`,
-                      backgroundColor: isDark ? '#10b981' : '#059669',
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-
-            {/* Unsigned bar */}
-            <View style={styles.dualBarItem}>
-              <View style={styles.dualBarLabelRow}>
-                <Text style={[styles.dualBarLabel, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  📋 Standard / Informational Files
-                </Text>
-                <Text style={[styles.dualBarCount, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                  {unsignedCount} ({100 - signedPct}%)
-                </Text>
-              </View>
-              <View style={[styles.dualBarTrack, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
-                <View
-                  style={[
-                    styles.dualBarFill,
-                    {
-                      width: `${100 - signedPct}%`,
-                      backgroundColor: isDark ? '#64748b' : '#94a3b8',
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* RECENT UPLOADS STREAM */}
-        <View style={styles.recentSection}>
-          <View style={styles.recentHeaderRow}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={{ fontSize: 18 }}>⏱️</Text>
-              <Text style={[styles.recentSectionTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                Recent Content Uploads
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => onNavigateTab('docs', 'all')}
-              activeOpacity={0.7}
-              style={[
-                styles.recentViewAllBtn,
-                { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }
-              ]}
-            >
-              <Text style={[styles.recentViewAllText, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
-                View All ({totalCount}) →
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {recentDocs.length === 0 ? (
-            <View
-              style={[
-                styles.emptyRecentCard,
+                styles.inspectorCard,
                 {
-                  backgroundColor: isDark ? '#111827' : '#ffffff',
-                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                  transform: [{ scale: inspectorScale }],
+                  backgroundColor: isDark ? activeCategoryMetric.bgDark : activeCategoryMetric.bgLight,
+                  borderColor: isDark ? activeCategoryMetric.darkColor : activeCategoryMetric.color,
                 },
               ]}
             >
-              <Text style={{ fontSize: 32, marginBottom: 8 }}>📁</Text>
-              <Text style={[styles.emptyRecentTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                No Uploads Yet
-              </Text>
-              <Text style={[styles.emptyRecentSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                New documents uploaded to DocuVault will appear here in real time.
-              </Text>
+              <View style={styles.inspectorLeft}>
+                <View style={styles.inspectorHeader}>
+                  <Text style={styles.inspectorEmoji}>{activeCategoryMetric.emoji}</Text>
+                  <View>
+                    <Text
+                      style={[
+                        styles.inspectorTitle,
+                        { color: isDark ? '#f8fafc' : '#0f172a' },
+                      ]}
+                    >
+                      {activeCategoryMetric.label} Overview
+                    </Text>
+                    <Text
+                      style={[
+                        styles.inspectorSub,
+                        { color: isDark ? '#cbd5e1' : '#475569' },
+                      ]}
+                    >
+                      {activeCategoryMetric.description}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.inspectorStatsRow}>
+                  <View style={styles.inspectorStatItem}>
+                    <Text style={[styles.inspectorStatValue, { color: isDark ? '#ffffff' : '#0f172a' }]}>
+                      {activeCategoryMetric.count}
+                    </Text>
+                    <Text style={[styles.inspectorStatLabel, { color: isDark ? '#cbd5e1' : '#64748b' }]}>
+                      Total Files
+                    </Text>
+                  </View>
+
+                  <View style={styles.inspectorStatDivider} />
+
+                  <View style={styles.inspectorStatItem}>
+                    <Text style={[styles.inspectorStatValue, { color: isDark ? '#ffffff' : '#0f172a' }]}>
+                      {activeCategoryMetric.pct}%
+                    </Text>
+                    <Text style={[styles.inspectorStatLabel, { color: isDark ? '#cbd5e1' : '#64748b' }]}>
+                      Vault Share
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.inspectorActionBtn,
+                  { backgroundColor: isDark ? activeCategoryMetric.darkColor : activeCategoryMetric.color },
+                ]}
+                onPress={() => onNavigateTab('docs', activeCategoryMetric.key)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.inspectorActionBtnText}>
+                  Filter {activeCategoryMetric.label} ({activeCategoryMetric.count})
+                </Text>
+                <Image source={{ uri: ARROW_RIGHT_SVG('#ffffff') }} style={{ width: 14, height: 14 }} resizeMode="contain" />
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+
+          {/* PRIMARY GRAPH 2: Stacked Composition Spectrum Bar */}
+          <View
+            style={[
+              styles.spectrumCard,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+              },
+            ]}
+          >
+            <View style={styles.spectrumHeader}>
+              <View>
+                <Text style={[styles.spectrumTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                  Proportional Vault Composition
+                </Text>
+                <Text style={[styles.spectrumSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                  Visual proportion of each file type across {totalCount} total assets
+                </Text>
+              </View>
             </View>
-          ) : (
-            recentDocs.map((doc) => {
-              const isArticle = doc.type === 'article';
-              const isPdf = doc.type === 'pdf';
-              const isDocx = doc.type === 'docx';
-              const isImg = doc.type === 'image';
-              const isVid = doc.type === 'video';
 
-              const badgeBg = isArticle
-                ? isDark ? '#3b0764' : '#f3e8ff'
-                : isPdf
-                ? isDark ? '#450a0a' : '#fee2e2'
-                : isDocx
-                ? isDark ? '#082f49' : '#e0f2fe'
-                : isImg
-                ? isDark ? '#064e3b' : '#dcfce7'
-                : isVid
-                ? isDark ? '#4c0519' : '#ffe4e6'
-                : isDark ? '#451a03' : '#fef3c7';
+            {/* Continuous Stacked Segment Bar */}
+            <View style={styles.stackedBarContainer}>
+              {categories.map((cat) => {
+                if (cat.count <= 0) return null;
+                return (
+                  <View
+                    key={cat.key}
+                    style={[
+                      styles.stackedBarSegment,
+                      {
+                        flex: cat.count || 1,
+                        backgroundColor: isDark ? cat.darkColor : cat.color,
+                      },
+                    ]}
+                  />
+                );
+              })}
+            </View>
 
-              const badgeColor = isArticle
-                ? isDark ? '#d8b4fe' : '#7e22ce'
-                : isPdf
-                ? isDark ? '#fca5a5' : '#dc2626'
-                : isDocx
-                ? isDark ? '#7dd3fc' : '#0284c7'
-                : isImg
-                ? isDark ? '#86efac' : '#16a34a'
-                : isVid
-                ? isDark ? '#fda4af' : '#e11d48'
-                : isDark ? '#fcd34d' : '#d97706';
-
-              const docIcon = isArticle
-                ? '📰'
-                : isPdf
-                ? '📄'
-                : isDocx
-                ? '📝'
-                : isImg
-                ? '🖼️'
-                : isVid
-                ? '🎥'
-                : '📁';
-
-              return (
+            {/* Interactive Legend Pills with Counts and Percentages */}
+            <View style={styles.legendGrid}>
+              {categories.map((cat) => (
                 <TouchableOpacity
-                  key={doc.id}
+                  key={cat.key}
                   style={[
-                    styles.recentDocCard,
+                    styles.legendPill,
                     {
-                      backgroundColor: isDark ? '#111827' : '#ffffff',
-                      borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                      backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+                      borderColor: isDark ? '#334155' : '#e2e8f0',
                     },
                   ]}
-                  onPress={() => onOpenDocument?.(doc as DocumentReaderItem)}
-                  activeOpacity={0.8}
+                  onPress={() => {
+                    handleSelectCategory(cat.key);
+                    onNavigateTab('docs', cat.key);
+                  }}
+                  activeOpacity={0.7}
                 >
-                  <View style={styles.recentDocLeft}>
-                    <View style={[styles.recentIconBox, { backgroundColor: badgeBg }]}>
-                      <Text style={styles.recentDocEmoji}>{doc.icon || docIcon}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[styles.recentDocTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}
-                        numberOfLines={1}
-                      >
-                        {doc.title}
-                      </Text>
-                      <View style={styles.recentMetaRow}>
+                  <View
+                    style={[
+                      styles.legendColorDot,
+                      { backgroundColor: isDark ? cat.darkColor : cat.color },
+                    ]}
+                  />
+                  <Text style={styles.legendEmoji}>{cat.emoji}</Text>
+                  <Text style={[styles.legendLabel, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                    {cat.label}
+                  </Text>
+                  <Text style={[styles.legendCount, { color: isDark ? cat.darkColor : cat.color }]}>
+                    {cat.count}
+                  </Text>
+                  <Text style={[styles.legendPct, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                    ({cat.pct}%)
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* PRIMARY GRAPH 3: Compliance & Verification Status */}
+          <View
+            style={[
+              styles.complianceCard,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+              },
+            ]}
+          >
+            <View style={styles.complianceHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Image source={{ uri: SHIELD_CHECK_SVG(isDark ? '#34d399' : '#059669') }} style={{ width: 22, height: 22 }} resizeMode="contain" />
+                <View>
+                  <Text style={[styles.complianceTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                    Verification & Compliance Status
+                  </Text>
+                  <Text style={[styles.complianceSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                    Signed corporate records vs standard operational files
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.complianceBadge, { backgroundColor: isDark ? '#064e3b' : '#d1fae5' }]}>
+                <Text style={[styles.complianceBadgeText, { color: isDark ? '#6ee7b7' : '#065f46' }]}>
+                  {signedPct}% Signed
+                </Text>
+              </View>
+            </View>
+
+            {/* Dual Bar Comparison with Spring Fill Animation */}
+            <View style={styles.dualBarSection}>
+              {/* Signed bar */}
+              <View style={styles.dualBarItem}>
+                <View style={styles.dualBarLabelRow}>
+                  <Text style={[styles.dualBarLabel, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                    ✅ Signed & Legally Verified
+                  </Text>
+                  <Text style={[styles.dualBarCount, { color: isDark ? '#34d399' : '#059669' }]}>
+                    {signedCount} ({signedPct}%)
+                  </Text>
+                </View>
+                <View style={[styles.dualBarTrack, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
+                  <Animated.View
+                    style={[
+                      styles.dualBarFill,
+                      {
+                        width: signedBarWidth,
+                        backgroundColor: isDark ? '#10b981' : '#059669',
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              {/* Unsigned bar */}
+              <View style={styles.dualBarItem}>
+                <View style={styles.dualBarLabelRow}>
+                  <Text style={[styles.dualBarLabel, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                    📋 Standard / Informational Files
+                  </Text>
+                  <Text style={[styles.dualBarCount, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                    {unsignedCount} ({100 - signedPct}%)
+                  </Text>
+                </View>
+                <View style={[styles.dualBarTrack, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
+                  <Animated.View
+                    style={[
+                      styles.dualBarFill,
+                      {
+                        width: unsignedBarWidth,
+                        backgroundColor: isDark ? '#64748b' : '#94a3b8',
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* Animated RECENT UPLOADS STREAM & SECURITY STRIP */}
+        <Animated.View
+          style={{
+            opacity: fadeRecent,
+            transform: [{ translateY: recentTranslateY }],
+          }}
+        >
+          <View style={styles.recentSection}>
+            <View style={styles.recentHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 18 }}>⏱️</Text>
+                <Text style={[styles.recentSectionTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                  Recent Content Uploads
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => onNavigateTab('docs', 'all')}
+                activeOpacity={0.7}
+                style={[
+                  styles.recentViewAllBtn,
+                  { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }
+                ]}
+              >
+                <Text style={[styles.recentViewAllText, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
+                  View All ({totalCount}) →
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {recentDocs.length === 0 ? (
+              <View
+                style={[
+                  styles.emptyRecentCard,
+                  {
+                    backgroundColor: isDark ? '#111827' : '#ffffff',
+                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>📁</Text>
+                <Text style={[styles.emptyRecentTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                  No Uploads Yet
+                </Text>
+                <Text style={[styles.emptyRecentSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                  New documents uploaded to DocuVault will appear here in real time.
+                </Text>
+              </View>
+            ) : (
+              recentDocs.map((doc) => {
+                const isArticle = doc.type === 'article';
+                const isPdf = doc.type === 'pdf';
+                const isDocx = doc.type === 'docx';
+                const isImg = doc.type === 'image';
+                const isVid = doc.type === 'video';
+
+                const badgeBg = isArticle
+                  ? isDark ? '#3b0764' : '#f3e8ff'
+                  : isPdf
+                  ? isDark ? '#450a0a' : '#fee2e2'
+                  : isDocx
+                  ? isDark ? '#082f49' : '#e0f2fe'
+                  : isImg
+                  ? isDark ? '#064e3b' : '#dcfce7'
+                  : isVid
+                  ? isDark ? '#4c0519' : '#ffe4e6'
+                  : isDark ? '#451a03' : '#fef3c7';
+
+                const badgeColor = isArticle
+                  ? isDark ? '#d8b4fe' : '#7e22ce'
+                  : isPdf
+                  ? isDark ? '#fca5a5' : '#dc2626'
+                  : isDocx
+                  ? isDark ? '#7dd3fc' : '#0284c7'
+                  : isImg
+                  ? isDark ? '#86efac' : '#16a34a'
+                  : isVid
+                  ? isDark ? '#fda4af' : '#e11d48'
+                  : isDark ? '#fcd34d' : '#d97706';
+
+                const docIcon = isArticle
+                  ? '📰'
+                  : isPdf
+                  ? '📄'
+                  : isDocx
+                  ? '📝'
+                  : isImg
+                  ? '🖼️'
+                  : isVid
+                  ? '🎥'
+                  : '📁';
+
+                return (
+                  <TouchableOpacity
+                    key={doc.id}
+                    style={[
+                      styles.recentDocCard,
+                      {
+                        backgroundColor: isDark ? '#111827' : '#ffffff',
+                        borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                      },
+                    ]}
+                    onPress={() => onOpenDocument?.(doc as DocumentReaderItem)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.recentDocLeft}>
+                      <View style={[styles.recentIconBox, { backgroundColor: badgeBg }]}>
+                        <Text style={styles.recentDocEmoji}>{doc.icon || docIcon}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
                         <Text
-                          style={[styles.recentDocSub, { color: isDark ? '#94a3b8' : '#64748b' }]}
+                          style={[styles.recentDocTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}
                           numberOfLines={1}
                         >
-                          👤 {doc.employeeName || 'Staff Member'}
+                          {doc.title}
                         </Text>
-                        <Text style={[styles.recentMetaDot, { color: isDark ? '#475569' : '#cbd5e1' }]}>•</Text>
-                        <Text
-                          style={[styles.recentDocSub, { color: isDark ? '#94a3b8' : '#64748b' }]}
-                        >
-                          💾 {doc.fileSize || 'Standard'}
+                        <View style={styles.recentMetaRow}>
+                          <Text
+                            style={[styles.recentDocSub, { color: isDark ? '#94a3b8' : '#64748b' }]}
+                            numberOfLines={1}
+                          >
+                            👤 {doc.employeeName || 'Staff Member'}
+                          </Text>
+                          <Text style={[styles.recentMetaDot, { color: isDark ? '#475569' : '#cbd5e1' }]}>•</Text>
+                          <Text
+                            style={[styles.recentDocSub, { color: isDark ? '#94a3b8' : '#64748b' }]}
+                          >
+                            💾 {doc.fileSize || 'Standard'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.recentDocRight}>
+                      <View style={[styles.recentTypePill, { backgroundColor: badgeBg }]}>
+                        <Text style={[styles.recentTypePillText, { color: badgeColor }]}>
+                          {(doc.type || 'DOC').toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={[styles.recentReadBtn, { backgroundColor: isDark ? 'rgba(96, 165, 250, 0.12)' : '#eff6ff' }]}>
+                        <Text style={[styles.recentOpenPrompt, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
+                          Open →
                         </Text>
                       </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
 
-                  <View style={styles.recentDocRight}>
-                    <View style={[styles.recentTypePill, { backgroundColor: badgeBg }]}>
-                      <Text style={[styles.recentTypePillText, { color: badgeColor }]}>
-                        {(doc.type || 'DOC').toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={[styles.recentReadBtn, { backgroundColor: isDark ? 'rgba(96, 165, 250, 0.12)' : '#eff6ff' }]}>
-                      <Text style={[styles.recentOpenPrompt, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
-                        Open →
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </View>
+          {/* Security & Vault Compliance Footer Strip */}
+          <View
+            style={[
+              styles.securityStrip,
+              {
+                backgroundColor: isDark ? 'rgba(17, 24, 39, 0.7)' : '#ffffff',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+              },
+            ]}
+          >
+            <View style={styles.securityStripRow}>
+              <View style={styles.securityChip}>
+                <Text style={{ fontSize: 13 }}>🛡️</Text>
+                <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                  AES-256 Encrypted
+                </Text>
+              </View>
 
-        {/* Security & Vault Compliance Footer Strip */}
-        <View
-          style={[
-            styles.securityStrip,
-            {
-              backgroundColor: isDark ? 'rgba(17, 24, 39, 0.7)' : '#ffffff',
-              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-            },
-          ]}
-        >
-          <View style={styles.securityStripRow}>
-            <View style={styles.securityChip}>
-              <Text style={{ fontSize: 13 }}>🛡️</Text>
-              <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                AES-256 Encrypted
-              </Text>
-            </View>
+              <View style={[styles.securityDot, { backgroundColor: isDark ? '#334155' : '#cbd5e1' }]} />
 
-            <View style={[styles.securityDot, { backgroundColor: isDark ? '#334155' : '#cbd5e1' }]} />
+              <View style={styles.securityChip}>
+                <Text style={{ fontSize: 13 }}>⚡</Text>
+                <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                  MongoDB Live Sync
+                </Text>
+              </View>
 
-            <View style={styles.securityChip}>
-              <Text style={{ fontSize: 13 }}>⚡</Text>
-              <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                MongoDB Live Sync
-              </Text>
-            </View>
+              <View style={[styles.securityDot, { backgroundColor: isDark ? '#334155' : '#cbd5e1' }]} />
 
-            <View style={[styles.securityDot, { backgroundColor: isDark ? '#334155' : '#cbd5e1' }]} />
-
-            <View style={styles.securityChip}>
-              <Text style={{ fontSize: 13 }}>🔒</Text>
-              <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                RBAC Privacy Enforced
-              </Text>
+              <View style={styles.securityChip}>
+                <Text style={{ fontSize: 13 }}>🔒</Text>
+                <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                  RBAC Privacy Enforced
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -1172,6 +1406,19 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
+  },
+  beaconContainer: {
+    width: 12,
+    height: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  beaconRing: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   liveDot: {
     width: 6,
