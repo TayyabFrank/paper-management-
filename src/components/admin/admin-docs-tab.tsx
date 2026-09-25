@@ -107,9 +107,38 @@ const TRASH_ACTION_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURI
 </svg>
 `)}`;
 
+const MINI_LINK_BADGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
+  <rect width="38" height="38" rx="10" fill="#ecfeff"/>
+  <path d="M12 20C12 16.6863 14.6863 14 18 14H20M20 14H22C25.3137 14 28 16.6863 28 20C28 23.3137 25.3137 26 22 26H20M15 20H23" stroke="#0891b2" stroke-width="2" stroke-linecap="round"/>
+  <text x="19" y="32" font-size="6.5" font-weight="900" fill="#0891b2" text-anchor="middle" font-family="sans-serif">LINK</text>
+</svg>
+`)}`;
+
+const MINI_VIDEO_BADGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
+  <rect width="38" height="38" rx="10" fill="#fff1f2"/>
+  <rect x="9" y="10" width="20" height="15" rx="3" stroke="#e11d48" stroke-width="1.6" fill="#ffffff"/>
+  <polygon points="17,14 23,17.5 17,21" fill="#e11d48"/>
+  <text x="19" y="32" font-size="6.5" font-weight="900" fill="#e11d48" text-anchor="middle" font-family="sans-serif">VID</text>
+</svg>
+`)}`;
+
 function getMiniFileBadge(doc: DocumentReaderItem) {
   if (doc.type === 'image') return MINI_IMAGE_BADGE;
   if (doc.type === 'docx') return MINI_DOCX_BADGE;
+  if (
+    doc.type === 'link' ||
+    Boolean(
+      doc.fileUrl &&
+        (doc.fileUrl.includes('drive.google.com') ||
+          doc.fileUrl.includes('docs.google.com') ||
+          doc.fileUrl.startsWith('http'))
+    )
+  ) {
+    return MINI_LINK_BADGE;
+  }
+  if (doc.type === 'video') return MINI_VIDEO_BADGE;
   if (doc.subtitle?.toLowerCase().includes('not uploaded')) return MINI_RED_PDF_BADGE;
   return MINI_PDF_BADGE;
 }
@@ -176,22 +205,41 @@ export function AdminDocsTab({
       })
     : documents;
 
+  const isLinkDoc = (d: DocumentReaderItem) =>
+    d.type === 'link' ||
+    Boolean(
+      d.fileUrl &&
+        (d.fileUrl.includes('drive.google.com') ||
+          d.fileUrl.includes('docs.google.com') ||
+          d.fileUrl.startsWith('http'))
+    );
+
+  const isOtherDoc = (d: DocumentReaderItem) =>
+    d.type === 'other' ||
+    d.type === 'video' ||
+    (!['pdf', 'docx', 'article', 'image'].includes(d.type || '') && !isLinkDoc(d));
+
   const filteredDocs = employeeDocs.filter((d) => {
     const matchesSearch =
       d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       d.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (d.employeeName && d.employeeName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (d.employeeEmail && d.employeeEmail.toLowerCase().includes(searchQuery.toLowerCase()));
-    if (activeCategory === 'all') return matchesSearch;
-    return matchesSearch && d.type === activeCategory;
+
+    if (!matchesSearch) return false;
+
+    if (activeCategory === 'all') return true;
+    if (activeCategory === 'link') return isLinkDoc(d);
+    if (activeCategory === 'other') return isOtherDoc(d);
+    return d.type === activeCategory;
   });
 
   const pdfCount = employeeDocs.filter((d) => d.type === 'pdf').length;
   const docxCount = employeeDocs.filter((d) => d.type === 'docx').length;
   const articleCount = employeeDocs.filter((d) => d.type === 'article').length;
   const imageCount = employeeDocs.filter((d) => d.type === 'image').length;
-  const videoCount = employeeDocs.filter((d) => d.type === 'video').length;
-  const otherCount = employeeDocs.filter((d) => d.type === 'other' || d.type === 'link').length;
+  const linkCount = employeeDocs.filter(isLinkDoc).length;
+  const otherCount = employeeDocs.filter(isOtherDoc).length;
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>
@@ -459,23 +507,25 @@ export function AdminDocsTab({
             </Text>
           </TouchableOpacity>
 
+          {/* Links / Google Drive on the same line */}
           <TouchableOpacity
             style={[
               styles.categoryPill,
-              activeCategory === 'video' && styles.categoryPillActive,
+              activeCategory === 'link' && styles.categoryPillActive,
             ]}
-            onPress={() => selectCategory('video')}
+            onPress={() => selectCategory('link')}
             activeOpacity={0.7}
           >
-            <Text style={styles.categoryPillEmoji}>🎥</Text>
+            <Text style={styles.categoryPillEmoji}>🔗</Text>
             <Text style={[styles.categoryCount, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-              {videoCount}
+              {linkCount}
             </Text>
             <Text style={[styles.categoryLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              Videos
+              Links / Drive
             </Text>
           </TouchableOpacity>
 
+          {/* Other / Videos in the Other folder */}
           <TouchableOpacity
             style={[
               styles.categoryPill,
@@ -484,7 +534,7 @@ export function AdminDocsTab({
             onPress={() => selectCategory('other')}
             activeOpacity={0.7}
           >
-            <Text style={styles.categoryPillEmoji}>💬</Text>
+            <Text style={styles.categoryPillEmoji}>📁</Text>
             <Text style={[styles.categoryCount, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
               {otherCount}
             </Text>
@@ -574,7 +624,7 @@ export function AdminDocsTab({
                     {doc.subtitle}
                   </Text>
 
-                  {/* Uploaded By Author Chip */}
+                  {/* Uploaded By Author Chip & Drive Indicator */}
                   <View style={styles.uploaderRow}>
                     <Text
                       style={[
@@ -585,6 +635,26 @@ export function AdminDocsTab({
                     >
                       👤 {doc.employeeName || 'Staff Member'}{doc.employeeEmail ? ` • ${doc.employeeEmail}` : ''}
                     </Text>
+                    {isLinkDoc(doc) && (
+                      <View
+                        style={[
+                          styles.driveLinkPill,
+                          {
+                            backgroundColor: isDark ? '#083344' : '#ecfeff',
+                            borderColor: isDark ? '#155e75' : '#a5f3fc',
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.driveLinkPillText,
+                            { color: isDark ? '#38bdf8' : '#0891b2' },
+                          ]}
+                        >
+                          🔗 Google Drive Link
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
 
@@ -894,11 +964,28 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   uploaderRow: {
-    marginTop: 2,
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   uploaderBadgeText: {
     fontSize: 11.5,
     fontWeight: '600',
+  },
+  driveLinkPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  driveLinkPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   cardActionsCol: {
     flexDirection: 'row',

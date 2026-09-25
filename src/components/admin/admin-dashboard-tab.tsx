@@ -81,7 +81,7 @@ const DATABASE_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComp
 `)}`;
 
 export interface CategoryMetric {
-  key: 'article' | 'pdf' | 'docx' | 'image' | 'video' | 'other';
+  key: 'article' | 'pdf' | 'docx' | 'image' | 'link' | 'other' | 'video';
   label: string;
   emoji: string;
   count: number;
@@ -307,17 +307,32 @@ export function AdminDashboardTab({
   const imageCount = backendStats?.countsByType?.image ??
     documents.filter((d) => d.type === 'image').length;
 
+  // Real-time link count from backend or uploaded documents (including Google Drive links)
+  const linkCount = (backendStats?.countsByType?.link !== undefined && backendStats.countsByType.link > 0)
+    ? backendStats.countsByType.link
+    : documents.filter(
+        (d) =>
+          d.type === 'link' ||
+          Boolean(d.fileUrl && (d.fileUrl.includes('drive.google.com') || d.fileUrl.includes('docs.google.com')))
+      ).length;
+
+  // Video count (folded into the "Other" folder/category as requested)
   const videoCount = backendStats?.countsByType?.video ??
     documents.filter((d) => d.type === 'video').length;
 
-  const otherCount = backendStats
-    ? (backendStats.countsByType?.other || 0) + (backendStats.countsByType?.link || 0)
-    : documents.filter((d) => d.type === 'other' || d.type === 'link').length;
+  const rawOtherCount = backendStats?.countsByType?.other ??
+    documents.filter(
+      (d) =>
+        d.type === 'other' ||
+        (!['article', 'pdf', 'docx', 'image', 'link', 'video'].includes(d.type || ''))
+    ).length;
+
+  const otherWithVideoCount = rawOtherCount + videoCount;
 
   // Safe percentage calculation
   const calcPct = (count: number) => (totalCount > 0 ? Math.round((count / totalCount) * 100) : 0);
 
-  // Six-way file type breakdown categories
+  // Six-way file type breakdown categories with Links on the main line and Videos in Other
   const categories: CategoryMetric[] = useMemo(
     () => [
       {
@@ -369,31 +384,31 @@ export function AdminDashboardTab({
         description: 'Facility blueprints, architectural maps & schematic photos',
       },
       {
-        key: 'video',
-        label: 'Videos',
-        emoji: '🎥',
-        count: videoCount,
-        pct: calcPct(videoCount),
-        color: '#e11d48',
-        darkColor: '#fb7185',
-        bgLight: '#fff1f2',
-        bgDark: '#4c0519',
-        description: 'Compliance briefings, training seminars & video walkthroughs',
+        key: 'link',
+        label: 'Links',
+        emoji: '🔗',
+        count: linkCount,
+        pct: calcPct(linkCount),
+        color: '#06b6d4',
+        darkColor: '#38bdf8',
+        bgLight: '#ecfeff',
+        bgDark: '#083344',
+        description: 'Google Drive links, web URLs & shared cloud document repositories',
       },
       {
         key: 'other',
-        label: 'Other / Links',
-        emoji: '💬',
-        count: otherCount,
-        pct: calcPct(otherCount),
+        label: 'Other',
+        emoji: '📁',
+        count: otherWithVideoCount,
+        pct: calcPct(otherWithVideoCount),
         color: '#f59e0b',
         darkColor: '#fbbf24',
         bgLight: '#fffbeb',
         bgDark: '#451a03',
-        description: 'Cloud drive links, external bookmarks & miscellaneous files',
+        description: 'Training videos, media recordings & miscellaneous vault archives',
       },
     ],
-    [articleCount, pdfCount, docxCount, imageCount, videoCount, otherCount, totalCount]
+    [articleCount, pdfCount, docxCount, imageCount, linkCount, otherWithVideoCount, totalCount]
   );
 
   // Maximum count for vertical graph scaling
@@ -1195,6 +1210,14 @@ export function AdminDashboardTab({
                 const isDocx = doc.type === 'docx';
                 const isImg = doc.type === 'image';
                 const isVid = doc.type === 'video';
+                const isLink =
+                  doc.type === 'link' ||
+                  Boolean(
+                    doc.fileUrl &&
+                      (doc.fileUrl.includes('drive.google.com') ||
+                        doc.fileUrl.includes('docs.google.com') ||
+                        doc.fileUrl.startsWith('http'))
+                  );
 
                 const badgeBg = isArticle
                   ? isDark ? '#3b0764' : '#f3e8ff'
@@ -1204,6 +1227,8 @@ export function AdminDashboardTab({
                   ? isDark ? '#082f49' : '#e0f2fe'
                   : isImg
                   ? isDark ? '#064e3b' : '#dcfce7'
+                  : isLink
+                  ? isDark ? '#083344' : '#ecfeff'
                   : isVid
                   ? isDark ? '#4c0519' : '#ffe4e6'
                   : isDark ? '#451a03' : '#fef3c7';
@@ -1216,6 +1241,8 @@ export function AdminDashboardTab({
                   ? isDark ? '#7dd3fc' : '#0284c7'
                   : isImg
                   ? isDark ? '#86efac' : '#16a34a'
+                  : isLink
+                  ? isDark ? '#38bdf8' : '#0891b2'
                   : isVid
                   ? isDark ? '#fda4af' : '#e11d48'
                   : isDark ? '#fcd34d' : '#d97706';
@@ -1228,6 +1255,8 @@ export function AdminDashboardTab({
                   ? '📝'
                   : isImg
                   ? '🖼️'
+                  : isLink
+                  ? '🔗'
                   : isVid
                   ? '🎥'
                   : '📁';
@@ -1267,7 +1296,7 @@ export function AdminDashboardTab({
                           <Text
                             style={[styles.recentDocSub, { color: isDark ? '#94a3b8' : '#64748b' }]}
                           >
-                            💾 {doc.fileSize || 'Standard'}
+                            {isLink ? '🌐 Cloud Link' : `💾 ${doc.fileSize || 'Standard'}`}
                           </Text>
                         </View>
                       </View>
@@ -1276,7 +1305,7 @@ export function AdminDashboardTab({
                     <View style={styles.recentDocRight}>
                       <View style={[styles.recentTypePill, { backgroundColor: badgeBg }]}>
                         <Text style={[styles.recentTypePillText, { color: badgeColor }]}>
-                          {(doc.type || 'DOC').toUpperCase()}
+                          {isLink ? 'DRIVE / LINK' : (doc.type || 'DOC').toUpperCase()}
                         </Text>
                       </View>
                       <View style={[styles.recentReadBtn, { backgroundColor: isDark ? 'rgba(96, 165, 250, 0.12)' : '#eff6ff' }]}>
