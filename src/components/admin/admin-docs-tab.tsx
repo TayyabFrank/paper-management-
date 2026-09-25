@@ -162,20 +162,12 @@ export function AdminDocsTab({
 
   useEffect(() => {
     if (initialCategory) {
-      if (initialCategory === 'link') {
-        setActiveCategory('other');
-        setOtherSubFilter('links');
-      } else {
-        setActiveCategory(initialCategory);
-      }
+      setActiveCategory(initialCategory);
     }
   }, [initialCategory]);
 
   const selectCategory = (cat: string) => {
     setActiveCategory(cat);
-    if (cat === 'other') {
-      setOtherSubFilter('all');
-    }
     onCategoryChange?.(cat);
   };
 
@@ -214,20 +206,34 @@ export function AdminDocsTab({
       })
     : documents;
 
-  const isLinkDoc = (d: DocumentReaderItem) =>
-    d.type === 'link' ||
-    Boolean(
-      d.fileUrl &&
-        (d.fileUrl.includes('drive.google.com') ||
-          d.fileUrl.includes('docs.google.com') ||
-          d.fileUrl.startsWith('http'))
-    );
+  const isLinkDoc = (d: DocumentReaderItem) => {
+    const type = (d.type || '').toLowerCase();
+    const title = (d.title || '').toLowerCase();
+    const url = (d.fileUrl || '').toLowerCase();
+    const name = (d.fileName || '').toLowerCase();
+    const size = (d.fileSize || '').toLowerCase();
+    const cat = (d.fullContent?.category || '').toLowerCase();
 
-  // Other folder contains Google Drive links and miscellaneous archives
+    return (
+      type === 'link' ||
+      url.includes('drive.google.com') ||
+      url.includes('docs.google.com') ||
+      url.startsWith('http://') ||
+      url.startsWith('https://') ||
+      title.includes('drive.google.com') ||
+      title.includes('docs.google.com') ||
+      title.includes('drive link') ||
+      title.includes('google drive') ||
+      name.includes('drive.google.com') ||
+      size.includes('drive') ||
+      cat.includes('drive') ||
+      cat.includes('link')
+    );
+  };
+
   const isOtherDoc = (d: DocumentReaderItem) =>
-    isLinkDoc(d) ||
-    d.type === 'other' ||
-    !['pdf', 'docx', 'article', 'image', 'video'].includes(d.type || '');
+    !isLinkDoc(d) &&
+    (d.type === 'other' || !['pdf', 'docx', 'article', 'image', 'video'].includes(d.type || ''));
 
   const filteredDocs = employeeDocs.filter((d) => {
     const matchesSearch =
@@ -239,13 +245,13 @@ export function AdminDocsTab({
     if (!matchesSearch) return false;
 
     if (activeCategory === 'all') return true;
+    if (activeCategory === 'link') return isLinkDoc(d);
     if (activeCategory === 'video') return d.type === 'video';
-    if (activeCategory === 'other' || activeCategory === 'link') {
-      if (!isOtherDoc(d)) return false;
-      if (otherSubFilter === 'links' || activeCategory === 'link') return isLinkDoc(d);
-      if (otherSubFilter === 'misc') return !isLinkDoc(d);
-      return true;
-    }
+    if (activeCategory === 'pdf') return d.type === 'pdf';
+    if (activeCategory === 'docx') return d.type === 'docx';
+    if (activeCategory === 'article') return d.type === 'article';
+    if (activeCategory === 'image') return d.type === 'image';
+    if (activeCategory === 'other') return isOtherDoc(d);
     return d.type === activeCategory;
   });
 
@@ -541,11 +547,29 @@ export function AdminDocsTab({
             </Text>
           </TouchableOpacity>
 
-          {/* Other (contains Google Drive Links & Other files) */}
+          {/* Links / Google Drive Folder on Navbar */}
           <TouchableOpacity
             style={[
               styles.categoryPill,
-              (activeCategory === 'other' || activeCategory === 'link') && styles.categoryPillActive,
+              activeCategory === 'link' && styles.categoryPillActive,
+            ]}
+            onPress={() => selectCategory('link')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.categoryPillEmoji}>🔗</Text>
+            <Text style={[styles.categoryCount, { color: isDark ? '#38bdf8' : '#0891b2' }]}>
+              {linkDocsCount}
+            </Text>
+            <Text style={[styles.categoryLabel, { color: activeCategory === 'link' ? (isDark ? '#38bdf8' : '#0891b2') : (isDark ? '#94a3b8' : '#64748b'), fontWeight: activeCategory === 'link' ? '800' : '500' }]}>
+              Links
+            </Text>
+          </TouchableOpacity>
+
+          {/* Other */}
+          <TouchableOpacity
+            style={[
+              styles.categoryPill,
+              activeCategory === 'other' && styles.categoryPillActive,
             ]}
             onPress={() => selectCategory('other')}
             activeOpacity={0.7}
@@ -560,139 +584,35 @@ export function AdminDocsTab({
           </TouchableOpacity>
         </ScrollView>
 
-        {/* Prominent Google Drive Links Folder inside the "Other" folder */}
-        {(activeCategory === 'other' || activeCategory === 'link') && (
+        {/* Dedicated Google Drive Links Folder Banner */}
+        {activeCategory === 'link' && (
           <View
             style={[
               styles.otherFolderBanner,
               {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                backgroundColor: isDark ? '#083344' : '#ecfeff',
+                borderColor: isDark ? '#155e75' : '#a5f3fc',
               },
             ]}
           >
             <View style={styles.otherFolderHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={[styles.folderIconBox, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
-                  <Text style={{ fontSize: 20 }}>📁</Text>
+                <View style={[styles.folderIconBox, { backgroundColor: isDark ? '#0e7490' : '#cffafe' }]}>
+                  <Text style={{ fontSize: 20 }}>🔗</Text>
                 </View>
                 <View>
-                  <Text style={[styles.otherFolderTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                    Other Repository Vault
+                  <Text style={[styles.otherFolderTitle, { color: isDark ? '#38bdf8' : '#0891b2' }]}>
+                    Google Drive & Cloud Links Folder
                   </Text>
-                  <Text style={[styles.otherFolderSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                    {otherTotalCount} items • {linkDocsCount} Google Drive Links
+                  <Text style={[styles.otherFolderSub, { color: isDark ? '#94a3b8' : '#0e7490' }]}>
+                    {linkDocsCount} staff uploaded Google Drive links • Tap any document to inspect in live reader
                   </Text>
                 </View>
               </View>
             </View>
-
-            <View style={styles.otherSubTabsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.otherSubTabBtn,
-                  otherSubFilter === 'all' && styles.otherSubTabBtnActive,
-                  {
-                    backgroundColor:
-                      otherSubFilter === 'all'
-                        ? '#2563eb'
-                        : isDark
-                        ? '#1e293b'
-                        : '#f1f5f9',
-                  },
-                ]}
-                onPress={() => setOtherSubFilter('all')}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.otherSubTabText,
-                    {
-                      color:
-                        otherSubFilter === 'all'
-                          ? '#ffffff'
-                          : isDark
-                          ? '#cbd5e1'
-                          : '#475569',
-                    },
-                  ]}
-                >
-                  All Other ({otherTotalCount})
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.otherSubTabBtn,
-                  otherSubFilter === 'links' && styles.otherSubTabBtnActive,
-                  {
-                    backgroundColor:
-                      otherSubFilter === 'links'
-                        ? '#0891b2'
-                        : isDark
-                        ? '#083344'
-                        : '#ecfeff',
-                    borderColor: isDark ? '#155e75' : '#a5f3fc',
-                    borderWidth: 1,
-                  },
-                ]}
-                onPress={() => setOtherSubFilter('links')}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: 13, marginRight: 2 }}>🔗</Text>
-                <Text
-                  style={[
-                    styles.otherSubTabText,
-                    {
-                      color:
-                        otherSubFilter === 'links'
-                          ? '#ffffff'
-                          : isDark
-                          ? '#38bdf8'
-                          : '#0891b2',
-                      fontWeight: '700',
-                    },
-                  ]}
-                >
-                  Google Drive Links ({linkDocsCount})
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.otherSubTabBtn,
-                  otherSubFilter === 'misc' && styles.otherSubTabBtnActive,
-                  {
-                    backgroundColor:
-                      otherSubFilter === 'misc'
-                        ? '#475569'
-                        : isDark
-                        ? '#1e293b'
-                        : '#f1f5f9',
-                  },
-                ]}
-                onPress={() => setOtherSubFilter('misc')}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.otherSubTabText,
-                    {
-                      color:
-                        otherSubFilter === 'misc'
-                          ? '#ffffff'
-                          : isDark
-                          ? '#cbd5e1'
-                          : '#475569',
-                    },
-                  ]}
-                >
-                  Other Files ({otherTotalCount - linkDocsCount})
-                </Text>
-              </TouchableOpacity>
-            </View>
           </View>
         )}
+
 
         {/* Document Cards List */}
         {filteredDocs.length === 0 ? (
