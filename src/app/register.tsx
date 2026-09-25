@@ -11,8 +11,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { DocuVaultLogo } from '@/components/docuvault-logo';
 import { EmployeeRegistrationCard } from '@/components/employee-registration-card';
-import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { AuthAnimatedBackground } from '@/components/auth-animated-background';
+import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
 export default function RegisterScreen() {
@@ -25,39 +25,41 @@ export default function RegisterScreen() {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background}
       />
-      <AuthAnimatedBackground>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardContainer}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
-        >
-          <View style={styles.topThemeBar}>
-            <ThemeToggleButton />
-          </View>
 
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            automaticallyAdjustKeyboardInsets={true}
-          >
-            <View style={styles.innerContainer}>
-              <DocuVaultLogo subtitle="Create your enterprise account" />
-              <EmployeeRegistrationCard
-                initialMode="register"
-                onModeChange={(mode) => {
-                  if (mode === 'login') {
-                    router.push('/login');
-                  }
-                }}
-                onLoginSuccess={() => {
-                  router.replace('/');
-                }}
-              />
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </AuthAnimatedBackground>
+      {/* Floating Animated Ambient Glow Orbs */}
+      <AuthAnimatedBackground />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardContainer}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+      >
+        <View style={styles.topThemeBar}>
+          <ThemeToggleButton />
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
+        >
+          <View style={styles.innerContainer}>
+            <DocuVaultLogo subtitle="Create your enterprise account" />
+            <EmployeeRegistrationCard
+              initialMode="register"
+              onModeChange={(mode) => {
+                if (mode === 'login') {
+                  router.push('/login');
+                }
+              }}
+              onLoginSuccess={() => {
+                router.replace('/');
+              }}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -65,6 +67,8 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    position: 'relative',
+    overflow: 'hidden',
   },
   keyboardContainer: {
     flex: 1,
@@ -84,6 +88,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 24,
     paddingHorizontal: 16,
+    zIndex: 2,
   },
   innerContainer: {
     width: '100%',

@@ -1,220 +1,207 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Animated, Easing, Dimensions } from 'react-native';
+import { StyleSheet, View, Animated, Easing, Dimensions, Platform } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-interface AuthAnimatedBackgroundProps {
-  children?: React.ReactNode;
-}
-
-export function AuthAnimatedBackground({ children }: AuthAnimatedBackgroundProps) {
+export function AuthAnimatedBackground() {
   const { isDark } = useDocuVaultTheme();
 
-  // Floating animation values declared with useState initializer (React 19 compliant)
+  // Floating animation values using useState lazy initializers
   const [floatAnim1] = useState(() => new Animated.Value(0));
   const [floatAnim2] = useState(() => new Animated.Value(0));
-  const [pulseScale] = useState(() => new Animated.Value(1));
+  const [pulseAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    // Smooth looping float for Orb 1 (Top Left)
-    const anim1 = Animated.loop(
+    // Loop for Orb 1 (top-right floating motion)
+    const loop1 = Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim1, {
           toValue: 1,
-          duration: 7000,
+          duration: 6000,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(floatAnim1, {
           toValue: 0,
-          duration: 7000,
+          duration: 6000,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
       ])
     );
 
-    // Smooth looping float for Orb 2 (Bottom Right)
-    const anim2 = Animated.loop(
+    // Loop for Orb 2 (bottom-left floating motion)
+    const loop2 = Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim2, {
           toValue: 1,
-          duration: 9000,
-          easing: Easing.inOut(Easing.quad),
+          duration: 8000,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(floatAnim2, {
           toValue: 0,
-          duration: 9000,
-          easing: Easing.inOut(Easing.quad),
+          duration: 8000,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
       ])
     );
 
-    // Smooth subtle pulsing
-    const pulse = Animated.loop(
+    // Breathing pulse for radial intensity
+    const loopPulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseScale, {
-          toValue: 1.12,
-          duration: 5500,
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 4500,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-        Animated.timing(pulseScale, {
-          toValue: 1.0,
-          duration: 5500,
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 4500,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
       ])
     );
 
-    anim1.start();
-    anim2.start();
-    pulse.start();
+    loop1.start();
+    loop2.start();
+    loopPulse.start();
 
     return () => {
-      anim1.stop();
-      anim2.stop();
-      pulse.stop();
+      loop1.stop();
+      loop2.stop();
+      loopPulse.stop();
     };
-  }, [floatAnim1, floatAnim2, pulseScale]);
+  }, [floatAnim1, floatAnim2, pulseAnim]);
 
   // Interpolations for Orb 1
-  const orb1TranslateX = floatAnim1.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-30, 40],
+  const transX1 = floatAnim1.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 35, -20],
   });
-  const orb1TranslateY = floatAnim1.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-20, 50],
+  const transY1 = floatAnim1.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, -40, 25],
+  });
+  const scale1 = floatAnim1.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 1.15, 0.95],
   });
 
   // Interpolations for Orb 2
-  const orb2TranslateX = floatAnim2.interpolate({
-    inputRange: [0, 1],
-    outputRange: [20, -50],
+  const transX2 = floatAnim2.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, -30, 25],
   });
-  const orb2TranslateY = floatAnim2.interpolate({
-    inputRange: [0, 1],
-    outputRange: [30, -35],
+  const transY2 = floatAnim2.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 35, -20],
+  });
+  const scale2 = floatAnim2.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 0.9, 1.12],
+  });
+
+  const orbOpacity = pulseAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.65, 0.9, 0.65],
   });
 
   return (
-    <View style={styles.container}>
-      {/* Background Ambient Orbs */}
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        {/* Orb 1: Primary Cyan/Sky Glow */}
-        <Animated.View
-          style={[
-            styles.orb,
-            styles.orb1,
-            {
-              backgroundColor: isDark
-                ? 'rgba(56, 189, 248, 0.16)'
-                : 'rgba(37, 99, 235, 0.11)',
-              transform: [
-                { translateX: orb1TranslateX },
-                { translateY: orb1TranslateY },
-                { scale: pulseScale },
-              ],
-            },
-          ]}
-        />
+    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      {/* Orb 1: Electric Sapphire / Neon Cyan */}
+      <Animated.View
+        style={[
+          styles.orb,
+          styles.orb1,
+          {
+            backgroundColor: isDark ? 'rgba(56, 189, 248, 0.28)' : 'rgba(37, 99, 235, 0.16)',
+            opacity: orbOpacity,
+            transform: [
+              { translateX: transX1 },
+              { translateY: transY1 },
+              { scale: scale1 },
+            ],
+          },
+        ]}
+      />
 
-        {/* Orb 2: Purple/Indigo Accent Glow */}
-        <Animated.View
-          style={[
-            styles.orb,
-            styles.orb2,
-            {
-              backgroundColor: isDark
-                ? 'rgba(147, 51, 234, 0.14)'
-                : 'rgba(99, 102, 241, 0.10)',
-              transform: [
-                { translateX: orb2TranslateX },
-                { translateY: orb2TranslateY },
-              ],
-            },
-          ]}
-        />
+      {/* Orb 2: Deep Indigo / Violet Neon */}
+      <Animated.View
+        style={[
+          styles.orb,
+          styles.orb2,
+          {
+            backgroundColor: isDark ? 'rgba(139, 92, 246, 0.24)' : 'rgba(124, 58, 237, 0.14)',
+            opacity: orbOpacity,
+            transform: [
+              { translateX: transX2 },
+              { translateY: transY2 },
+              { scale: scale2 },
+            ],
+          },
+        ]}
+      />
 
-        {/* Orb 3: Center Emerald / Amber Ambient Glow */}
-        <Animated.View
-          style={[
-            styles.orb,
-            styles.orb3,
-            {
-              backgroundColor: isDark
-                ? 'rgba(16, 185, 129, 0.08)'
-                : 'rgba(14, 165, 233, 0.07)',
-              transform: [{ scale: pulseScale }],
-            },
-          ]}
-        />
-
-        {/* Subtle decorative grid/vignette overlay */}
-        <View
-          style={[
-            styles.overlayVignette,
-            {
-              backgroundColor: isDark
-                ? 'rgba(10, 15, 29, 0.25)'
-                : 'rgba(255, 255, 255, 0.05)',
-            },
-          ]}
-        />
-      </View>
-
-      {/* Children content rendered on top */}
-      {children}
+      {/* Orb 3: Emerald Security Beacon / Subtle Teal */}
+      <Animated.View
+        style={[
+          styles.orb,
+          styles.orb3,
+          {
+            backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : 'rgba(5, 150, 105, 0.11)',
+            opacity: pulseAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.4, 0.75],
+            }),
+            transform: [
+              { scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.08] }) },
+            ],
+          },
+        ]}
+      />
     </View>
   );
 }
 
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    position: 'relative',
-    overflow: 'hidden',
-  },
   orb: {
     position: 'absolute',
     borderRadius: 999,
+    ...(Platform.OS === 'web'
+      ? {
+          filter: 'blur(70px)',
+          WebkitFilter: 'blur(70px)',
+          willChange: 'transform, opacity',
+        }
+      : {
+          shadowColor: '#38bdf8',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.6,
+          shadowRadius: 50,
+          elevation: 10,
+        }),
   },
   orb1: {
-    width: Math.min(SCREEN_WIDTH * 0.9, 440),
-    height: Math.min(SCREEN_WIDTH * 0.9, 440),
     top: -60,
-    left: -60,
-    shadowColor: '#38bdf8',
-    shadowOpacity: 0.5,
-    shadowRadius: 70,
-    elevation: 0,
+    right: -40,
+    width: Math.min(width * 0.75, 340),
+    height: Math.min(width * 0.75, 340),
   },
   orb2: {
-    width: Math.min(SCREEN_WIDTH * 0.85, 400),
-    height: Math.min(SCREEN_WIDTH * 0.85, 400),
-    bottom: -80,
-    right: -60,
-    shadowColor: '#8b5cf6',
-    shadowOpacity: 0.45,
-    shadowRadius: 80,
-    elevation: 0,
+    bottom: 60,
+    left: -50,
+    width: Math.min(width * 0.7, 320),
+    height: Math.min(width * 0.7, 320),
   },
   orb3: {
-    width: 260,
-    height: 260,
-    top: '35%',
-    alignSelf: 'center',
-    shadowColor: '#0ea5e9',
-    shadowOpacity: 0.3,
-    shadowRadius: 60,
-    elevation: 0,
-  },
-  overlayVignette: {
-    ...StyleSheet.absoluteFillObject,
+    top: '40%',
+    right: '15%',
+    width: 220,
+    height: 220,
   },
 });

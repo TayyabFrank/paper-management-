@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ImageSourcePropType, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Image, ImageSourcePropType, Animated, Easing, Platform } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
 export const APP_LOGO: ImageSourcePropType = require('@/logo/logo.png');
@@ -17,114 +17,130 @@ export function DocuVaultLogo({
 }: DocuVaultLogoProps) {
   const { isDark, colors } = useDocuVaultTheme();
 
-  // Subtle floating animation using React 19 useState initializers
-  const [floatAnim] = useState(() => new Animated.Value(0));
-  const [pulseBadge] = useState(() => new Animated.Value(1));
+  // Pulse & Glow Animation
+  const [pulseAnim] = useState(() => new Animated.Value(0));
+  const [scaleAnim] = useState(() => new Animated.Value(0.92));
+  const [fadeAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    const float = Animated.loop(
+    // Entrance fade & spring scale
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 700,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Continuous subtle breathing pulse
+    const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: -4,
-          duration: 2600,
-          easing: Easing.inOut(Easing.sin),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2400,
+          easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-        Animated.timing(floatAnim, {
-          toValue: 4,
-          duration: 2600,
-          easing: Easing.inOut(Easing.sin),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 2400,
+          easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
       ])
     );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim, scaleAnim, fadeAnim]);
 
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseBadge, {
-          toValue: 1.05,
-          duration: 1800,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseBadge, {
-          toValue: 0.96,
-          duration: 1800,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    );
+  const haloScale = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.12],
+  });
 
-    float.start();
-    pulse.start();
-
-    return () => {
-      float.stop();
-      pulse.stop();
-    };
-  }, [floatAnim, pulseBadge]);
+  const haloOpacity = pulseAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.35, 0.7, 0.35],
+  });
 
   const dims = {
-    small: { width: 140, height: 76, radius: 16 },
+    small: { width: 140, height: 76, radius: 14 },
     medium: { width: 210, height: 114, radius: 20 },
     large: { width: 270, height: 147, radius: 24 },
   }[size];
 
   return (
-    <View style={styles.container}>
-      {/* Top Security Pill Badge */}
-      <Animated.View
-        style={[
-          styles.badgePill,
-          {
-            backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(37, 99, 235, 0.08)',
-            borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : 'rgba(37, 99, 235, 0.2)',
-            transform: [{ scale: pulseBadge }],
-          },
-        ]}
-      >
-        <View style={styles.pulseDot} />
-        <Text
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
+    >
+      <View style={styles.cardAnchor}>
+        {/* Animated Glowing Ambient Halo */}
+        <Animated.View
           style={[
-            styles.badgeText,
-            { color: isDark ? '#38bdf8' : '#1e40af' },
+            styles.haloGlow,
+            {
+              width: dims.width + 36,
+              height: dims.height + 36,
+              borderRadius: dims.radius + 14,
+              backgroundColor: isDark ? 'rgba(56, 189, 248, 0.35)' : 'rgba(37, 99, 235, 0.22)',
+              opacity: haloOpacity,
+              transform: [{ scale: haloScale }],
+            },
+            Platform.OS === 'web' && ({
+              filter: 'blur(16px)',
+            } as any),
+          ]}
+        />
+
+        <View
+          style={[
+            styles.logoCard,
+            {
+              backgroundColor: '#ffffff',
+              borderRadius: dims.radius,
+              borderColor: isDark ? 'rgba(56, 189, 248, 0.5)' : 'rgba(226, 232, 240, 0.9)',
+              borderWidth: isDark ? 2 : 1,
+              shadowColor: isDark ? '#38bdf8' : '#1e3a8a',
+              shadowOpacity: isDark ? 0.35 : 0.12,
+              shadowRadius: isDark ? 20 : 12,
+              elevation: isDark ? 10 : 5,
+            },
+            Platform.OS === 'web' && ({
+              boxShadow: isDark
+                ? '0 10px 30px rgba(56, 189, 248, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.5)'
+                : '0 10px 24px rgba(30, 58, 138, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.8)',
+            } as any),
           ]}
         >
-          ENTERPRISE CLOUD • 256-BIT ENCRYPTION
-        </Text>
-      </Animated.View>
-
-      {/* Floating Logo Card */}
-      <Animated.View
-        style={[
-          styles.logoCard,
-          {
-            backgroundColor: '#ffffff',
-            borderRadius: dims.radius,
-            borderColor: isDark ? 'rgba(56, 189, 248, 0.5)' : 'rgba(226, 232, 240, 0.9)',
-            borderWidth: isDark ? 1.5 : 1,
-            shadowColor: isDark ? '#38bdf8' : '#0f172a',
-            shadowOpacity: isDark ? 0.35 : 0.12,
-            shadowRadius: isDark ? 20 : 12,
-            elevation: isDark ? 10 : 5,
-            transform: [{ translateY: floatAnim }],
-          },
-        ]}
-      >
-        <Image
-          source={APP_LOGO}
-          style={{ width: dims.width, height: dims.height }}
-          resizeMode="contain"
-        />
-      </Animated.View>
+          <Image
+            source={APP_LOGO}
+            style={{ width: dims.width, height: dims.height }}
+            resizeMode="contain"
+          />
+        </View>
+      </View>
 
       {showSubtitle && subtitle ? (
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {subtitle}
-        </Text>
+        <View style={styles.subtitleWrapper}>
+          <Text style={[styles.subtitle, { color: isDark ? '#94a3b8' : colors.textSecondary }]}>
+            {subtitle}
+          </Text>
+        </View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -132,30 +148,16 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-    marginTop: 6,
+    marginBottom: 22,
+    marginTop: 8,
   },
-  badgePill: {
-    flexDirection: 'row',
+  cardAnchor: {
+    position: 'relative',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginBottom: 12,
-    gap: 6,
+    justifyContent: 'center',
   },
-  pulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10b981',
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+  haloGlow: {
+    position: 'absolute',
   },
   logoCard: {
     alignItems: 'center',
@@ -164,11 +166,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     shadowOffset: { width: 0, height: 6 },
   },
+  subtitleWrapper: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+  },
   subtitle: {
     fontSize: 14,
-    marginTop: 12,
     textAlign: 'center',
-    fontWeight: '500',
-    letterSpacing: -0.1,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });

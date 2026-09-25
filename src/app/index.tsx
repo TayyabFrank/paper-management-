@@ -103,38 +103,40 @@ export default function HomeScreen() {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background}
       />
-      <AuthAnimatedBackground>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardContainer}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
-        >
-          {/* Top Header with Theme Toggle */}
-          <View style={styles.topThemeBar}>
-            <ThemeToggleButton />
-          </View>
 
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            automaticallyAdjustKeyboardInsets={true}
-          >
-            <View style={styles.innerContainer}>
-              <DocuVaultLogo
-                subtitle={authMode === 'login' ? 'Enterprise Document Management System' : undefined}
-              />
-              <EmployeeRegistrationCard
-                initialMode={authMode}
-                onModeChange={(newMode) => setAuthMode(newMode)}
-                onLoginSuccess={() => {
-                  setActiveTab('home');
-                }}
-              />
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </AuthAnimatedBackground>
+      {/* Floating Animated Ambient Glow Orbs */}
+      <AuthAnimatedBackground />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardContainer}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+      >
+        {/* Top Header with Theme Toggle */}
+        <View style={styles.topThemeBar}>
+          <ThemeToggleButton />
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
+        >
+          <View style={styles.innerContainer}>
+            <DocuVaultLogo
+              subtitle={authMode === 'login' ? 'Enterprise Document Management System' : undefined}
+            />
+            <EmployeeRegistrationCard
+              initialMode={authMode}
+              onModeChange={(newMode) => setAuthMode(newMode)}
+              onLoginSuccess={() => {
+                setActiveTab('home');
+              }}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
