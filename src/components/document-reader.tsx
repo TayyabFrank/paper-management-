@@ -1299,23 +1299,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity
-              style={[
-                styles.actionIconButton,
-                {
-                  backgroundColor: isDark ? '#1f293d' : '#eff6ff',
-                  borderColor: isDark ? '#38bdf8' : '#bfdbfe',
-                },
-              ]}
-              onPress={handleDownload}
-              activeOpacity={0.7}
-            >
-              <Image
-                source={{ uri: isDark ? DOWNLOAD_ICON_DARK_SVG : DOWNLOAD_ICON_SVG }}
-                style={styles.actionIcon}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
+
             <TouchableOpacity
               style={[
                 styles.actionIconButton,
@@ -1421,13 +1405,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
                     {Platform.OS === 'web' ? '↗ New Tab' : isDriveLink ? '🚀 Open Drive' : isDocWord ? '📝 Word Viewer' : '📱 Device Viewer'}
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.embeddedActionBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
-                  onPress={handleDownload}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.embeddedActionBtnText, { color: '#ffffff' }]}>📥 Save</Text>
-                </TouchableOpacity>
+
               </View>
             </View>
 
