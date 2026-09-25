@@ -1,8 +1,9 @@
 import { useAuth } from '@/context/auth-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -89,6 +90,12 @@ export function EmployeeRegistrationCard({
   const [workEmail, setWorkEmail] = useState('');
   const [password, setPassword] = useState('');
   const [faceImage, setFaceImage] = useState<string | null>(null);
+  const [imageSource, setImageSource] = useState<'camera' | 'upload' | null>(null);
+  const [cameraModalVisible, setCameraModalVisible] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
+  const [capturedPhotoDraft, setCapturedPhotoDraft] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isCapturingNative, setIsCapturingNative] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedModalVisible, setSubmittedModalVisible] = useState(false);
@@ -105,6 +112,22 @@ export function EmployeeRegistrationCard({
   }
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraFileInputRef = useRef<HTMLInputElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const stopCameraStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopCameraStream();
+    };
+  }, []);
 
   const pwdRules = {
     hasMinLength: password.length >= 8,
@@ -137,8 +160,191 @@ export function EmployeeRegistrationCard({
     }
   };
 
-  const handleChoosePhoto = () => {
-    setShowPermissionDialog(true);
+  const startWebCamera = async (facing: 'user' | 'environment' = 'user') => {
+    if (Platform.OS !== 'web') return;
+    setCameraError(null);
+    setCapturedPhotoDraft(null);
+    stopCameraStream();
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Live camera preview is not supported on this browser. You can use the file/camera picker below.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: facing,
+          width: { ideal: 640 },
+          height: { ideal: 640 },
+        },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
+    } catch (err: any) {
+      console.warn('getUserMedia error:', err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setCameraError('Camera access denied. Please allow camera permissions in your browser or choose Upload Photo.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setCameraError('No camera found on this device. Please connect a webcam or choose Upload Photo.');
+      } else {
+        setCameraError('Unable to open camera: ' + (err.message || 'Check browser permissions.'));
+      }
+    }
+  };
+
+  const handleOpenCamera = async () => {
+    if (errors.faceImage) {
+      setErrors((prev) => ({ ...prev, faceImage: '' }));
+    }
+
+    if (Platform.OS === 'web') {
+      setCameraModalVisible(true);
+      setCapturedPhotoDraft(null);
+      setCameraError(null);
+      setTimeout(() => {
+        startWebCamera(cameraFacing);
+      }, 100);
+      return;
+    }
+
+    // Native iOS / Android camera
+    try {
+      setIsCapturingNative(true);
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        alert('Camera permission is required to capture your profile photo.');
+        setIsCapturingNative(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+        base64: true,
+      });
+
+      setIsCapturingNative(false);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const uri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        setFaceImage(uri);
+        setImageSource('camera');
+      }
+    } catch (err) {
+      setIsCapturingNative(false);
+      console.error('Camera error:', err);
+    }
+  };
+
+  const handleCaptureWebSnapshot = () => {
+    if (!videoRef.current) return;
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      const w = video.videoWidth || 640;
+      const h = video.videoHeight || 480;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      if (cameraFacing === 'user') {
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+      setCapturedPhotoDraft(dataUrl);
+      stopCameraStream();
+    } catch (err) {
+      console.error('Snapshot capture error:', err);
+    }
+  };
+
+  const handleConfirmWebSnapshot = () => {
+    if (capturedPhotoDraft) {
+      setFaceImage(capturedPhotoDraft);
+      setImageSource('camera');
+      if (errors.faceImage) {
+        setErrors((prev) => ({ ...prev, faceImage: '' }));
+      }
+      closeCameraModal();
+    }
+  };
+
+  const handleRetakeWebSnapshot = () => {
+    setCapturedPhotoDraft(null);
+    startWebCamera(cameraFacing);
+  };
+
+  const handleFlipCamera = () => {
+    const nextFacing = cameraFacing === 'user' ? 'environment' : 'user';
+    setCameraFacing(nextFacing);
+    startWebCamera(nextFacing);
+  };
+
+  const closeCameraModal = () => {
+    stopCameraStream();
+    setCameraModalVisible(false);
+    setCapturedPhotoDraft(null);
+    setCameraError(null);
+  };
+
+  const handleFallbackCameraInput = () => {
+    closeCameraModal();
+    if (Platform.OS === 'web' && cameraFileInputRef.current) {
+      cameraFileInputRef.current.click();
+    }
+  };
+
+  const handleUploadPhoto = async () => {
+    if (errors.faceImage) {
+      setErrors((prev) => ({ ...prev, faceImage: '' }));
+    }
+
+    if (Platform.OS === 'web') {
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+      return;
+    }
+
+    // Native iOS / Android photo gallery
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        setShowPermissionDialog(true);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const uri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        setFaceImage(uri);
+        setImageSource('upload');
+      }
+    } catch {
+      setShowPermissionDialog(true);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setFaceImage(null);
+    setImageSource(null);
   };
 
   const handlePermissionDecision = async (allow: boolean) => {
@@ -162,6 +368,10 @@ export function EmployeeRegistrationCard({
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         setFaceImage(asset.uri);
+        setImageSource('upload');
+        if (errors.faceImage) {
+          setErrors((prev) => ({ ...prev, faceImage: '' }));
+        }
       }
     } catch (err) {
       console.warn('File picker error:', err);
@@ -178,12 +388,32 @@ export function EmployeeRegistrationCard({
       reader.onload = (uploadEvent) => {
         if (uploadEvent.target?.result) {
           setFaceImage(uploadEvent.target.result as string);
+          setImageSource('upload');
           if (errors.faceImage) {
             setErrors((prev) => ({ ...prev, faceImage: '' }));
           }
         }
       };
       reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+  };
+
+  const handleWebCameraFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        if (uploadEvent.target?.result) {
+          setFaceImage(uploadEvent.target.result as string);
+          setImageSource('camera');
+          if (errors.faceImage) {
+            setErrors((prev) => ({ ...prev, faceImage: '' }));
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
     }
   };
 
@@ -218,9 +448,9 @@ export function EmployeeRegistrationCard({
         newErrors.password = 'Password must contain at least one special character (!@#$%^&*...)';
       }
 
-      // 4. Compulsory Profile Photo / Image
+      // 4. Compulsory Profile Photo / Image (Camera or Upload)
       if (!faceImage) {
-        newErrors.faceImage = 'Profile photo is required. Please upload your photo to register.';
+        newErrors.faceImage = 'Profile photo is required. Please capture via Camera or upload a photo to register.';
       }
     } else {
       const trimmedEmail = workEmail.trim().toLowerCase();
@@ -322,15 +552,25 @@ export function EmployeeRegistrationCard({
 
   return (
     <View style={[styles.cardContainer, cardThemeStyle]}>
-      {/* Hidden file input for web upload */}
+      {/* Hidden file inputs for web upload and fallback camera */}
       {Platform.OS === 'web' && (
-        <input
-          type="file"
-          ref={fileInputRef as any}
-          onChange={handleWebFileChange as any}
-          accept="image/*"
-          style={{ display: 'none' }}
-        />
+        <>
+          <input
+            type="file"
+            ref={fileInputRef as any}
+            onChange={handleWebFileChange as any}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
+          <input
+            type="file"
+            ref={cameraFileInputRef as any}
+            onChange={handleWebCameraFileChange as any}
+            accept="image/*"
+            capture="user"
+            style={{ display: 'none' }}
+          />
+        </>
       )}
 
       {/* Interactive Switcher Tabs: Sign In vs Register */}
@@ -503,20 +743,50 @@ export function EmployeeRegistrationCard({
             )}
           </View>
 
-          {/* Face Image */}
+          {/* Face Image: Dual Camera / Upload Option (One option is mandatory) */}
           <View style={styles.fieldGroup}>
             <View style={styles.faceLabelRow}>
-              <Text style={[styles.label, labelThemeStyle]}>
-                📷 Profile Photo <Text style={styles.requiredMark}></Text>
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.label, labelThemeStyle]}>
+                  👤 Profile Photo <Text style={styles.requiredMark}>*</Text>
+                </Text>
+                <View
+                  style={[
+                    styles.mandatoryBadge,
+                    {
+                      backgroundColor: faceImage
+                        ? (isDark ? 'rgba(34, 197, 94, 0.15)' : '#dcfce7')
+                        : (isDark ? 'rgba(239, 68, 68, 0.15)' : '#fee2e2'),
+                      borderColor: faceImage ? '#22c55e' : '#ef4444',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.mandatoryBadgeText,
+                      { color: faceImage ? (isDark ? '#4ade80' : '#16a34a') : (isDark ? '#f87171' : '#dc2626') },
+                    ]}
+                  >
+                    {faceImage ? '✓ Photo Attached' : 'Mandatory Option *'}
+                  </Text>
+                </View>
+              </View>
+
               {faceImage && (
-                <TouchableOpacity onPress={() => setFaceImage(null)}>
+                <TouchableOpacity onPress={handleRemovePhoto} activeOpacity={0.7}>
                   <Text style={styles.removePhotoText}>🗑️ Remove</Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            <View style={[styles.faceUploadBox, inputThemeStyle, errors.faceImage ? styles.inputError : null]}>
+            <View
+              style={[
+                styles.photoSectionCard,
+                inputThemeStyle,
+                errors.faceImage ? styles.inputError : null,
+              ]}
+            >
+              {/* Avatar Preview */}
               <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#28364e' : '#cbd5e1' }]}>
                 <Image
                   source={faceImage ? { uri: faceImage } : { uri: DEFAULT_AVATAR_SVG }}
@@ -525,28 +795,117 @@ export function EmployeeRegistrationCard({
                 />
               </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.uploadButton,
-                  {
-                    backgroundColor: isDark ? '#1e293b' : '#f1f5fa',
-                    borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569'),
-                  },
-                ]}
-                onPress={handleChoosePhoto}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.uploadButtonText,
-                    { color: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569') },
-                  ]}
-                >
-                  {faceImage ? '🔄 Change Photo' : '🖼️ Upload Photo *'}
-                </Text>
-              </TouchableOpacity>
+              {/* Photo Controls Area */}
+              <View style={styles.photoControlsContainer}>
+                {faceImage ? (
+                  <View style={{ gap: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={[styles.photoStatusText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
+                        {imageSource === 'camera' ? '📸 Captured via Camera' : '📁 Uploaded from Device'}
+                      </Text>
+                    </View>
+                    <View style={styles.photoActionButtonsRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.photoMiniBtn,
+                          {
+                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            borderColor: isDark ? '#38bdf8' : '#1b3569',
+                          },
+                        ]}
+                        onPress={handleOpenCamera}
+                        disabled={isCapturingNative}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.photoMiniBtnText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
+                          📸 Retake Camera
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.photoMiniBtn,
+                          {
+                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            borderColor: isDark ? '#38bdf8' : '#1b3569',
+                          },
+                        ]}
+                        onPress={handleUploadPhoto}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.photoMiniBtnText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
+                          📁 Change File
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={{ gap: 8 }}>
+                    <Text style={[styles.photoChoiceHint, { color: isDark ? '#cbd5e1' : '#475569' }]}>
+                      Select one option below to attach photo <Text style={styles.requiredMark}>*</Text>
+                    </Text>
+                    <View style={styles.photoActionButtonsRow}>
+                      {/* Option 1: Open Camera */}
+                      <TouchableOpacity
+                        style={[
+                          styles.photoOptionBtn,
+                          {
+                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569'),
+                          },
+                        ]}
+                        onPress={handleOpenCamera}
+                        disabled={isCapturingNative}
+                        activeOpacity={0.8}
+                      >
+                        {isCapturingNative ? (
+                          <ActivityIndicator size="small" color={isDark ? '#38bdf8' : '#1b3569'} />
+                        ) : (
+                          <Text
+                            style={[
+                              styles.photoOptionBtnText,
+                              { color: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569') },
+                            ]}
+                          >
+                            📸 Open Camera
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+
+                      {/* Option 2: Upload Photo */}
+                      <TouchableOpacity
+                        style={[
+                          styles.photoOptionBtn,
+                          {
+                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569'),
+                          },
+                        ]}
+                        onPress={handleUploadPhoto}
+                        activeOpacity={0.8}
+                      >
+                        <Text
+                          style={[
+                            styles.photoOptionBtnText,
+                            { color: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569') },
+                          ]}
+                        >
+                          📁 Upload Photo
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
             </View>
-            {errors.faceImage ? <Text style={styles.errorText}>{errors.faceImage}</Text> : null}
+
+            {errors.faceImage ? (
+              <Text style={styles.errorText}>⚠️ {errors.faceImage}</Text>
+            ) : (
+              <Text style={[styles.photoHelperNote, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                * Required: Either capture your live photo with Camera or upload a photo file.
+              </Text>
+            )}
           </View>
 
           {/* Global Form Error Banner */}
@@ -664,16 +1023,179 @@ export function EmployeeRegistrationCard({
         </View>
       )}
 
-      {/* Hidden File Input for Web */}
-      {Platform.OS === 'web' && (
-        <input
-          type="file"
-          ref={fileInputRef as any}
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={handleWebFileChange}
-        />
-      )}
+      {/* Live Web Camera Viewfinder Modal */}
+      <Modal
+        visible={cameraModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeCameraModal}
+      >
+        <View style={styles.permOverlay}>
+          <View
+            style={[
+              styles.cameraModalCard,
+              {
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                borderColor: isDark ? '#334155' : '#e2e8f0',
+              },
+            ]}
+          >
+            {/* Modal Header */}
+            <View style={styles.cameraModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 22 }}>📸</Text>
+                <View>
+                  <Text style={[styles.cameraModalTitle, { color: colors.textPrimary }]}>
+                    {capturedPhotoDraft ? 'Preview Photo' : 'Capture Live Photo'}
+                  </Text>
+                  <Text style={[styles.cameraModalSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                    {capturedPhotoDraft ? 'Look good? Confirm or retake' : 'Center your face in the camera frame'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={closeCameraModal}
+                style={[styles.cameraCloseBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#94a3b8' : '#64748b' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Viewfinder or Snapshot Preview */}
+            <View style={styles.viewfinderContainer}>
+              {cameraError ? (
+                <View style={styles.cameraErrorBox}>
+                  <Text style={{ fontSize: 36, marginBottom: 8 }}>⚠️</Text>
+                  <Text style={styles.cameraErrorHeading}>Camera Unavailable</Text>
+                  <Text style={[styles.cameraErrorText, { color: isDark ? '#cbd5e1' : '#64748b' }]}>
+                    {cameraError}
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.cameraFallbackBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
+                    onPress={handleFallbackCameraInput}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.cameraFallbackBtnText}>📱 Open Device Camera Picker</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : capturedPhotoDraft ? (
+                <Image
+                  source={{ uri: capturedPhotoDraft }}
+                  style={styles.capturedPreviewImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.videoWrapper}>
+                  {Platform.OS === 'web' && (
+                    <video
+                      ref={videoRef as any}
+                      autoPlay
+                      playsInline
+                      muted
+                      style={
+                        {
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none',
+                        } as any
+                      }
+                    />
+                  )}
+                  {/* Face Guide Target Oval */}
+                  <View style={styles.faceGuideOval} pointerEvents="none" />
+                </View>
+              )}
+            </View>
+
+            {/* Bottom Controls */}
+            {!cameraError && (
+              <View style={styles.cameraControlsRow}>
+                {capturedPhotoDraft ? (
+                  <>
+                    <TouchableOpacity
+                      style={[
+                        styles.cameraRetakeBtn,
+                        {
+                          backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                          borderColor: isDark ? '#334155' : '#cbd5e1',
+                        },
+                      ]}
+                      onPress={handleRetakeWebSnapshot}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.cameraRetakeBtnText, { color: isDark ? '#f8fafc' : '#334155' }]}>
+                        🔄 Retake
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.cameraConfirmBtn,
+                        {
+                          backgroundColor: isDark ? '#16a34a' : '#15803d',
+                        },
+                      ]}
+                      onPress={handleConfirmWebSnapshot}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.cameraConfirmBtnText}>✓ Use This Photo</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={[
+                        styles.cameraSecondaryBtn,
+                        {
+                          backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                          borderColor: isDark ? '#334155' : '#cbd5e1',
+                        },
+                      ]}
+                      onPress={handleFlipCamera}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#cbd5e1' : '#475569' }}>
+                        🔄 Flip
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.cameraShutterBtn,
+                        {
+                          backgroundColor: isDark ? '#2563eb' : '#1b3569',
+                        },
+                      ]}
+                      onPress={handleCaptureWebSnapshot}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.cameraShutterBtnText}>📸 Capture Photo</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.cameraSecondaryBtn,
+                        {
+                          backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                          borderColor: isDark ? '#334155' : '#cbd5e1',
+                        },
+                      ]}
+                      onPress={handleFallbackCameraInput}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#cbd5e1' : '#475569' }}>
+                        📁 App
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Device Storage Permission Modal (Yes / No) */}
       <Modal
@@ -997,46 +1519,237 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     marginTop: 2,
   },
-  faceUploadBox: {
-    height: 64,
+  mandatoryBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  mandatoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+  },
+  photoSectionCard: {
+    minHeight: 74,
     backgroundColor: '#f1f5fa',
     borderWidth: 1.5,
     borderColor: '#c6d4e4',
-    borderRadius: 8,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 12,
   },
   avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#cbd5e1',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
-  uploadButton: {
+  photoControlsContainer: {
     flex: 1,
-    marginLeft: 14,
-    height: 42,
-    backgroundColor: '#f1f5fa',
-    borderWidth: 1.5,
-    borderColor: '#1b3569',
+  },
+  photoStatusText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+  },
+  photoChoiceHint: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 16,
+  },
+  photoActionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  photoOptionBtn: {
+    flex: 1,
+    height: 38,
     borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  photoOptionBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  photoMiniBtn: {
+    height: 32,
+    paddingHorizontal: 10,
+    borderRadius: 7,
+    borderWidth: 1.2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  uploadButtonText: {
+  photoMiniBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  photoHelperNote: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  cameraModalCard: {
+    width: '100%',
+    maxWidth: 440,
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 22,
+    elevation: 12,
+  },
+  cameraModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  cameraModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  cameraModalSubtitle: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  cameraCloseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewfinderContainer: {
+    width: '100%',
+    height: 280,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#000000',
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoWrapper: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  faceGuideOval: {
+    position: 'absolute',
+    width: 150,
+    height: 195,
+    borderRadius: 75,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderStyle: 'dashed',
+  },
+  capturedPreviewImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
+  },
+  cameraErrorBox: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraErrorHeading: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1b3569',
-    letterSpacing: -0.1,
+    fontWeight: '700',
+    color: '#ef4444',
+    marginBottom: 4,
+  },
+  cameraErrorText: {
+    fontSize: 12.5,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  cameraFallbackBtn: {
+    paddingVertical: 9,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cameraFallbackBtnText: {
+    color: '#ffffff',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  cameraControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 14,
+  },
+  cameraShutterBtn: {
+    flex: 2,
+    height: 44,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraShutterBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  cameraSecondaryBtn: {
+    height: 44,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1.2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraRetakeBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1.2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraRetakeBtnText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  cameraConfirmBtn: {
+    flex: 1.4,
+    height: 44,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraConfirmBtnText: {
+    color: '#ffffff',
+    fontSize: 13.5,
+    fontWeight: '700',
   },
   primaryButton: {
     height: 48,
