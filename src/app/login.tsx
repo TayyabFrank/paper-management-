@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { DocuVaultLogo } from '@/components/docuvault-logo';
 import { EmployeeRegistrationCard } from '@/components/employee-registration-card';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
+import { AuthAnimatedBackground } from '@/components/auth-animated-background';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
 export default function LoginScreen() {
@@ -24,37 +25,39 @@ export default function LoginScreen() {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background}
       />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardContainer}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
-      >
-        <View style={styles.topThemeBar}>
-          <ThemeToggleButton />
-        </View>
-
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets={true}
+      <AuthAnimatedBackground>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardContainer}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
         >
-          <View style={styles.innerContainer}>
-            <DocuVaultLogo subtitle="Enterprise Document Management System" />
-            <EmployeeRegistrationCard
-              initialMode="login"
-              onModeChange={(mode) => {
-                if (mode === 'register') {
-                  router.push('/register');
-                }
-              }}
-              onLoginSuccess={() => {
-                router.replace('/');
-              }}
-            />
+          <View style={styles.topThemeBar}>
+            <ThemeToggleButton />
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets={true}
+          >
+            <View style={styles.innerContainer}>
+              <DocuVaultLogo subtitle="Enterprise Document Management System" />
+              <EmployeeRegistrationCard
+                initialMode="login"
+                onModeChange={(mode) => {
+                  if (mode === 'register') {
+                    router.push('/register');
+                  }
+                }}
+                onLoginSuccess={() => {
+                  router.replace('/');
+                }}
+              />
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </AuthAnimatedBackground>
     </SafeAreaView>
   );
 }
@@ -79,13 +82,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 24,
     paddingHorizontal: 16,
   },
   innerContainer: {
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 440,
     alignItems: 'center',
   },
 });
-
