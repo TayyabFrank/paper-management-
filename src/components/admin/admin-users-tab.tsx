@@ -136,7 +136,14 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
           ]}
         >
           <View style={styles.searchIconBox}>
-            <Image source={{ uri: SEARCH_ICON_SVG }} style={{ width: 18, height: 18 }} resizeMode="contain" />
+            {Platform.OS === 'web' ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            ) : (
+              <Text style={{ fontSize: 14 }}>🔍</Text>
+            )}
           </View>
           <TextInput
             style={[styles.searchInput, { color: isDark ? colors.textPrimary : '#0f172a' }]}
@@ -149,7 +156,13 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
             style={[styles.filterBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
             activeOpacity={0.7}
           >
-            <Image source={{ uri: FILTER_ICON_SVG }} style={{ width: 18, height: 18 }} resizeMode="contain" />
+            {Platform.OS === 'web' ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+              </svg>
+            ) : (
+              <Text style={{ fontSize: 14 }}>⚙️</Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -237,11 +250,14 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
                       </View>
 
                       <View style={styles.docCountRow}>
-                        <Image
-                          source={{ uri: DOC_COUNTER_ICON_SVG }}
-                          style={{ width: 14, height: 14, marginRight: 5 }}
-                          resizeMode="contain"
-                        />
+                        {Platform.OS === 'web' ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', marginRight: 5 } as any}>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                        ) : (
+                          <Text style={{ fontSize: 12, marginRight: 5 }}>📄</Text>
+                        )}
                         <Text style={[styles.docCountText, { color: isDark ? '#94a3b8' : '#475569' }]}>
                           {docCount} Documents
                         </Text>
@@ -257,11 +273,13 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
                     onPress={() => onViewEmployeeDocs(employee)}
                     activeOpacity={0.85}
                   >
-                    <Image
-                      source={{ uri: FOLDER_ICON_SVG }}
-                      style={{ width: 18, height: 18, marginRight: 6 }}
-                      resizeMode="contain"
-                    />
+                    {Platform.OS === 'web' ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', marginRight: 6 } as any}>
+                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+                      </svg>
+                    ) : (
+                      <Text style={{ fontSize: 15, marginRight: 6 }}>📁</Text>
+                    )}
                     <Text style={styles.viewDocsBtnText}>View Documents</Text>
                   </TouchableOpacity>
 
@@ -270,11 +288,16 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
                     onPress={() => setEmployeeToRemove(employee)}
                     activeOpacity={0.85}
                   >
-                    <Image
-                      source={{ uri: TRASH_ICON_SVG }}
-                      style={{ width: 16, height: 16, marginRight: 5 }}
-                      resizeMode="contain"
-                    />
+                    {Platform.OS === 'web' ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', marginRight: 5 } as any}>
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    ) : (
+                      <Text style={{ fontSize: 13, marginRight: 5 }}>🗑️</Text>
+                    )}
                     <Text style={styles.removeBtnText}>Remove</Text>
                   </TouchableOpacity>
                 </View>

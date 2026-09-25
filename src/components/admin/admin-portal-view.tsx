@@ -8,6 +8,7 @@ import {
   StatusBar,
   Image,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
@@ -78,6 +79,7 @@ interface SideNavTabItem {
   key: AdminTabKey;
   label: string;
   sublabel: string;
+  emoji: string;
   color: string;
   bgLight: string;
   bgDark: string;
@@ -89,6 +91,7 @@ const SIDE_NAV_ITEMS: SideNavTabItem[] = [
     key: 'dashboard',
     label: 'Dashboard',
     sublabel: 'Overview & Analytics',
+    emoji: '📊',
     color: '#2563eb',
     bgLight: '#eff6ff',
     bgDark: '#1e3a8a',
@@ -98,6 +101,7 @@ const SIDE_NAV_ITEMS: SideNavTabItem[] = [
     key: 'users',
     label: 'Users',
     sublabel: 'Staff Directory',
+    emoji: '👥',
     color: '#0284c7',
     bgLight: '#e0f2fe',
     bgDark: '#0369a1',
@@ -107,6 +111,7 @@ const SIDE_NAV_ITEMS: SideNavTabItem[] = [
     key: 'docs',
     label: 'All Docs',
     sublabel: 'Repository Vault',
+    emoji: '📑',
     color: '#7c3aed',
     bgLight: '#f5f3ff',
     bgDark: '#4c1d95',
@@ -116,6 +121,7 @@ const SIDE_NAV_ITEMS: SideNavTabItem[] = [
     key: 'approvals',
     label: 'Approvals',
     sublabel: 'Pending Requests',
+    emoji: '⏳',
     color: '#d97706',
     bgLight: '#fef3c7',
     bgDark: '#78350f',
@@ -125,6 +131,7 @@ const SIDE_NAV_ITEMS: SideNavTabItem[] = [
     key: 'profile',
     label: 'Profile',
     sublabel: 'Settings & Security',
+    emoji: '👤',
     color: '#059669',
     bgLight: '#d1fae5',
     bgDark: '#064e3b',
@@ -280,11 +287,24 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
                   onPress={() => setShowDrawer(false)}
                   activeOpacity={0.7}
                 >
-                  <Image
-                    source={{ uri: CLOSE_ICON_SVG(isDark ? '#94a3b8' : '#475569') }}
-                    style={{ width: 14, height: 14 }}
-                    resizeMode="contain"
-                  />
+                  {Platform.OS === 'web' ? (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={isDark ? '#94a3b8' : '#475569'}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ display: 'block' } as any}
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  ) : (
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#94a3b8' : '#475569' }}>✕</Text>
+                  )}
                 </TouchableOpacity>
               </View>
 
@@ -394,11 +414,45 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
                           },
                         ]}
                       >
-                        <Image
-                          source={{ uri: item.getIcon(iconColor) }}
-                          style={styles.sideNavLogoIcon}
-                          resizeMode="contain"
-                        />
+                        {Platform.OS === 'web' ? (
+                          item.key === 'dashboard' ? (
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                              <rect x="3" y="3" width="18" height="18" rx="3" />
+                              <line x1="8" y1="17" x2="8" y2="12" />
+                              <line x1="12" y1="17" x2="12" y2="8" />
+                              <line x1="16" y1="17" x2="16" y2="6" />
+                            </svg>
+                          ) : item.key === 'users' ? (
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                              <circle cx="9" cy="7" r="4" />
+                              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                          ) : item.key === 'docs' ? (
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                              <polyline points="14 2 14 8 20 8" />
+                              <line x1="16" y1="13" x2="8" y2="13" />
+                              <line x1="16" y1="17" x2="8" y2="17" />
+                              <line x1="10" y1="9" x2="8" y2="9" />
+                            </svg>
+                          ) : item.key === 'approvals' ? (
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                              <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                              <path d="m9 14 2 2 4-4" />
+                            </svg>
+                          ) : (
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                              <circle cx="12" cy="12" r="9.5" />
+                              <circle cx="12" cy="9" r="3.2" />
+                              <path d="M6.8 18.2C7.8 15.6 9.8 14.5 12 14.5C14.2 14.5 16.2 15.6 17.2 18.2" />
+                            </svg>
+                          )
+                        ) : (
+                          <Text style={{ fontSize: 20 }}>{item.emoji}</Text>
+                        )}
                       </View>
 
                       {/* Content */}

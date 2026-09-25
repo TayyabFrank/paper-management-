@@ -266,11 +266,14 @@ export function AdminDocsTab({
           onPress={onBackToUsers}
           activeOpacity={0.7}
         >
-          <Image
-            source={{ uri: BACK_ARROW_SVG(isDark ? '#f8fafc' : '#0f172a') }}
-            style={{ width: 22, height: 22 }}
-            resizeMode="contain"
-          />
+          {Platform.OS === 'web' ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#f8fafc' : '#0f172a'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          ) : (
+            <Text style={{ fontSize: 20, color: isDark ? '#f8fafc' : '#0f172a', fontWeight: '700' }}>←</Text>
+          )}
         </TouchableOpacity>
 
         <Text
@@ -416,7 +419,14 @@ export function AdminDocsTab({
           ]}
         >
           <View style={styles.searchIconBox}>
-            <Image source={{ uri: SEARCH_ICON_SVG }} style={{ width: 18, height: 18 }} resizeMode="contain" />
+            {Platform.OS === 'web' ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            ) : (
+              <Text style={{ fontSize: 14 }}>🔍</Text>
+            )}
           </View>
           <TextInput
             style={[styles.searchInput, { color: isDark ? colors.textPrimary : '#0f172a' }]}
@@ -429,7 +439,13 @@ export function AdminDocsTab({
             style={[styles.filterBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
             activeOpacity={0.7}
           >
-            <Image source={{ uri: FILTER_ICON_SVG }} style={{ width: 18, height: 18 }} resizeMode="contain" />
+            {Platform.OS === 'web' ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+              </svg>
+            ) : (
+              <Text style={{ fontSize: 14 }}>⚙️</Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -741,11 +757,17 @@ export function AdminDocsTab({
               >
                 {/* File Icon Badge */}
                 <View style={styles.badgeContainer}>
-                  <Image
-                    source={{ uri: getMiniFileBadge(doc) }}
-                    style={{ width: 38, height: 38 }}
-                    resizeMode="contain"
-                  />
+                  {Platform.OS === 'web' ? (
+                    <Image
+                      source={{ uri: getMiniFileBadge(doc) }}
+                      style={{ width: 38, height: 38 }}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <Text style={{ fontSize: 24, textAlign: 'center' }}>
+                      {doc.type === 'image' ? '🖼️' : doc.type === 'docx' ? '📝' : isLinkDoc(doc) ? '🔗' : doc.type === 'video' ? '🎬' : '📄'}
+                    </Text>
+                  )}
                 </View>
 
                 {/* Document Information */}
@@ -815,11 +837,14 @@ export function AdminDocsTab({
                     onPress={() => onOpenDocument(doc)}
                     activeOpacity={0.7}
                   >
-                    <Image
-                      source={{ uri: EYE_ACTION_SVG(isDark ? '#94a3b8' : '#64748b') }}
-                      style={{ width: 20, height: 20 }}
-                      resizeMode="contain"
-                    />
+                    {Platform.OS === 'web' ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#94a3b8' : '#64748b'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                        <path d="M2 12C2 12 5.5 5.5 12 5.5C18.5 5.5 22 12 22 12C22 12 18.5 18.5 12 18.5C5.5 18.5 2 12 2 12Z"/>
+                        <circle cx="12" cy="12" r="3.5" fill={isDark ? '#94a3b8' : '#64748b'}/>
+                      </svg>
+                    ) : (
+                      <Text style={{ fontSize: 16 }}>👁️</Text>
+                    )}
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -830,11 +855,16 @@ export function AdminDocsTab({
                     }}
                     activeOpacity={0.7}
                   >
-                    <Image
-                      source={{ uri: TRASH_ACTION_SVG('#ef4444') }}
-                      style={{ width: 17, height: 17 }}
-                      resizeMode="contain"
-                    />
+                    {Platform.OS === 'web' ? (
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    ) : (
+                      <Text style={{ fontSize: 14 }}>🗑️</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>

@@ -189,14 +189,7 @@ function AdminNavbarIcon({
   }
 
   // Native Mobile Rendering
-  return (
-    <Image
-      source={{ uri: getIconUri(color) }}
-      style={styles.tabIcon}
-      resizeMode="contain"
-      defaultSource={{ uri: getIconUri(color) }}
-    />
-  );
+  return <Text style={{ fontSize: 18, lineHeight: 22, textAlign: 'center' }}>{fallbackEmoji}</Text>;
 }
 
 export function AdminBottomNavbar({

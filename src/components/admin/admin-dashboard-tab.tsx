@@ -1,22 +1,22 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Image,
-  ActivityIndicator,
-  RefreshControl,
-  Animated,
-  Easing,
-} from 'react-native';
-import { useDocuVaultTheme } from '@/context/theme-context';
-import { useAuth } from '@/context/auth-context';
-import { useDocuments } from '@/context/documents-context';
 import { DocumentReaderItem } from '@/components/document-reader';
 import { APP_LOGO } from '@/components/docuvault-logo';
+import { useAuth } from '@/context/auth-context';
+import { useDocuments } from '@/context/documents-context';
+import { useDocuVaultTheme } from '@/context/theme-context';
 import { apiFetchDocumentStats, DocumentStatsData } from '@/services/api-client';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Platform,
+} from 'react-native';
 import { AdminTabKey } from './admin-bottom-navbar';
 
 export interface AdminDashboardTabProps {
@@ -303,10 +303,10 @@ export function AdminDashboardTab({
   const linkCount = (backendStats?.countsByType?.link !== undefined && backendStats.countsByType.link > 0)
     ? backendStats.countsByType.link
     : documents.filter(
-        (d) =>
-          d.type === 'link' ||
-          Boolean(d.fileUrl && (d.fileUrl.includes('drive.google.com') || d.fileUrl.includes('docs.google.com')))
-      ).length;
+      (d) =>
+        d.type === 'link' ||
+        Boolean(d.fileUrl && (d.fileUrl.includes('drive.google.com') || d.fileUrl.includes('docs.google.com')))
+    ).length;
 
   const videoCount = backendStats?.countsByType?.video ??
     documents.filter((d) => d.type === 'video').length;
@@ -460,15 +460,15 @@ export function AdminDashboardTab({
                       ? 'rgba(6, 78, 59, 0.45)'
                       : '#ecfdf5'
                     : isDark
-                    ? '#1e293b'
-                    : '#f1f5f9',
+                      ? '#1e293b'
+                      : '#f1f5f9',
                   borderColor: isLiveConnected
                     ? isDark
                       ? '#059669'
                       : '#a7f3d0'
                     : isDark
-                    ? '#334155'
-                    : '#cbd5e1',
+                      ? '#334155'
+                      : '#cbd5e1',
                 },
               ]}
             >
@@ -494,8 +494,8 @@ export function AdminDashboardTab({
                           ? '#34d399'
                           : '#059669'
                         : isDark
-                        ? '#94a3b8'
-                        : '#64748b',
+                          ? '#94a3b8'
+                          : '#64748b',
                     },
                   ]}
                 />
@@ -509,8 +509,8 @@ export function AdminDashboardTab({
                         ? '#6ee7b7'
                         : '#047857'
                       : isDark
-                      ? '#94a3b8'
-                      : '#64748b',
+                        ? '#94a3b8'
+                        : '#64748b',
                   },
                 ]}
               >
@@ -523,11 +523,19 @@ export function AdminDashboardTab({
               onPress={onOpenMenu}
               activeOpacity={0.7}
             >
-              <Image
-                source={{ uri: HAMBURGER_SVG('#ffffff') }}
-                style={{ width: 22, height: 22 }}
-                resizeMode="contain"
-              />
+              {Platform.OS === 'web' ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              ) : (
+                <View style={{ width: 20, height: 14, justifyContent: 'space-between' }}>
+                  <View style={{ width: 20, height: 2.2, backgroundColor: '#ffffff', borderRadius: 2 }} />
+                  <View style={{ width: 20, height: 2.2, backgroundColor: '#ffffff', borderRadius: 2 }} />
+                  <View style={{ width: 20, height: 2.2, backgroundColor: '#ffffff', borderRadius: 2 }} />
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -838,8 +846,8 @@ export function AdminDashboardTab({
                                 ? cat.darkColor
                                 : cat.color
                               : isDark
-                              ? '#1e293b'
-                              : '#f8fafc',
+                                ? '#1e293b'
+                                : '#f8fafc',
                             borderColor: isSelected ? '#ffffff' : isDark ? '#334155' : '#e2e8f0',
                           },
                         ]}
@@ -851,8 +859,8 @@ export function AdminDashboardTab({
                               color: isSelected
                                 ? '#ffffff'
                                 : isDark
-                                ? colors.textPrimary
-                                : '#0f172a',
+                                  ? colors.textPrimary
+                                  : '#0f172a',
                             },
                           ]}
                         >
@@ -888,8 +896,8 @@ export function AdminDashboardTab({
                                   ? cat.darkColor
                                   : cat.color
                                 : isDark
-                                ? '#94a3b8'
-                                : '#64748b',
+                                  ? '#94a3b8'
+                                  : '#64748b',
                               fontWeight: isSelected ? '800' : '600',
                             },
                           ]}

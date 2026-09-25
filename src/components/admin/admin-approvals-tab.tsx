@@ -68,11 +68,19 @@ export function AdminApprovalsTab({ onOpenMenu }: AdminApprovalsTabProps) {
             onPress={onOpenMenu}
             activeOpacity={0.7}
           >
-            <Image
-              source={{ uri: HAMBURGER_SVG('#ffffff') }}
-              style={{ width: 24, height: 24 }}
-              resizeMode="contain"
-            />
+            {Platform.OS === 'web' ? (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            ) : (
+              <View style={{ width: 20, height: 14, justifyContent: 'space-between' }}>
+                <View style={{ width: 20, height: 2.2, backgroundColor: '#ffffff', borderRadius: 2 }} />
+                <View style={{ width: 20, height: 2.2, backgroundColor: '#ffffff', borderRadius: 2 }} />
+                <View style={{ width: 20, height: 2.2, backgroundColor: '#ffffff', borderRadius: 2 }} />
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
