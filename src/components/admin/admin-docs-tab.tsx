@@ -21,6 +21,8 @@ interface AdminDocsTabProps {
   onSelectEmployee?: (emp: StoredAccount | null) => void;
   onBackToUsers: () => void;
   onOpenDocument: (doc: DocumentReaderItem) => void;
+  initialCategory?: string;
+  onCategoryChange?: (category: string) => void;
 }
 
 // Crisp Vector SVGs for Documents View
@@ -117,14 +119,27 @@ export function AdminDocsTab({
   onSelectEmployee,
   onBackToUsers,
   onOpenDocument,
+  initialCategory = 'all',
+  onCategoryChange,
 }: AdminDocsTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
   const { documents, refreshDocuments, deleteDocument } = useDocuments();
   const { registeredAccounts, syncWithBackend } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [activeCategory, setActiveCategory] = useState<string>(initialCategory || 'all');
   const [refreshing, setRefreshing] = useState(false);
   const [docToDelete, setDocToDelete] = useState<DocumentReaderItem | null>(null);
+
+  useEffect(() => {
+    if (initialCategory) {
+      setActiveCategory(initialCategory);
+    }
+  }, [initialCategory]);
+
+  const selectCategory = (cat: string) => {
+    setActiveCategory(cat);
+    onCategoryChange?.(cat);
+  };
 
   useEffect(() => {
     refreshDocuments();
@@ -364,7 +379,7 @@ export function AdminDocsTab({
               styles.categoryPill,
               activeCategory === 'all' && styles.categoryPillActive,
             ]}
-            onPress={() => setActiveCategory('all')}
+            onPress={() => selectCategory('all')}
             activeOpacity={0.7}
           >
             <Text style={[styles.categoryCount, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
@@ -380,7 +395,7 @@ export function AdminDocsTab({
               styles.categoryPill,
               activeCategory === 'pdf' && styles.categoryPillActive,
             ]}
-            onPress={() => setActiveCategory('pdf')}
+            onPress={() => selectCategory('pdf')}
             activeOpacity={0.7}
           >
             <Text style={styles.categoryPillEmoji}>📄</Text>
@@ -397,7 +412,7 @@ export function AdminDocsTab({
               styles.categoryPill,
               activeCategory === 'docx' && styles.categoryPillActive,
             ]}
-            onPress={() => setActiveCategory('docx')}
+            onPress={() => selectCategory('docx')}
             activeOpacity={0.7}
           >
             <Text style={styles.categoryPillEmoji}>📘</Text>
@@ -414,7 +429,7 @@ export function AdminDocsTab({
               styles.categoryPill,
               activeCategory === 'article' && styles.categoryPillActive,
             ]}
-            onPress={() => setActiveCategory('article')}
+            onPress={() => selectCategory('article')}
             activeOpacity={0.7}
           >
             <Text style={styles.categoryPillEmoji}>📰</Text>
@@ -431,7 +446,7 @@ export function AdminDocsTab({
               styles.categoryPill,
               activeCategory === 'image' && styles.categoryPillActive,
             ]}
-            onPress={() => setActiveCategory('image')}
+            onPress={() => selectCategory('image')}
             activeOpacity={0.7}
           >
             <Text style={styles.categoryPillEmoji}>🖼️</Text>
@@ -448,7 +463,7 @@ export function AdminDocsTab({
               styles.categoryPill,
               activeCategory === 'other' && styles.categoryPillActive,
             ]}
-            onPress={() => setActiveCategory('other')}
+            onPress={() => selectCategory('other')}
             activeOpacity={0.7}
           >
             <Text style={styles.categoryPillEmoji}>💬</Text>

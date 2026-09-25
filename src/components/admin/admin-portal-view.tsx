@@ -30,6 +30,7 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
   const { registeredAccounts, logout, user, syncWithBackend } = useAuth();
   const { refreshDocuments } = useDocuments();
   const [activeTab, setActiveTab] = useState<AdminTabKey>('dashboard');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<StoredAccount | null>(null);
   const [readingDoc, setReadingDoc] = useState<DocumentReaderItem | null>(null);
   const [showDrawer, setShowDrawer] = useState(false);
@@ -55,13 +56,17 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
       <View style={styles.body}>
         {activeTab === 'dashboard' && (
           <AdminDashboardTab
-            onNavigateTab={(tab) => {
+            onNavigateTab={(tab, category) => {
               if (tab === 'docs') {
                 setSelectedEmployee(null);
+                if (category) {
+                  setSelectedCategory(category);
+                }
               }
               setActiveTab(tab);
             }}
             onOpenMenu={() => setShowDrawer(true)}
+            onOpenDocument={(doc) => setReadingDoc(doc)}
           />
         )}
 
@@ -69,6 +74,7 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
           <AdminUsersTab
             onViewEmployeeDocs={(emp) => {
               setSelectedEmployee(emp);
+              setSelectedCategory('all');
               setActiveTab('docs');
             }}
           />
@@ -83,6 +89,8 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
               setActiveTab('users');
             }}
             onOpenDocument={(doc) => setReadingDoc(doc)}
+            initialCategory={selectedCategory}
+            onCategoryChange={(cat) => setSelectedCategory(cat)}
           />
         )}
 
