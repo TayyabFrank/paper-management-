@@ -2,7 +2,7 @@ import { useAuth } from '@/context/auth-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -98,9 +98,11 @@ export function EmployeeRegistrationCard({
   const [forgotSent, setForgotSent] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  useEffect(() => {
+  const [prevInitialMode, setPrevInitialMode] = useState(initialMode);
+  if (prevInitialMode !== initialMode) {
+    setPrevInitialMode(initialMode);
     setMode(initialMode);
-  }, [initialMode]);
+  }
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -817,7 +819,7 @@ export function EmployeeRegistrationCard({
           >
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Reset Password</Text>
             <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
-              Enter your work email address and we'll send you instructions to reset your password.
+              Enter your work email address and we&apos;ll send you instructions to reset your password.
             </Text>
             <TextInput
               style={[

@@ -67,7 +67,7 @@ export function UploadPermissionModal({
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkTitle, setLinkTitle] = useState('');
-  const [permissionGranted, setPermissionGranted] = useState(false);
+  const [, setPermissionGranted] = useState(false);
 
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const documentInputRef = useRef<HTMLInputElement | null>(null);

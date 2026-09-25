@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme as useDeviceColorScheme } from 'react-native';
+import React, { createContext, useContext, useState } from 'react';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -95,7 +94,6 @@ const ThemeContext = createContext<ThemeContextValue>({
 });
 
 export function DocuVaultThemeProvider({ children }: { children: React.ReactNode }) {
-  const deviceScheme = useDeviceColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
 
   const toggleTheme = () => {

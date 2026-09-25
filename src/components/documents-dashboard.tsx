@@ -68,35 +68,7 @@ const FILTER_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
-const EYE_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M2 12C2 12 5.5 5.5 12 5.5C18.5 5.5 22 12 22 12C22 12 18.5 18.5 12 18.5C5.5 18.5 2 12 2 12Z" stroke="#718096" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="12" cy="12" r="3.6" fill="#718096"/>
-</svg>
-`)}`;
 
-const EYE_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M2 12C2 12 5.5 5.5 12 5.5C18.5 5.5 22 12 22 12C22 12 18.5 18.5 12 18.5C5.5 18.5 2 12 2 12Z" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="12" cy="12" r="3.6" fill="#94a3b8"/>
-</svg>
-`)}`;
-
-const DOWNLOAD_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-  <polyline points="7 10 12 15 17 10"></polyline>
-  <line x1="12" y1="15" x2="12" y2="3"></line>
-</svg>
-`)}`;
-
-const DOWNLOAD_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-  <polyline points="7 10 12 15 17 10"></polyline>
-  <line x1="12" y1="15" x2="12" y2="3"></line>
-</svg>
-`)}`;
 
 const TRASH_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1001,7 +973,7 @@ export function DocumentsDashboard({
             </View>
             <Text style={[styles.deleteModalTitle, { color: colors.textPrimary }]}>🗑️ Delete Document?</Text>
             <Text style={[styles.deleteModalBody, { color: colors.textSecondary }]}>
-              ⚠️ Are you sure you want to delete "{docToDelete?.title}"? This document will be permanently removed from your DocuVault.
+              ⚠️ Are you sure you want to delete &quot;{docToDelete?.title}&quot;? This document will be permanently removed from your DocuVault.
             </Text>
 
             <View style={styles.deleteModalActionRow}>

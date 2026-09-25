@@ -35,21 +35,7 @@ const BACK_ARROW_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
-const DOWNLOAD_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b3569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-  <polyline points="7 10 12 15 17 10"></polyline>
-  <line x1="12" y1="15" x2="12" y2="3"></line>
-</svg>
-`)}`;
 
-const DOWNLOAD_ICON_DARK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-  <polyline points="7 10 12 15 17 10"></polyline>
-  <line x1="12" y1="15" x2="12" y2="3"></line>
-</svg>
-`)}`;
 
 const PRINT_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b3569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -690,13 +676,12 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           document.fileUrl.includes('docs.google.com'))
     ) || document?.type === 'link';
 
-  useEffect(() => {
-    if (document?.fileUrl) {
-      setViewMode('embedded');
-    } else {
-      setViewMode('content');
-    }
-  }, [document?.id, document?.fileUrl]);
+  const [prevDocKey, setPrevDocKey] = useState<string | null>(document?.id ? `${document.id}-${document.fileUrl}` : null);
+  const currentDocKey = document?.id ? `${document.id}-${document.fileUrl}` : null;
+  if (prevDocKey !== currentDocKey) {
+    setPrevDocKey(currentDocKey);
+    setViewMode(document?.fileUrl ? 'embedded' : 'content');
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -1045,7 +1030,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           <Text style={{ fontSize: 44, marginBottom: 12 }}>{isDocWord ? '📝' : '📄'}</Text>
           <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.title}</Text>
           <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
-            Tap below to view this complete document in your device's native {isDocWord ? 'Word' : 'PDF'} reader.
+            Tap below to view this complete document in your device&apos;s native {isDocWord ? 'Word' : 'PDF'} reader.
           </Text>
           <TouchableOpacity
             style={[styles.openNativeBtn, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
@@ -1107,7 +1092,7 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
           <Text style={{ fontSize: 48, marginBottom: 12 }}>📝</Text>
           <Text style={[styles.errorDocTitle, { color: colors.textPrimary }]}>{document.fileName || document.title}</Text>
           <Text style={[styles.errorDocSub, { color: colors.textSecondary }]}>
-            Microsoft Word Document ({document.fileSize || 'DOCX'}). Tap below to open and view the complete document in Microsoft Word or your device's Office app.
+            Microsoft Word Document ({document.fileSize || 'DOCX'}). Tap below to open and view the complete document in Microsoft Word or your device&apos;s Office app.
           </Text>
           <TouchableOpacity
             style={[styles.openNativeBtn, { backgroundColor: '#2563eb' }]}

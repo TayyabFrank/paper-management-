@@ -25,42 +25,6 @@ interface AdminDocsTabProps {
   onCategoryChange?: (category: string) => void;
 }
 
-// Crisp Vector SVGs for Documents View
-const BACK_ARROW_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="19" y1="12" x2="5" y2="12"></line>
-  <polyline points="12 19 5 12 12 5"></polyline>
-</svg>
-`)}`;
-
-const SEARCH_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="11" cy="11" r="8"></circle>
-  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-</svg>
-`)}`;
-
-const FILTER_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="4" y1="21" x2="4" y2="14"></line>
-  <line x1="4" y1="10" x2="4" y2="3"></line>
-  <line x1="12" y1="21" x2="12" y2="12"></line>
-  <line x1="12" y1="8" x2="12" y2="3"></line>
-  <line x1="20" y1="21" x2="20" y2="16"></line>
-  <line x1="20" y1="12" x2="20" y2="3"></line>
-  <line x1="1" y1="14" x2="7" y2="14"></line>
-  <line x1="9" y1="8" x2="15" y2="8"></line>
-  <line x1="17" y1="16" x2="23" y2="16"></line>
-</svg>
-`)}`;
-
-const EYE_ACTION_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M2 12C2 12 5.5 5.5 12 5.5C18.5 5.5 22 12 22 12C22 12 18.5 18.5 12 18.5C5.5 18.5 2 12 2 12Z"/>
-  <circle cx="12" cy="12" r="3.5" fill="${color}"/>
-</svg>
-`)}`;
-
 // File type badge icons matching Screenshot 3
 const MINI_PDF_BADGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
@@ -98,14 +62,7 @@ const MINI_IMAGE_BADGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
-const TRASH_ACTION_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <polyline points="3 6 5 6 21 6"></polyline>
-  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-  <line x1="10" y1="11" x2="10" y2="17"></line>
-  <line x1="14" y1="11" x2="14" y2="17"></line>
-</svg>
-`)}`;
+
 
 const MINI_LINK_BADGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
@@ -160,7 +117,9 @@ export function AdminDocsTab({
   const [refreshing, setRefreshing] = useState(false);
   const [docToDelete, setDocToDelete] = useState<DocumentReaderItem | null>(null);
 
-  useEffect(() => {
+  const [prevInitialCategory, setPrevInitialCategory] = useState(initialCategory);
+  if (prevInitialCategory !== initialCategory) {
+    setPrevInitialCategory(initialCategory);
     if (initialCategory) {
       if (initialCategory === 'link') {
         setActiveCategory('other');
@@ -169,7 +128,7 @@ export function AdminDocsTab({
         setActiveCategory(initialCategory);
       }
     }
-  }, [initialCategory]);
+  }
 
   const selectCategory = (cat: string) => {
     setActiveCategory(cat);
@@ -890,7 +849,7 @@ export function AdminDocsTab({
                 Delete Document?
               </Text>
               <Text style={[styles.modalDesc, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                Are you sure you want to delete "{docToDelete.title}"? This will remove the document from both the employee profile and administration.
+                Are you sure you want to delete &quot;{docToDelete.title}&quot;? This will remove the document from both the employee profile and administration.
               </Text>
               <View style={styles.modalActionsRow}>
                 <TouchableOpacity

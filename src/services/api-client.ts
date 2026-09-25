@@ -63,7 +63,7 @@ async function request<T = any>(
       success: true,
       ...data,
     };
-  } catch (err: any) {
+  } catch {
     // Backend unreachable or network error
     return {
       success: false,

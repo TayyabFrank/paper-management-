@@ -4,7 +4,7 @@ import { useAuth } from '@/context/auth-context';
 import { useDocuments } from '@/context/documents-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { apiFetchDocumentStats, DocumentStatsData } from '@/services/api-client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -26,14 +26,6 @@ export interface AdminDashboardTabProps {
 }
 
 // Crisp Vector SVGs for Dashboard
-const HAMBURGER_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="3" y1="6" x2="21" y2="6"></line>
-  <line x1="3" y1="12" x2="21" y2="12"></line>
-  <line x1="3" y1="18" x2="21" y2="18"></line>
-</svg>
-`)}`;
-
 const CHART_ICON_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
   <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -109,15 +101,15 @@ export function AdminDashboardTab({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string>('article');
 
-  // Animation References
-  const beaconAnim = useRef(new Animated.Value(0)).current;
-  const spinAnim = useRef(new Animated.Value(0)).current;
-  const fadeHero = useRef(new Animated.Value(0)).current;
-  const fadeKpi = useRef(new Animated.Value(0)).current;
-  const fadeChart = useRef(new Animated.Value(0)).current;
-  const chartGrowthAnim = useRef(new Animated.Value(0)).current;
-  const complianceAnim = useRef(new Animated.Value(0)).current;
-  const inspectorScale = useRef(new Animated.Value(1)).current;
+  // Animation Values
+  const [beaconAnim] = useState(() => new Animated.Value(0));
+  const [spinAnim] = useState(() => new Animated.Value(0));
+  const [fadeHero] = useState(() => new Animated.Value(0));
+  const [fadeKpi] = useState(() => new Animated.Value(0));
+  const [fadeChart] = useState(() => new Animated.Value(0));
+  const [chartGrowthAnim] = useState(() => new Animated.Value(0));
+  const [complianceAnim] = useState(() => new Animated.Value(0));
+  const [inspectorScale] = useState(() => new Animated.Value(1));
 
   // Beacon pulse animation for Live DB
   useEffect(() => {
@@ -199,7 +191,7 @@ export function AdminDashboardTab({
         useNativeDriver: false,
       }),
     ]).start();
-  }, []);
+  }, [chartGrowthAnim, complianceAnim, fadeChart, fadeHero, fadeKpi]);
 
   // Load stats dynamically from backend API
   const fetchLiveStats = useCallback(async () => {
@@ -219,8 +211,28 @@ export function AdminDashboardTab({
   }, []);
 
   useEffect(() => {
-    fetchLiveStats();
-  }, [fetchLiveStats]);
+    let active = true;
+    (async () => {
+      try {
+        const res = await apiFetchDocumentStats();
+        if (active) {
+          if (res.success && res.stats) {
+            setBackendStats(res.stats);
+            setIsLiveConnected(true);
+          } else {
+            setIsLiveConnected(false);
+          }
+        }
+      } catch {
+        if (active) setIsLiveConnected(false);
+      } finally {
+        if (active) setIsLoadingBackend(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
@@ -322,7 +334,10 @@ export function AdminDashboardTab({
   const otherWithLinksCount = rawOtherCount + linkCount;
 
   // Safe percentage calculation
-  const calcPct = (count: number) => (totalCount > 0 ? Math.round((count / totalCount) * 100) : 0);
+  const calcPct = useCallback(
+    (count: number) => (totalCount > 0 ? Math.round((count / totalCount) * 100) : 0),
+    [totalCount]
+  );
 
   // Six-way file type breakdown categories: Video on main line, Links inside Other folder
   const categories: CategoryMetric[] = useMemo(
@@ -400,7 +415,7 @@ export function AdminDashboardTab({
         description: 'Google Drive links, cloud drives & miscellaneous vault archives',
       },
     ],
-    [articleCount, pdfCount, docxCount, imageCount, videoCount, otherWithLinksCount, totalCount]
+    [articleCount, pdfCount, docxCount, imageCount, videoCount, otherWithLinksCount, calcPct]
   );
 
   // Maximum count for vertical graph scaling
@@ -514,7 +529,7 @@ export function AdminDashboardTab({
                   },
                 ]}
               >
-                {isLiveConnected ? 'LIVE DB' : 'LOCAL CACHE'}
+                {isLoadingBackend ? 'SYNCING...' : isLiveConnected ? 'LIVE DB' : 'LOCAL CACHE'}
               </Text>
             </View>
 
@@ -577,7 +592,7 @@ export function AdminDashboardTab({
                   },
                 ]}
               >
-                {isLiveConnected ? 'MONGODB AGGREGATED ANALYTICS' : 'REACTIVE REPOSITORY DATA'}
+                {isLoadingBackend ? 'SYNCING LIVE METRICS...' : isLiveConnected ? 'MONGODB AGGREGATED ANALYTICS' : 'REACTIVE REPOSITORY DATA'}
               </Text>
             </View>
 

@@ -28,7 +28,7 @@ interface ThemeToggleButtonProps {
 }
 
 export function ThemeToggleButton({ compact = false, showLabel = true }: ThemeToggleButtonProps) {
-  const { isDark, toggleTheme, colors } = useDocuVaultTheme();
+  const { isDark, toggleTheme } = useDocuVaultTheme();
 
   return (
     <TouchableOpacity

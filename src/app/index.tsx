@@ -7,8 +7,6 @@ import {
   Platform,
   StatusBar,
   ActivityIndicator,
-  TouchableOpacity,
-  Text,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DocuVaultLogo } from '@/components/docuvault-logo';
@@ -25,7 +23,7 @@ import { useAuth } from '@/context/auth-context';
 
 export default function HomeScreen() {
   const { isDark, colors } = useDocuVaultTheme();
-  const { isLoggedIn, isLoading, user, isAdminMode, setIsAdminMode } = useAuth();
+  const { isLoggedIn, isLoading, user, isAdminMode } = useAuth();
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [activeTab, setActiveTab] = useState<TabKey>('home');
 

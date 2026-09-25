@@ -68,12 +68,7 @@ const PROFILE_LOGO_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURI
 </svg>
 `)}`;
 
-const CLOSE_ICON_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="18" y1="6" x2="6" y2="18"></line>
-  <line x1="6" y1="6" x2="18" y2="18"></line>
-</svg>
-`)}`;
+
 
 interface SideNavTabItem {
   key: AdminTabKey;
@@ -156,7 +151,7 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
   useEffect(() => {
     refreshDocuments();
     syncWithBackend();
-  }, [activeTab]);
+  }, [activeTab, refreshDocuments, syncWithBackend]);
 
   const pendingApprovalsCount = registeredAccounts.filter((a) => a.status === 'pending').length;
 

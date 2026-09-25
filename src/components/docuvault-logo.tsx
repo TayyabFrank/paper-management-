@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform, Image, ImageSourcePropType } from 'react-native';
+import { View, Text, StyleSheet, Image, ImageSourcePropType } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
 export const APP_LOGO: ImageSourcePropType = require('@/logo/logo.png');
