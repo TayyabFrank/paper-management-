@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Image,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
@@ -20,6 +21,116 @@ import { AdminUsersTab } from './admin-users-tab';
 import { AdminDocsTab } from './admin-docs-tab';
 import { AdminApprovalsTab } from './admin-approvals-tab';
 import { AdminProfileTab } from './admin-profile-tab';
+
+// Vector Logos for Admin Side Navbar
+const DASHBOARD_LOGO_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+  <line x1="8" y1="17" x2="8" y2="12"></line>
+  <line x1="12" y1="17" x2="12" y2="8"></line>
+  <line x1="16" y1="17" x2="16" y2="6"></line>
+</svg>
+`)}`;
+
+const USERS_LOGO_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+  <circle cx="9" cy="7" r="4"></circle>
+  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+</svg>
+`)}`;
+
+const ALL_DOCS_LOGO_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+  <polyline points="14 2 14 8 20 8"></polyline>
+  <line x1="16" y1="13" x2="8" y2="13"></line>
+  <line x1="16" y1="17" x2="8" y2="17"></line>
+  <line x1="10" y1="9" x2="8" y2="9"></line>
+</svg>
+`)}`;
+
+const APPROVALS_LOGO_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+  <path d="m9 14 2 2 4-4"></path>
+</svg>
+`)}`;
+
+const PROFILE_LOGO_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="9.5"></circle>
+  <circle cx="12" cy="9" r="3.2"></circle>
+  <path d="M6.8 18.2C7.8 15.6 9.8 14.5 12 14.5C14.2 14.5 16.2 15.6 17.2 18.2"></path>
+</svg>
+`)}`;
+
+const CLOSE_ICON_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="18" y1="6" x2="6" y2="18"></line>
+  <line x1="6" y1="6" x2="18" y2="18"></line>
+</svg>
+`)}`;
+
+interface SideNavTabItem {
+  key: AdminTabKey;
+  label: string;
+  sublabel: string;
+  color: string;
+  bgLight: string;
+  bgDark: string;
+  getIcon: (color: string) => string;
+}
+
+const SIDE_NAV_ITEMS: SideNavTabItem[] = [
+  {
+    key: 'dashboard',
+    label: 'Dashboard',
+    sublabel: 'Overview & Analytics',
+    color: '#2563eb',
+    bgLight: '#eff6ff',
+    bgDark: '#1e3a8a',
+    getIcon: DASHBOARD_LOGO_SVG,
+  },
+  {
+    key: 'users',
+    label: 'Users',
+    sublabel: 'Staff Directory',
+    color: '#0284c7',
+    bgLight: '#e0f2fe',
+    bgDark: '#0369a1',
+    getIcon: USERS_LOGO_SVG,
+  },
+  {
+    key: 'docs',
+    label: 'All Docs',
+    sublabel: 'Repository Vault',
+    color: '#7c3aed',
+    bgLight: '#f5f3ff',
+    bgDark: '#4c1d95',
+    getIcon: ALL_DOCS_LOGO_SVG,
+  },
+  {
+    key: 'approvals',
+    label: 'Approvals',
+    sublabel: 'Pending Requests',
+    color: '#d97706',
+    bgLight: '#fef3c7',
+    bgDark: '#78350f',
+    getIcon: APPROVALS_LOGO_SVG,
+  },
+  {
+    key: 'profile',
+    label: 'Profile',
+    sublabel: 'Settings & Security',
+    color: '#059669',
+    bgLight: '#d1fae5',
+    bgDark: '#064e3b',
+    getIcon: PROFILE_LOGO_SVG,
+  },
+];
 
 interface AdminPortalViewProps {
   onSwitchToEmployeeMode?: () => void;
@@ -125,7 +236,7 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
         />
       )}
 
-      {/* Hamburger Drawer Menu Modal */}
+      {/* Hamburger Side Navbar / Drawer Menu Modal */}
       {showDrawer && (
         <Modal transparent animationType="fade" visible={showDrawer}>
           <TouchableOpacity
@@ -133,35 +244,49 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
             activeOpacity={1}
             onPress={() => setShowDrawer(false)}
           >
-            <View
+            <TouchableOpacity
               style={[
                 styles.drawerPanel,
                 {
-                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  backgroundColor: isDark ? '#0f172a' : '#ffffff',
                   borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
                 },
               ]}
+              activeOpacity={1}
+              onPress={(e) => e?.stopPropagation?.()}
             >
-              <View style={{ alignItems: 'center', marginBottom: 12 }}>
-                <Image
-                  source={APP_LOGO}
-                  style={{
-                    width: 140,
-                    height: 76,
-                    borderRadius: 12,
-                    backgroundColor: '#ffffff',
-                    borderWidth: 1,
-                    borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#e2e8f0',
-                  }}
-                  resizeMode="contain"
-                />
+              {/* Drawer Top Header with Brand and Close Button */}
+              <View style={styles.drawerTopBar}>
+                <View style={styles.drawerBrandRow}>
+                  <Image
+                    source={APP_LOGO}
+                    style={styles.drawerAppLogo}
+                    resizeMode="contain"
+                  />
+                  <View>
+                    <Text style={[styles.drawerTitle, { color: isDark ? colors.textPrimary : '#1e3a8a' }]}>
+                      DocuVault
+                    </Text>
+                    <View style={[styles.drawerRolePill, { backgroundColor: isDark ? '#1e3a8a' : '#dbeafe' }]}>
+                      <Text style={[styles.drawerRoleText, { color: isDark ? '#93c5fd' : '#1d4ed8' }]}>
+                        ADMIN CONSOLE
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.drawerCloseBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
+                  onPress={() => setShowDrawer(false)}
+                  activeOpacity={0.7}
+                >
+                  <Image
+                    source={{ uri: CLOSE_ICON_SVG(isDark ? '#94a3b8' : '#475569') }}
+                    style={{ width: 14, height: 14 }}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
               </View>
-              <Text style={[styles.drawerTitle, { color: isDark ? colors.textPrimary : '#1e3a8a' }]}>
-                DocuVault Admin
-              </Text>
-              <Text style={[styles.drawerSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                Enterprise Administration Console
-              </Text>
 
               {/* Admin User Card in Drawer */}
               <TouchableOpacity
@@ -195,73 +320,175 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
                     {user.email || 'admin@enterprise.com'}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 13, color: isDark ? '#38bdf8' : '#2563eb' }}>✏️</Text>
+                <View style={[styles.drawerRoleBadge, { backgroundColor: isDark ? '#064e3b' : '#d1fae5' }]}>
+                  <Text style={[styles.drawerRoleBadgeText, { color: isDark ? '#6ee7b7' : '#047857' }]}>
+                    Active
+                  </Text>
+                </View>
               </TouchableOpacity>
 
               <View style={[styles.drawerDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }]} />
 
-              <TouchableOpacity
-                style={styles.drawerItem}
-                onPress={() => {
-                  setActiveTab('dashboard');
-                  setShowDrawer(false);
-                }}
-              >
-                <Text style={[styles.drawerItemText, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  📊 Dashboard Overview
-                </Text>
-              </TouchableOpacity>
+              {/* Navigation Heading */}
+              <Text style={[styles.drawerSectionLabel, { color: isDark ? '#64748b' : '#94a3b8' }]}>
+                NAVIGATION MENU
+              </Text>
 
-              <TouchableOpacity
-                style={styles.drawerItem}
-                onPress={() => {
-                  setActiveTab('users');
-                  setShowDrawer(false);
-                }}
+              {/* 5 Distinct Navigation Items with Logos/Icons */}
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={styles.drawerNavList}
+                showsVerticalScrollIndicator={false}
               >
-                <Text style={[styles.drawerItemText, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  👥 Staff Directory
-                </Text>
-              </TouchableOpacity>
+                {SIDE_NAV_ITEMS.map((item) => {
+                  const isActive = activeTab === item.key;
+                  const iconColor = isActive ? (isDark ? '#ffffff' : item.color) : (isDark ? '#cbd5e1' : item.color);
+                  const isApprovals = item.key === 'approvals';
 
-              <TouchableOpacity
-                style={styles.drawerItem}
-                onPress={() => {
-                  setActiveTab('approvals');
-                  setShowDrawer(false);
-                }}
-              >
-                <Text style={[styles.drawerItemText, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  ⏳ Pending Approvals ({pendingApprovalsCount})
-                </Text>
-              </TouchableOpacity>
+                  return (
+                    <TouchableOpacity
+                      key={item.key}
+                      style={[
+                        styles.sideNavItemCard,
+                        {
+                          backgroundColor: isActive
+                            ? isDark
+                              ? 'rgba(37, 99, 235, 0.22)'
+                              : '#eff6ff'
+                            : isDark
+                            ? 'rgba(30, 41, 59, 0.35)'
+                            : '#ffffff',
+                          borderColor: isActive
+                            ? isDark
+                              ? '#3b82f6'
+                              : '#bfdbfe'
+                            : isDark
+                            ? 'rgba(255,255,255,0.06)'
+                            : '#f1f5f9',
+                        },
+                      ]}
+                      onPress={() => {
+                        if (item.key === 'docs') {
+                          setSelectedEmployee(null);
+                          setSelectedCategory('all');
+                        }
+                        setActiveTab(item.key);
+                        setShowDrawer(false);
+                      }}
+                      activeOpacity={0.75}
+                    >
+                      {/* Logo / Icon Box */}
+                      <View
+                        style={[
+                          styles.sideNavLogoBox,
+                          {
+                            backgroundColor: isActive
+                              ? isDark
+                                ? '#2563eb'
+                                : item.bgLight
+                              : isDark
+                              ? item.bgDark
+                              : item.bgLight,
+                            borderColor: isActive ? (isDark ? '#60a5fa' : item.color) : 'transparent',
+                            borderWidth: isActive ? 1 : 0,
+                          },
+                        ]}
+                      >
+                        <Image
+                          source={{ uri: item.getIcon(iconColor) }}
+                          style={styles.sideNavLogoIcon}
+                          resizeMode="contain"
+                        />
+                      </View>
 
-              <TouchableOpacity
-                style={styles.drawerItem}
-                onPress={() => {
-                  setActiveTab('profile');
-                  setShowDrawer(false);
-                }}
-              >
-                <Text style={[styles.drawerItemText, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  👤 Admin Profile & Settings
-                </Text>
-              </TouchableOpacity>
+                      {/* Content */}
+                      <View style={styles.sideNavContent}>
+                        <Text
+                          style={[
+                            styles.sideNavTitle,
+                            {
+                              color: isActive
+                                ? isDark
+                                  ? '#93c5fd'
+                                  : '#1d4ed8'
+                                : isDark
+                                ? colors.textPrimary
+                                : '#0f172a',
+                              fontWeight: isActive ? '800' : '700',
+                            },
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.sideNavSubtitle,
+                            { color: isDark ? '#94a3b8' : '#64748b' },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {item.sublabel}
+                        </Text>
+                      </View>
+
+                      {/* Right Indicator: Badge or Arrow */}
+                      <View style={styles.sideNavRight}>
+                        {isApprovals && pendingApprovalsCount > 0 ? (
+                          <View style={styles.sideNavBadge}>
+                            <Text style={styles.sideNavBadgeText}>
+                              {pendingApprovalsCount}
+                            </Text>
+                          </View>
+                        ) : null}
+                        <Text
+                          style={[
+                            styles.sideNavChevron,
+                            {
+                              color: isActive
+                                ? isDark
+                                  ? '#60a5fa'
+                                  : '#2563eb'
+                                : isDark
+                                ? '#475569'
+                                : '#cbd5e1',
+                            },
+                          ]}
+                        >
+                          ›
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
 
               <View style={[styles.drawerDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }]} />
 
+              {/* Sign Out Button */}
               <TouchableOpacity
-                style={[styles.drawerActionBtn, { backgroundColor: '#fee2e2' }]}
+                style={[
+                  styles.drawerActionBtn,
+                  {
+                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fee2e2',
+                    borderColor: isDark ? '#b91c1c' : '#fecaca',
+                  },
+                ]}
                 onPress={() => {
                   setShowDrawer(false);
                   logout();
                 }}
+                activeOpacity={0.8}
               >
-                <Text style={[styles.drawerActionBtnText, { color: '#b91c1c' }]}>
-                  🚪 Sign Out
+                <Text style={{ fontSize: 16, marginRight: 8 }}>🚪</Text>
+                <Text style={[styles.drawerActionBtnText, { color: isDark ? '#f87171' : '#b91c1c' }]}>
+                  Sign Out of Console
                 </Text>
               </TouchableOpacity>
-            </View>
+
+              <Text style={[styles.drawerFooterText, { color: isDark ? '#475569' : '#94a3b8' }]}>
+                DocuVault Enterprise • v2.4
+              </Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         </Modal>
       )}
@@ -278,73 +505,180 @@ const styles = StyleSheet.create({
   },
   drawerOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
   },
   drawerPanel: {
-    width: '80%',
-    maxWidth: 320,
+    width: '84%',
+    maxWidth: 340,
     height: '100%',
-    padding: 24,
+    padding: 22,
     borderLeftWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  drawerTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  drawerBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  drawerAppLogo: {
+    width: 44,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
   },
   drawerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     letterSpacing: -0.4,
   },
-  drawerSub: {
-    fontSize: 13,
+  drawerRolePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
     marginTop: 2,
-    marginBottom: 16,
+    alignSelf: 'flex-start',
+  },
+  drawerRoleText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  drawerCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   drawerUserCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 12,
+    padding: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   drawerUserAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#cbd5e1',
   },
   drawerUserName: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   drawerUserEmail: {
     fontSize: 12,
-    marginTop: 1,
+    marginTop: 2,
+  },
+  drawerRoleBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  drawerRoleBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '700',
   },
   drawerDivider: {
     height: 1,
     marginVertical: 14,
   },
-  drawerItem: {
-    paddingVertical: 12,
+  drawerSectionLabel: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    marginLeft: 4,
   },
-  drawerItemText: {
-    fontSize: 16,
-    fontWeight: '600',
+  drawerNavList: {
+    gap: 8,
+    paddingBottom: 10,
+  },
+  sideNavItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  sideNavLogoBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  sideNavLogoIcon: {
+    width: 22,
+    height: 22,
+  },
+  sideNavContent: {
+    flex: 1,
+  },
+  sideNavTitle: {
+    fontSize: 15,
+    letterSpacing: -0.2,
+    marginBottom: 2,
+  },
+  sideNavSubtitle: {
+    fontSize: 11.5,
+  },
+  sideNavRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sideNavBadge: {
+    backgroundColor: '#d97706',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  sideNavBadgeText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  sideNavChevron: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginLeft: 2,
   },
   drawerActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
+    marginBottom: 10,
   },
   drawerActionBtnText: {
-    fontSize: 14.5,
+    fontSize: 14,
     fontWeight: '700',
+  },
+  drawerFooterText: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 2,
+    letterSpacing: 0.2,
   },
 });
