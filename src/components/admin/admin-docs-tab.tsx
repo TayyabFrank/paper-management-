@@ -190,6 +190,7 @@ export function AdminDocsTab({
   const docxCount = employeeDocs.filter((d) => d.type === 'docx').length;
   const articleCount = employeeDocs.filter((d) => d.type === 'article').length;
   const imageCount = employeeDocs.filter((d) => d.type === 'image').length;
+  const videoCount = employeeDocs.filter((d) => d.type === 'video').length;
   const otherCount = employeeDocs.filter((d) => d.type === 'other' || d.type === 'link').length;
 
   return (
@@ -455,6 +456,23 @@ export function AdminDocsTab({
             </Text>
             <Text style={[styles.categoryLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
               Images
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.categoryPill,
+              activeCategory === 'video' && styles.categoryPillActive,
+            ]}
+            onPress={() => selectCategory('video')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.categoryPillEmoji}>🎥</Text>
+            <Text style={[styles.categoryCount, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+              {videoCount}
+            </Text>
+            <Text style={[styles.categoryLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+              Videos
             </Text>
           </TouchableOpacity>
 

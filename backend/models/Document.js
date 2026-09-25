@@ -38,7 +38,7 @@ const documentSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['pdf', 'docx', 'image', 'article', 'link', 'other'],
+      enum: ['pdf', 'docx', 'image', 'video', 'article', 'link', 'other'],
       default: 'pdf',
     },
     icon: {

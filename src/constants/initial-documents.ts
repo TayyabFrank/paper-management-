@@ -285,4 +285,27 @@ export const INITIAL_DEMO_DOCUMENTS: DocumentReaderItem[] = [
       ],
     },
   },
+  {
+    id: 'doc-seed-vid-01',
+    title: 'Enterprise Security Protocol & Compliance Walkthrough',
+    subtitle: 'Mandatory Cyber Hygiene & Document Handling Briefing',
+    type: 'video',
+    icon: '🎥',
+    fileSize: '48.5 MB',
+    isSigned: true,
+    employeeEmail: 'john.doe@enterprise.com',
+    employeeName: 'John Doe',
+    statusNote: 'Annual Security Certified',
+    fullContent: {
+      category: 'Training & Video Briefings',
+      date: '22/09/2026',
+      authorOrIssuer: 'Enterprise Cybersecurity Directorate',
+      sections: [
+        {
+          heading: 'Video Synopsis & Key Requirements',
+          body: 'Video walkthrough outlining zero-trust credentials, two-factor authentication, and safe handling of sensitive client documents across remote workstations.',
+        },
+      ],
+    },
+  },
 ];

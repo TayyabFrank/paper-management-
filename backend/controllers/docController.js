@@ -1,6 +1,76 @@
 const Document = require('../models/Document');
 const User = require('../models/User');
 
+// @desc    Get aggregated document statistics for admin dashboard
+// @route   GET /api/documents/stats
+exports.getDocumentStats = async (req, res) => {
+  try {
+    const totalDocuments = await Document.countDocuments();
+
+    // Group count by lowercase type
+    const typeAggregation = await Document.aggregate([
+      {
+        $group: {
+          _id: { $toLower: '$type' },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const countsByType = {
+      article: 0,
+      pdf: 0,
+      docx: 0,
+      image: 0,
+      video: 0,
+      link: 0,
+      other: 0,
+    };
+
+    typeAggregation.forEach((item) => {
+      const typeKey = (item._id || 'other').trim();
+      if (Object.prototype.hasOwnProperty.call(countsByType, typeKey)) {
+        countsByType[typeKey] = item.count;
+      } else {
+        countsByType.other = (countsByType.other || 0) + item.count;
+      }
+    });
+
+    const signedCount = await Document.countDocuments({ isSigned: true });
+    const unsignedCount = totalDocuments - signedCount;
+
+    // Staff count from User model
+    const activeStaffCount = await User.countDocuments({
+      role: { $ne: 'Admin' },
+      status: { $nin: ['pending', 'rejected'] },
+    });
+    const pendingStaffCount = await User.countDocuments({ status: 'pending' });
+
+    // Recent documents
+    const recentDocuments = await Document.find()
+      .sort({ createdAt: -1 })
+      .limit(6)
+      .select('id title type subtitle fileSize icon isSigned employeeName employeeEmail createdAt');
+
+    return res.json({
+      success: true,
+      stats: {
+        totalDocuments,
+        countsByType,
+        signedCount,
+        unsignedCount,
+        signedPercentage: totalDocuments > 0 ? Math.round((signedCount / totalDocuments) * 100) : 0,
+        activeStaffCount,
+        pendingStaffCount,
+        recentDocuments,
+      },
+    });
+  } catch (error) {
+    console.error('Get document stats error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch document statistics' });
+  }
+};
+
 // @desc    Get documents (filtered by email or all)
 // @route   GET /api/documents
 exports.getDocuments = async (req, res) => {

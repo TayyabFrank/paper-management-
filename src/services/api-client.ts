@@ -133,3 +133,26 @@ export async function apiCreateDocument(doc: DocumentReaderItem): Promise<ApiRes
 export async function apiDeleteDocument(id: string): Promise<ApiResponse> {
   return request(`/api/documents/${encodeURIComponent(id)}`, 'DELETE');
 }
+
+export interface DocumentStatsData {
+  totalDocuments: number;
+  countsByType: {
+    article: number;
+    pdf: number;
+    docx: number;
+    image: number;
+    video: number;
+    link: number;
+    other: number;
+  };
+  signedCount: number;
+  unsignedCount: number;
+  signedPercentage: number;
+  activeStaffCount: number;
+  pendingStaffCount: number;
+  recentDocuments?: Partial<DocumentReaderItem>[];
+}
+
+export async function apiFetchDocumentStats(): Promise<ApiResponse<{ stats: DocumentStatsData }>> {
+  return request('/api/documents/stats', 'GET');
+}

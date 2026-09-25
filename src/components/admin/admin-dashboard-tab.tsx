@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,15 @@ import {
   StyleSheet,
   ScrollView,
   Image,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 import { useDocuments } from '@/context/documents-context';
 import { DocumentReaderItem } from '@/components/document-reader';
 import { APP_LOGO } from '@/components/docuvault-logo';
+import { apiFetchDocumentStats, DocumentStatsData } from '@/services/api-client';
 import { AdminTabKey } from './admin-bottom-navbar';
 
 export interface AdminDashboardTabProps {
@@ -37,6 +40,14 @@ const CHART_ICON_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURICo
 </svg>
 `)}`;
 
+const REFRESH_ICON_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="23 4 23 10 17 10"></polyline>
+  <polyline points="1 20 1 14 7 14"></polyline>
+  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+</svg>
+`)}`;
+
 const ARROW_RIGHT_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
   <polyline points="9 18 15 12 9 6"></polyline>
@@ -59,8 +70,16 @@ const SHIELD_CHECK_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURI
 </svg>
 `)}`;
 
-interface CategoryMetric {
-  key: 'article' | 'pdf' | 'docx' | 'image' | 'other';
+const DATABASE_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+</svg>
+`)}`;
+
+export interface CategoryMetric {
+  key: 'article' | 'pdf' | 'docx' | 'image' | 'video' | 'other';
   label: string;
   emoji: string;
   count: number;
@@ -78,44 +97,79 @@ export function AdminDashboardTab({
   onOpenDocument,
 }: AdminDashboardTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
-  const { registeredAccounts } = useAuth();
-  const { documents } = useDocuments();
+  const { registeredAccounts, syncWithBackend } = useAuth();
+  const { documents, refreshDocuments } = useDocuments();
 
+  // Dynamic backend stats state
+  const [backendStats, setBackendStats] = useState<DocumentStatsData | null>(null);
+  const [isLoadingBackend, setIsLoadingBackend] = useState<boolean>(true);
+  const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string>('article');
 
-  // Staff metrics
-  const activeEmployees = useMemo(
-    () =>
-      registeredAccounts.filter(
-        (a) => a.role?.toLowerCase() !== 'admin' && a.status !== 'pending' && a.status !== 'rejected'
-      ),
-    [registeredAccounts]
-  );
-  const pendingApprovals = useMemo(
-    () => registeredAccounts.filter((a) => a.status === 'pending'),
-    [registeredAccounts]
-  );
+  // Load stats dynamically from backend API
+  const fetchLiveStats = useCallback(async () => {
+    try {
+      const res = await apiFetchDocumentStats();
+      if (res.success && res.stats) {
+        setBackendStats(res.stats);
+        setIsLiveConnected(true);
+      } else {
+        setIsLiveConnected(false);
+      }
+    } catch {
+      setIsLiveConnected(false);
+    } finally {
+      setIsLoadingBackend(false);
+    }
+  }, []);
 
-  // Document Counts
-  const totalCount = documents.length;
-  const articleDocs = useMemo(() => documents.filter((d) => d.type === 'article'), [documents]);
-  const pdfDocs = useMemo(() => documents.filter((d) => d.type === 'pdf'), [documents]);
-  const docxDocs = useMemo(() => documents.filter((d) => d.type === 'docx'), [documents]);
-  const imageDocs = useMemo(() => documents.filter((d) => d.type === 'image'), [documents]);
-  const otherDocs = useMemo(
-    () => documents.filter((d) => d.type === 'other' || d.type === 'link'),
-    [documents]
-  );
+  useEffect(() => {
+    fetchLiveStats();
+  }, [fetchLiveStats]);
 
-  const articleCount = articleDocs.length;
-  const pdfCount = pdfDocs.length;
-  const docxCount = docxDocs.length;
-  const imageCount = imageDocs.length;
-  const otherCount = otherDocs.length;
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([fetchLiveStats(), refreshDocuments(), syncWithBackend()]);
+    setIsRefreshing(false);
+  };
 
-  // Percentages (safe against div by 0)
+  // Staff metrics (live from backendStats or local accounts fallback)
+  const activeStaffCount = backendStats?.activeStaffCount ??
+    registeredAccounts.filter(
+      (a) => a.role?.toLowerCase() !== 'admin' && a.status !== 'pending' && a.status !== 'rejected'
+    ).length;
+
+  const pendingStaffCount = backendStats?.pendingStaffCount ??
+    registeredAccounts.filter((a) => a.status === 'pending').length;
+
+  // Document Counts: dynamically retrieved from backend or fallback to documents context
+  const totalCount = backendStats?.totalDocuments ?? documents.length;
+
+  // Breakdown by file type
+  const articleCount = backendStats?.countsByType?.article ??
+    documents.filter((d) => d.type === 'article').length;
+
+  const pdfCount = backendStats?.countsByType?.pdf ??
+    documents.filter((d) => d.type === 'pdf').length;
+
+  const docxCount = backendStats?.countsByType?.docx ??
+    documents.filter((d) => d.type === 'docx').length;
+
+  const imageCount = backendStats?.countsByType?.image ??
+    documents.filter((d) => d.type === 'image').length;
+
+  const videoCount = backendStats?.countsByType?.video ??
+    documents.filter((d) => d.type === 'video').length;
+
+  const otherCount = backendStats
+    ? (backendStats.countsByType?.other || 0) + (backendStats.countsByType?.link || 0)
+    : documents.filter((d) => d.type === 'other' || d.type === 'link').length;
+
+  // Safe percentage calculation
   const calcPct = (count: number) => (totalCount > 0 ? Math.round((count / totalCount) * 100) : 0);
 
+  // Six-way file type breakdown categories
   const categories: CategoryMetric[] = useMemo(
     () => [
       {
@@ -128,11 +182,11 @@ export function AdminDashboardTab({
         darkColor: '#a78bfa',
         bgLight: '#f5f3ff',
         bgDark: '#2e1065',
-        description: 'Knowledge bases, editorial whitepapers & internal guidelines',
+        description: 'Knowledge bases, articles & documentation whitepapers',
       },
       {
         key: 'pdf',
-        label: 'PDF Docs',
+        label: 'PDFs',
         emoji: '📄',
         count: pdfCount,
         pct: calcPct(pdfCount),
@@ -140,11 +194,11 @@ export function AdminDashboardTab({
         darkColor: '#f87171',
         bgLight: '#fef2f2',
         bgDark: '#450a0a',
-        description: 'Portable agreements, handbooks & signed legal records',
+        description: 'Signed agreements, handbooks & portable corporate records',
       },
       {
         key: 'docx',
-        label: 'Word Docs',
+        label: 'DOCX',
         emoji: '📘',
         count: docxCount,
         pct: calcPct(docxCount),
@@ -164,11 +218,23 @@ export function AdminDashboardTab({
         darkColor: '#34d399',
         bgLight: '#ecfdf5',
         bgDark: '#064e3b',
-        description: 'Facility blueprints, architectural maps & diagrams',
+        description: 'Facility blueprints, architectural maps & schematic photos',
+      },
+      {
+        key: 'video',
+        label: 'Videos',
+        emoji: '🎥',
+        count: videoCount,
+        pct: calcPct(videoCount),
+        color: '#e11d48',
+        darkColor: '#fb7185',
+        bgLight: '#fff1f2',
+        bgDark: '#4c0519',
+        description: 'Compliance briefings, training seminars & video walkthroughs',
       },
       {
         key: 'other',
-        label: 'Other & Links',
+        label: 'Other / Links',
         emoji: '💬',
         count: otherCount,
         pct: calcPct(otherCount),
@@ -176,13 +242,13 @@ export function AdminDashboardTab({
         darkColor: '#fbbf24',
         bgLight: '#fffbeb',
         bgDark: '#451a03',
-        description: 'Cloud storage mirrors, external bookmarks & drive files',
+        description: 'Cloud drive links, external bookmarks & miscellaneous files',
       },
     ],
-    [articleCount, pdfCount, docxCount, imageCount, otherCount, totalCount]
+    [articleCount, pdfCount, docxCount, imageCount, videoCount, otherCount, totalCount]
   );
 
-  // Maximum count for graph scaling (minimum 1 to prevent /0)
+  // Maximum count for vertical graph scaling
   const maxCount = useMemo(() => Math.max(...categories.map((c) => c.count), 1), [categories]);
 
   // Selected category info for inspector
@@ -192,13 +258,17 @@ export function AdminDashboardTab({
   );
 
   // Compliance / Signed stats
-  const signedDocs = useMemo(() => documents.filter((d) => d.isSigned), [documents]);
-  const signedCount = signedDocs.length;
+  const signedCount = backendStats?.signedCount ?? documents.filter((d) => d.isSigned).length;
   const unsignedCount = totalCount - signedCount;
   const signedPct = totalCount > 0 ? Math.round((signedCount / totalCount) * 100) : 0;
 
-  // Recent 4 documents for preview list
-  const recentDocs = useMemo(() => documents.slice(0, 4), [documents]);
+  // Recent documents stream
+  const recentDocs = useMemo(() => {
+    if (backendStats?.recentDocuments && backendStats.recentDocuments.length > 0) {
+      return backendStats.recentDocuments as DocumentReaderItem[];
+    }
+    return documents.slice(0, 5);
+  }, [backendStats, documents]);
 
   return (
     <View style={[styles.screenContainer, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>
@@ -223,9 +293,34 @@ export function AdminDashboardTab({
           </View>
 
           <View style={styles.headerRightActions}>
-            <View style={styles.liveIndicator}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>LIVE</Text>
+            {/* Live Backend Connection Indicator */}
+            <View
+              style={[
+                styles.liveIndicator,
+                {
+                  backgroundColor: isLiveConnected
+                    ? 'rgba(16, 185, 129, 0.18)'
+                    : 'rgba(245, 158, 11, 0.18)',
+                  borderColor: isLiveConnected
+                    ? 'rgba(16, 185, 129, 0.4)'
+                    : 'rgba(245, 158, 11, 0.4)',
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.liveDot,
+                  { backgroundColor: isLiveConnected ? '#10b981' : '#f59e0b' },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.liveText,
+                  { color: isLiveConnected ? '#34d399' : '#fbbf24' },
+                ]}
+              >
+                {isLiveConnected ? 'LIVE DB' : 'LOCAL CACHE'}
+              </Text>
             </View>
 
             <TouchableOpacity
@@ -246,23 +341,73 @@ export function AdminDashboardTab({
       <ScrollView
         contentContainerStyle={styles.scrollBody}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleManualRefresh}
+            colors={['#2563eb']}
+          />
+        }
       >
-        {/* Hero Title Section */}
+        {/* Hero Section & Live Refresh Ribbon */}
         <View style={styles.heroSection}>
-          <View style={styles.heroBadgeRow}>
-            <Text style={[styles.heroSectionBadge, { backgroundColor: isDark ? '#1e293b' : '#e0e7ff', color: isDark ? '#93c5fd' : '#3730a3' }]}>
-              DOCUMENT REPOSITORY ANALYTICS
-            </Text>
+          <View style={styles.heroTopRow}>
+            <View style={styles.heroBadgeRow}>
+              <Image
+                source={{ uri: DATABASE_SVG(isDark ? '#38bdf8' : '#2563eb') }}
+                style={{ width: 14, height: 14, marginRight: 6 }}
+                resizeMode="contain"
+              />
+              <Text
+                style={[
+                  styles.heroSectionBadge,
+                  {
+                    color: isDark ? '#93c5fd' : '#1e40af',
+                  },
+                ]}
+              >
+                {isLiveConnected ? 'MONGODB AGGREGATED ANALYTICS' : 'REACTIVE REPOSITORY DATA'}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.refreshPillBtn,
+                {
+                  backgroundColor: isDark ? '#1e293b' : '#eff6ff',
+                  borderColor: isDark ? '#334155' : '#bfdbfe',
+                },
+              ]}
+              onPress={handleManualRefresh}
+              activeOpacity={0.7}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <ActivityIndicator size="small" color="#2563eb" />
+              ) : (
+                <>
+                  <Image
+                    source={{ uri: REFRESH_ICON_SVG(isDark ? '#60a5fa' : '#2563eb') }}
+                    style={{ width: 12, height: 12, marginRight: 5 }}
+                    resizeMode="contain"
+                  />
+                  <Text style={[styles.refreshPillText, { color: isDark ? '#60a5fa' : '#2563eb' }]}>
+                    Sync DB
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
+
           <Text style={[styles.pageTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-            Platform Dashboard & Graphs
+            Enterprise Content Dashboard
           </Text>
           <Text style={[styles.pageSubtitle, { color: isDark ? '#94a3b8' : '#475569' }]}>
-            High-level metrics and visual breakdown of total documents, articles, PDFs, and staff activity.
+            Dynamic breakdown of total documents, articles, PDFs, DOCX, images, videos, and uploaded content.
           </Text>
         </View>
 
-        {/* Top Summary KPI Cards (Primary Totals) */}
+        {/* PRIMARY TOTALS CARDS GRID */}
         <View style={styles.kpiGrid}>
           {/* Main Total Documents Card */}
           <TouchableOpacity
@@ -281,23 +426,25 @@ export function AdminDashboardTab({
                 <Image source={{ uri: CHART_ICON_SVG('#ffffff') }} style={{ width: 22, height: 22 }} resizeMode="contain" />
               </View>
               <View style={styles.kpiPill}>
-                <Text style={styles.kpiPillText}>100% REPOSITORY</Text>
+                <Text style={styles.kpiPillText}>
+                  {isLiveConnected ? 'LIVE DATABASE' : 'ALL REPOSITORY'}
+                </Text>
               </View>
             </View>
 
             <Text style={styles.kpiBigNumber}>{totalCount}</Text>
-            <Text style={styles.kpiMainLabel}>Total Documents Uploaded</Text>
+            <Text style={styles.kpiMainLabel}>Total Content Uploaded</Text>
             <Text style={styles.kpiSubLabel}>
-              Comprehensive count across articles, PDFs, DOCX, images & media
+              Total count across all documents, articles, images, PDFs, videos & media
             </Text>
 
             <View style={styles.kpiFooterAction}>
-              <Text style={styles.kpiFooterText}>Open Repository</Text>
+              <Text style={styles.kpiFooterText}>Explore All Content ({totalCount})</Text>
               <Image source={{ uri: ARROW_RIGHT_SVG('#ffffff') }} style={{ width: 14, height: 14 }} resizeMode="contain" />
             </View>
           </TouchableOpacity>
 
-          {/* Quick 2-Column Sub KPI: Articles vs Staff */}
+          {/* 3-Column Quick Metrics: Articles, Videos, Active Staff */}
           <View style={styles.subKpiRow}>
             {/* Articles Highlight Card */}
             <TouchableOpacity
@@ -315,7 +462,7 @@ export function AdminDashboardTab({
                 <Text style={styles.subKpiEmoji}>📰</Text>
                 <View style={[styles.pctBadge, { backgroundColor: isDark ? '#3b0764' : '#f3e8ff' }]}>
                   <Text style={[styles.pctBadgeText, { color: isDark ? '#d8b4fe' : '#7e22ce' }]}>
-                    {calcPct(articleCount)}% Total
+                    {calcPct(articleCount)}%
                   </Text>
                 </View>
               </View>
@@ -326,7 +473,38 @@ export function AdminDashboardTab({
                 Articles
               </Text>
               <Text style={[styles.subKpiAction, { color: isDark ? '#a78bfa' : '#6d28d9' }]}>
-                View Articles →
+                View →
+              </Text>
+            </TouchableOpacity>
+
+            {/* Videos Highlight Card */}
+            <TouchableOpacity
+              style={[
+                styles.subKpiCard,
+                {
+                  backgroundColor: isDark ? '#18181b' : '#ffffff',
+                  borderColor: isDark ? '#27272a' : '#e4e4e7',
+                },
+              ]}
+              onPress={() => onNavigateTab('docs', 'video')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.subKpiTop}>
+                <Text style={styles.subKpiEmoji}>🎥</Text>
+                <View style={[styles.pctBadge, { backgroundColor: isDark ? '#4c0519' : '#ffe4e6' }]}>
+                  <Text style={[styles.pctBadgeText, { color: isDark ? '#fda4af' : '#e11d48' }]}>
+                    {calcPct(videoCount)}%
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.subKpiValue, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
+                {videoCount}
+              </Text>
+              <Text style={[styles.subKpiTitle, { color: isDark ? '#a1a1aa' : '#52525b' }]}>
+                Videos
+              </Text>
+              <Text style={[styles.subKpiAction, { color: isDark ? '#fb7185' : '#e11d48' }]}>
+                View →
               </Text>
             </TouchableOpacity>
 
@@ -343,21 +521,21 @@ export function AdminDashboardTab({
               activeOpacity={0.8}
             >
               <View style={styles.subKpiTop}>
-                <Image source={{ uri: USERS_ICON_SVG(isDark ? '#38bdf8' : '#0284c7') }} style={{ width: 22, height: 22 }} resizeMode="contain" />
+                <Image source={{ uri: USERS_ICON_SVG(isDark ? '#38bdf8' : '#0284c7') }} style={{ width: 20, height: 20 }} resizeMode="contain" />
                 <View style={[styles.pctBadge, { backgroundColor: isDark ? '#082f49' : '#e0f2fe' }]}>
                   <Text style={[styles.pctBadgeText, { color: isDark ? '#7dd3fc' : '#0369a1' }]}>
-                    {pendingApprovals.length} Pending
+                    {pendingStaffCount} Pnd
                   </Text>
                 </View>
               </View>
               <Text style={[styles.subKpiValue, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                {activeEmployees.length}
+                {activeStaffCount}
               </Text>
               <Text style={[styles.subKpiTitle, { color: isDark ? '#a1a1aa' : '#52525b' }]}>
                 Active Staff
               </Text>
               <Text style={[styles.subKpiAction, { color: isDark ? '#38bdf8' : '#0284c7' }]}>
-                Staff Directory →
+                Staff →
               </Text>
             </TouchableOpacity>
           </View>
@@ -378,11 +556,11 @@ export function AdminDashboardTab({
               <View style={styles.chartTitleRow}>
                 <Text style={styles.chartIconEmoji}>📊</Text>
                 <Text style={[styles.chartTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-                  Document Distribution Graph
+                  File Type Breakdown Chart
                 </Text>
               </View>
               <Text style={[styles.chartSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                Total volume breakdown by file category (tap any bar to inspect)
+                Live distribution: Articles, PDFs, DOCX, Images, Videos & Other (tap bar to filter)
               </Text>
             </View>
 
@@ -414,13 +592,13 @@ export function AdminDashboardTab({
               </View>
             </View>
 
-            {/* Vertical Columns */}
+            {/* Vertical Columns for Each File Type */}
             <View style={styles.columnsRow}>
               {categories.map((cat) => {
                 const isSelected = selectedCategoryKey === cat.key;
                 const columnHeightPct = maxCount > 0 ? (cat.count / maxCount) * 100 : 0;
                 // Minimum bar height for visibility even if 0
-                const displayHeightPct = Math.max(columnHeightPct, cat.count > 0 ? 16 : 4);
+                const displayHeightPct = Math.max(columnHeightPct, cat.count > 0 ? 14 : 4);
 
                 return (
                   <TouchableOpacity
@@ -469,7 +647,7 @@ export function AdminDashboardTab({
                           {
                             height: `${displayHeightPct}%`,
                             backgroundColor: isDark ? cat.darkColor : cat.color,
-                            opacity: isSelected ? 1 : 0.75,
+                            opacity: isSelected ? 1 : 0.8,
                             borderWidth: isSelected ? 2 : 0,
                             borderColor: '#ffffff',
                           },
@@ -528,7 +706,7 @@ export function AdminDashboardTab({
                       { color: isDark ? '#f8fafc' : '#0f172a' },
                     ]}
                   >
-                    {activeCategoryMetric.label} Summary
+                    {activeCategoryMetric.label} Overview
                   </Text>
                   <Text
                     style={[
@@ -573,7 +751,7 @@ export function AdminDashboardTab({
               activeOpacity={0.85}
             >
               <Text style={styles.inspectorActionBtnText}>
-                Filter {activeCategoryMetric.label}
+                Filter {activeCategoryMetric.label} ({activeCategoryMetric.count})
               </Text>
               <Image source={{ uri: ARROW_RIGHT_SVG('#ffffff') }} style={{ width: 14, height: 14 }} resizeMode="contain" />
             </TouchableOpacity>
@@ -596,7 +774,7 @@ export function AdminDashboardTab({
                 Proportional Vault Composition
               </Text>
               <Text style={[styles.spectrumSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                Relative proportion of each document type across {totalCount} total assets
+                Visual proportion of each file type across {totalCount} total assets
               </Text>
             </View>
           </View>
@@ -604,7 +782,7 @@ export function AdminDashboardTab({
           {/* Continuous Stacked Segment Bar */}
           <View style={styles.stackedBarContainer}>
             {categories.map((cat) => {
-              if (cat.pct <= 0) return null;
+              if (cat.count <= 0) return null;
               return (
                 <View
                   key={cat.key}
@@ -620,7 +798,7 @@ export function AdminDashboardTab({
             })}
           </View>
 
-          {/* Interactive Legend Pills */}
+          {/* Interactive Legend Pills with Counts and Percentages */}
           <View style={styles.legendGrid}>
             {categories.map((cat) => (
               <TouchableOpacity
@@ -656,7 +834,7 @@ export function AdminDashboardTab({
           </View>
         </View>
 
-        {/* PRIMARY GRAPH 3: Compliance & Security Status */}
+        {/* PRIMARY GRAPH 3: Compliance & Verification Status */}
         <View
           style={[
             styles.complianceCard,
@@ -740,7 +918,7 @@ export function AdminDashboardTab({
         <View style={styles.recentSection}>
           <View style={styles.recentHeaderRow}>
             <Text style={[styles.recentSectionTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
-              Recent Enterprise Uploads
+              Recent Content Uploads
             </Text>
             <TouchableOpacity
               onPress={() => onNavigateTab('docs', 'all')}
@@ -757,6 +935,7 @@ export function AdminDashboardTab({
             const isPdf = doc.type === 'pdf';
             const isDocx = doc.type === 'docx';
             const isImg = doc.type === 'image';
+            const isVid = doc.type === 'video';
 
             const badgeBg = isArticle
               ? isDark ? '#3b0764' : '#f3e8ff'
@@ -766,6 +945,8 @@ export function AdminDashboardTab({
               ? isDark ? '#082f49' : '#e0f2fe'
               : isImg
               ? isDark ? '#064e3b' : '#dcfce7'
+              : isVid
+              ? isDark ? '#4c0519' : '#ffe4e6'
               : isDark ? '#451a03' : '#fef3c7';
 
             const badgeColor = isArticle
@@ -776,6 +957,8 @@ export function AdminDashboardTab({
               ? isDark ? '#7dd3fc' : '#0284c7'
               : isImg
               ? isDark ? '#86efac' : '#16a34a'
+              : isVid
+              ? isDark ? '#fda4af' : '#e11d48'
               : isDark ? '#fcd34d' : '#d97706';
 
             return (
@@ -788,11 +971,11 @@ export function AdminDashboardTab({
                     borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
                   },
                 ]}
-                onPress={() => onOpenDocument?.(doc)}
+                onPress={() => onOpenDocument?.(doc as DocumentReaderItem)}
                 activeOpacity={0.8}
               >
                 <View style={styles.recentDocLeft}>
-                  <Text style={styles.recentDocEmoji}>{doc.icon || '📄'}</Text>
+                  <Text style={styles.recentDocEmoji}>{doc.icon || (isVid ? '🎥' : isImg ? '🖼️' : '📄')}</Text>
                   <View style={{ flex: 1 }}>
                     <Text
                       style={[styles.recentDocTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}
@@ -825,7 +1008,7 @@ export function AdminDashboardTab({
         </View>
 
         {/* Action Required Banner for Pending Staff Approvals */}
-        {pendingApprovals.length > 0 && (
+        {pendingStaffCount > 0 && (
           <View
             style={[
               styles.actionCard,
@@ -842,7 +1025,7 @@ export function AdminDashboardTab({
                   Staff Action Required
                 </Text>
                 <Text style={[styles.actionCardBody, { color: isDark ? '#fef3c7' : '#92400e' }]}>
-                  There are {pendingApprovals.length} employee registration requests awaiting your administrative review.
+                  There are {pendingStaffCount} employee registration requests waiting for your administrative review.
                 </Text>
               </View>
             </View>
@@ -853,7 +1036,7 @@ export function AdminDashboardTab({
               activeOpacity={0.85}
             >
               <Text style={styles.actionButtonText}>
-                Review Pending Staff ({pendingApprovals.length})
+                Review Pending Staff ({pendingStaffCount})
               </Text>
             </TouchableOpacity>
           </View>
@@ -931,21 +1114,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#10b981',
   },
   liveText: {
-    color: '#34d399',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -965,18 +1144,32 @@ const styles = StyleSheet.create({
   heroSection: {
     marginBottom: 20,
   },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   heroBadgeRow: {
     flexDirection: 'row',
-    marginBottom: 8,
+    alignItems: 'center',
   },
   heroSectionBadge: {
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
+  },
+  refreshPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
-    overflow: 'hidden',
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  refreshPillText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   pageTitle: {
     fontSize: 26,
@@ -1062,11 +1255,11 @@ const styles = StyleSheet.create({
   },
   subKpiRow: {
     flexDirection: 'row',
-    gap: 14,
+    gap: 10,
   },
   subKpiCard: {
     flex: 1,
-    padding: 16,
+    padding: 14,
     borderRadius: 16,
     borderWidth: 1,
     shadowColor: '#000',
@@ -1079,33 +1272,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   subKpiEmoji: {
-    fontSize: 22,
+    fontSize: 20,
   },
   pctBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   pctBadgeText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
   },
   subKpiValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.5,
     marginBottom: 2,
   },
   subKpiTitle: {
-    fontSize: 13.5,
+    fontSize: 12.5,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subKpiAction: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
   },
   chartCard: {
@@ -1193,7 +1386,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   barValueBadge: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 6,
     borderWidth: 1,
@@ -1205,20 +1398,20 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   barValueText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
   },
   barTrack: {
-    width: '65%',
-    maxWidth: 42,
+    width: '60%',
+    maxWidth: 36,
     height: 120,
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
   barFill: {
     width: '100%',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    borderTopLeftRadius: 7,
+    borderTopRightRadius: 7,
     minHeight: 8,
   },
   barFoot: {
@@ -1231,11 +1424,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   barFootLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
     textAlign: 'center',
   },
   barFootPct: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
     marginTop: 1,
   },
@@ -1348,11 +1541,11 @@ const styles = StyleSheet.create({
   legendPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 7,
-    paddingHorizontal: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 9,
     borderRadius: 10,
     borderWidth: 1,
-    gap: 6,
+    gap: 5,
   },
   legendColorDot: {
     width: 8,
@@ -1363,15 +1556,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   legendLabel: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '600',
   },
   legendCount: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '800',
   },
   legendPct: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '600',
   },
   complianceCard: {

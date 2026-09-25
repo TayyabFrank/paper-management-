@@ -314,7 +314,7 @@ export function getDocumentTypeIcon(type: string, title?: string): string {
   return PDF_BLUE_SVG;
 }
 
-export function detectFileType(fileName: string, mimeType: string = ''): 'pdf' | 'docx' | 'image' | 'article' | 'link' | 'other' {
+export function detectFileType(fileName: string, mimeType: string = ''): 'pdf' | 'docx' | 'image' | 'video' | 'article' | 'link' | 'other' {
   const lowerName = fileName.toLowerCase();
   const lowerMime = mimeType.toLowerCase();
 
@@ -329,6 +329,9 @@ export function detectFileType(fileName: string, mimeType: string = ''): 'pdf' |
 
   if (lowerMime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic)$/i.test(lowerName)) {
     return 'image';
+  }
+  if (lowerMime.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm|m4v)$/i.test(lowerName)) {
+    return 'video';
   }
   if (lowerMime.includes('pdf') || lowerName.endsWith('.pdf')) {
     return 'pdf';
@@ -349,6 +352,8 @@ export function getDetectedBadgeStyle(type: string) {
       return { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' };
     case 'image':
       return { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' };
+    case 'video':
+      return { backgroundColor: '#fef2f2', borderColor: '#fecaca' };
     case 'article':
       return { backgroundColor: '#fefce8', borderColor: '#fef08a' };
     case 'docx':
@@ -364,6 +369,8 @@ export function getDetectedBadgeTextStyle(type: string) {
       return { color: '#1d4ed8' };
     case 'image':
       return { color: '#15803d' };
+    case 'video':
+      return { color: '#b91c1c' };
     case 'article':
       return { color: '#a16207' };
     case 'docx':

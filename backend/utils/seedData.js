@@ -147,6 +147,18 @@ const DEFAULT_SAMPLE_DOCS = [
     employeeName: 'System Administrator',
     statusNote: 'Continuous Cloud Sync',
   },
+  {
+    id: 'doc-seed-vid-01',
+    title: 'Enterprise Security Protocol & Compliance Walkthrough',
+    subtitle: 'Mandatory Cyber Hygiene & Document Handling Briefing',
+    type: 'video',
+    icon: '🎥',
+    fileSize: '48.5 MB',
+    isSigned: true,
+    employeeEmail: 'john.doe@enterprise.com',
+    employeeName: 'John Doe',
+    statusNote: 'Annual Security Certified',
+  },
 ];
 
 async function seedInitialData() {

@@ -636,7 +636,7 @@ export interface DocumentReaderItem {
   id: string;
   title: string;
   subtitle: string;
-  type: 'pdf' | 'docx' | 'image' | 'article' | 'link' | 'other';
+  type: 'pdf' | 'docx' | 'image' | 'video' | 'article' | 'link' | 'other';
   icon: string;
   fileSize?: string;
   fileUrl?: string;
