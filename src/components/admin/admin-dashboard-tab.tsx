@@ -1319,44 +1319,6 @@ export function AdminDashboardTab({
               })
             )}
           </View>
-
-          {/* Security & Vault Compliance Footer Strip */}
-          <View
-            style={[
-              styles.securityStrip,
-              {
-                backgroundColor: isDark ? 'rgba(17, 24, 39, 0.7)' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-              },
-            ]}
-          >
-            <View style={styles.securityStripRow}>
-              <View style={styles.securityChip}>
-                <Text style={{ fontSize: 13 }}>🛡️</Text>
-                <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                  AES-256 Encrypted
-                </Text>
-              </View>
-
-              <View style={[styles.securityDot, { backgroundColor: isDark ? '#334155' : '#cbd5e1' }]} />
-
-              <View style={styles.securityChip}>
-                <Text style={{ fontSize: 13 }}>⚡</Text>
-                <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                  MongoDB Live Sync
-                </Text>
-              </View>
-
-              <View style={[styles.securityDot, { backgroundColor: isDark ? '#334155' : '#cbd5e1' }]} />
-
-              <View style={styles.securityChip}>
-                <Text style={{ fontSize: 13 }}>🔒</Text>
-                <Text style={[styles.securityChipText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                  RBAC Privacy Enforced
-                </Text>
-              </View>
-            </View>
-          </View>
         </Animated.View>
       </ScrollView>
     </View>
