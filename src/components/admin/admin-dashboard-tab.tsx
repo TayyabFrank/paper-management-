@@ -326,10 +326,13 @@ export function AdminDashboardTab({
         (!['article', 'pdf', 'docx', 'image', 'link', 'video'].includes(d.type || ''))
     ).length;
 
+  // Other folder includes both Google Drive Links and miscellaneous archives
+  const otherWithLinksCount = rawOtherCount + linkCount;
+
   // Safe percentage calculation
   const calcPct = (count: number) => (totalCount > 0 ? Math.round((count / totalCount) * 100) : 0);
 
-  // Full breakdown categories including both Videos and Links
+  // Six-way file type breakdown categories: Video on main line, Links inside Other folder
   const categories: CategoryMetric[] = useMemo(
     () => [
       {
@@ -393,31 +396,19 @@ export function AdminDashboardTab({
         description: 'Compliance briefings, training seminars & video walkthroughs',
       },
       {
-        key: 'link',
-        label: 'Links',
-        emoji: '🔗',
-        count: linkCount,
-        pct: calcPct(linkCount),
-        color: '#06b6d4',
-        darkColor: '#38bdf8',
-        bgLight: '#ecfeff',
-        bgDark: '#083344',
-        description: 'Google Drive links, web URLs & shared cloud document repositories',
-      },
-      {
         key: 'other',
-        label: 'Other',
+        label: 'Other & Links',
         emoji: '📁',
-        count: rawOtherCount,
-        pct: calcPct(rawOtherCount),
+        count: otherWithLinksCount,
+        pct: calcPct(otherWithLinksCount),
         color: '#f59e0b',
         darkColor: '#fbbf24',
         bgLight: '#fffbeb',
         bgDark: '#451a03',
-        description: 'Miscellaneous vault archives & enterprise files',
+        description: 'Google Drive links, cloud drives & miscellaneous vault archives',
       },
     ],
-    [articleCount, pdfCount, docxCount, imageCount, videoCount, linkCount, rawOtherCount, totalCount]
+    [articleCount, pdfCount, docxCount, imageCount, videoCount, otherWithLinksCount, totalCount]
   );
 
   // Maximum count for vertical graph scaling
