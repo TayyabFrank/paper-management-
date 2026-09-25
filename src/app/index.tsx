@@ -18,7 +18,6 @@ import { EmployeeProfileView } from '@/components/employee-profile-view';
 import { BottomNavbar, TabKey } from '@/components/bottom-navbar';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { AdminPortalView } from '@/components/admin/admin-portal-view';
-import { AuthAnimatedBackground } from '@/components/auth-animated-background';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 
@@ -103,10 +102,6 @@ export default function HomeScreen() {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background}
       />
-
-      {/* Floating Animated Ambient Glow Orbs */}
-      <AuthAnimatedBackground />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardContainer}

@@ -11,7 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { DocuVaultLogo } from '@/components/docuvault-logo';
 import { EmployeeRegistrationCard } from '@/components/employee-registration-card';
-import { AuthAnimatedBackground } from '@/components/auth-animated-background';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
@@ -25,10 +24,6 @@ export default function LoginScreen() {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background}
       />
-
-      {/* Floating Animated Ambient Glow Orbs */}
-      <AuthAnimatedBackground />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardContainer}
@@ -67,8 +62,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    position: 'relative',
-    overflow: 'hidden',
   },
   keyboardContainer: {
     flex: 1,
@@ -86,13 +79,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 20,
     paddingHorizontal: 16,
-    zIndex: 2,
   },
   innerContainer: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 420,
     alignItems: 'center',
   },
 });
+

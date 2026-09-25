@@ -2,11 +2,9 @@ import { useAuth } from '@/context/auth-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Animated,
-  Easing,
   Image,
   Modal,
   Platform,
@@ -29,6 +27,7 @@ const DEFAULT_AVATAR_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 function PasswordEyeIcon({ visible, color }: { visible: boolean; color: string }) {
   if (Platform.OS === 'web') {
     if (visible) {
+      // Eye Open (password visible)
       return (
         <svg
           width="20"
@@ -46,6 +45,7 @@ function PasswordEyeIcon({ visible, color }: { visible: boolean; color: string }
         </svg>
       );
     }
+    // Eye Slashed / Closed (password hidden)
     return (
       <svg
         width="20"
@@ -64,8 +64,11 @@ function PasswordEyeIcon({ visible, color }: { visible: boolean; color: string }
     );
   }
 
+  // Native iOS / Android fallback
   return <Text style={{ fontSize: 16 }}>{visible ? '👁️' : '🙈'}</Text>;
 }
+
+
 
 interface EmployeeRegistrationCardProps {
   initialMode?: 'register' | 'login';
@@ -94,15 +97,6 @@ export function EmployeeRegistrationCard({
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [focusedField, setFocusedField] = useState<string | null>(null);
-
-  // Entrance and Interactive Animations
-  const [cardFadeAnim] = useState(() => new Animated.Value(0));
-  const [cardSlideAnim] = useState(() => new Animated.Value(24));
-  const [tabSlideAnim] = useState(() => new Animated.Value(initialMode === 'login' ? 0 : 1));
-  const [scoreAnim] = useState(() => new Animated.Value(0));
-  const [beaconAnim] = useState(() => new Animated.Value(0));
-  const [buttonScaleAnim] = useState(() => new Animated.Value(1));
 
   const [prevInitialMode, setPrevInitialMode] = useState(initialMode);
   if (prevInitialMode !== initialMode) {
@@ -121,79 +115,18 @@ export function EmployeeRegistrationCard({
   };
   const passwordScore = Object.values(pwdRules).filter(Boolean).length;
 
-  useEffect(() => {
-    // Card Entrance Animation
-    Animated.parallel([
-      Animated.timing(cardFadeAnim, {
-        toValue: 1,
-        duration: 650,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.spring(cardSlideAnim, {
-        toValue: 0,
-        friction: 7,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    // Beacon pulsing loop
-    const beaconLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(beaconAnim, {
-          toValue: 1,
-          duration: 1500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(beaconAnim, {
-          toValue: 0,
-          duration: 1500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    beaconLoop.start();
-
-    return () => {
-      beaconLoop.stop();
-    };
-  }, [cardFadeAnim, cardSlideAnim, beaconAnim]);
-
-  // Sync tab animation when mode changes
-  useEffect(() => {
-    Animated.spring(tabSlideAnim, {
-      toValue: mode === 'login' ? 0 : 1,
-      friction: 8,
-      tension: 50,
-      useNativeDriver: false,
-    }).start();
-  }, [mode, tabSlideAnim]);
-
-  // Animate password score progress
-  useEffect(() => {
-    Animated.timing(scoreAnim, {
-      toValue: passwordScore,
-      duration: 250,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: false,
-    }).start();
-  }, [passwordScore, scoreAnim]);
-
   const getScoreColor = (score: number) => {
     if (score <= 1) return '#ef4444';
     if (score <= 3) return '#f59e0b';
     if (score === 4) return '#3b82f6';
-    return '#10b981';
+    return '#16a34a';
   };
 
   const getScoreLabel = (score: number) => {
     if (score <= 1) return 'Weak Password';
     if (score <= 3) return 'Moderate Password';
     if (score === 4) return 'Good Password';
-    return 'Strong & Vault-Ready ✓';
+    return 'Strong Password ✓';
   };
 
   const switchMode = (newMode: 'register' | 'login') => {
@@ -254,36 +187,23 @@ export function EmployeeRegistrationCard({
     }
   };
 
-  const onPressInButton = () => {
-    Animated.spring(buttonScaleAnim, {
-      toValue: 0.97,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const onPressOutButton = () => {
-    Animated.spring(buttonScaleAnim, {
-      toValue: 1,
-      friction: 4,
-      tension: 60,
-      useNativeDriver: true,
-    }).start();
-  };
-
   const handleSubmit = async () => {
     const newErrors: { [key: string]: string } = {};
 
     if (mode === 'register') {
+      // 1. Compulsory Full Name
       if (!fullName.trim()) {
         newErrors.fullName = 'Full Name is required';
       }
 
+      // 2. Compulsory Work Email
       if (!workEmail.trim()) {
         newErrors.workEmail = 'Work Email is required';
       } else if (!/\S+@\S+\.\S+/.test(workEmail)) {
         newErrors.workEmail = 'Please enter a valid work email';
       }
 
+      // 3. Compulsory Strong Password
       if (!password.trim()) {
         newErrors.password = 'Password is required';
       } else if (password.length < 8) {
@@ -298,6 +218,7 @@ export function EmployeeRegistrationCard({
         newErrors.password = 'Password must contain at least one special character (!@#$%^&*...)';
       }
 
+      // 4. Compulsory Profile Photo / Image
       if (!faceImage) {
         newErrors.faceImage = 'Profile photo is required. Please upload your photo to register.';
       }
@@ -380,106 +301,27 @@ export function EmployeeRegistrationCard({
     }, 2000);
   };
 
-  // Interpolated progress width for password meter
-  const progressWidth = scoreAnim.interpolate({
-    inputRange: [0, 5],
-    outputRange: ['0%', '100%'],
-  });
-
-  // Interpolated sliding tab background position
-  const tabSliderLeft = tabSlideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['2%', '50%'],
-  });
-
-  // Dynamic theme colors
+  // Dynamic theme styles
   const cardThemeStyle = {
-    backgroundColor: isDark ? 'rgba(15, 23, 42, 0.82)' : 'rgba(255, 255, 255, 0.88)',
-    borderColor: isDark ? 'rgba(56, 189, 248, 0.22)' : 'rgba(30, 58, 138, 0.14)',
-    shadowColor: isDark ? '#38bdf8' : '#1e3a8a',
+    backgroundColor: isDark ? '#111827' : '#ebf1f8',
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.09)' : '#d7e1ee',
+    shadowColor: isDark ? '#000000' : '#1e3a8a',
   };
-  const labelThemeStyle = { color: isDark ? '#94a3b8' : '#475569' };
+  const labelThemeStyle = { color: isDark ? '#94a3b8' : '#556882' };
+  const inputThemeStyle = {
+    backgroundColor: isDark ? '#162033' : '#f1f5fa',
+    borderColor: isDark ? '#27354f' : '#c6d4e4',
+    color: isDark ? '#f8fafc' : '#1e293b',
+  };
   const placeholderColor = isDark ? '#64748b' : '#94a3b8';
-
-  const getInputStyle = (fieldName: string) => {
-    const isFocused = focusedField === fieldName;
-    return {
-      backgroundColor: isDark ? 'rgba(30, 41, 59, 0.75)' : 'rgba(241, 245, 249, 0.95)',
-      borderColor: errors[fieldName]
-        ? '#ef4444'
-        : isFocused
-        ? isDark
-          ? '#38bdf8'
-          : '#2563eb'
-        : isDark
-        ? 'rgba(51, 65, 85, 0.8)'
-        : '#cbd5e1',
-      color: isDark ? '#f8fafc' : '#0f172a',
-      shadowColor: isFocused ? (isDark ? '#38bdf8' : '#2563eb') : 'transparent',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: isFocused ? 0.35 : 0,
-      shadowRadius: isFocused ? 8 : 0,
-      elevation: isFocused ? 2 : 0,
-    };
+  const primaryBtnStyle = {
+    backgroundColor: isDark ? '#2563eb' : '#1b3569',
+    shadowColor: isDark ? '#38bdf8' : '#1b3569',
   };
+  const linkThemeStyle = { color: isDark ? '#38bdf8' : '#1e40af' };
 
   return (
-    <Animated.View
-      style={[
-        styles.cardContainer,
-        cardThemeStyle,
-        {
-          opacity: cardFadeAnim,
-          transform: [{ translateY: cardSlideAnim }],
-        },
-      ]}
-    >
-      {/* Specular Top Glow Highlight */}
-      <View
-        style={[
-          styles.specularLine,
-          {
-            backgroundColor: isDark
-              ? 'rgba(56, 189, 248, 0.3)'
-              : 'rgba(37, 99, 235, 0.2)',
-          },
-        ]}
-      />
-
-      {/* Security Status Beacon Badge */}
-      <View
-        style={[
-          styles.securityPill,
-          {
-            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(241, 245, 249, 0.9)',
-            borderColor: isDark ? 'rgba(56, 189, 248, 0.25)' : 'rgba(37, 99, 235, 0.2)',
-          },
-        ]}
-      >
-        <Animated.View
-          style={[
-            styles.beaconDot,
-            {
-              transform: [
-                {
-                  scale: beaconAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 1.4],
-                  }),
-                },
-              ],
-              opacity: beaconAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.7, 1],
-              }),
-            },
-          ]}
-        />
-        <Text style={[styles.securityPillText, { color: isDark ? '#38bdf8' : '#1e40af' }]}>
-          ENTERPRISE VAULT • 256-BIT ENCRYPTION
-        </Text>
-      </View>
-
+    <View style={[styles.cardContainer, cardThemeStyle]}>
       {/* Hidden file input for web upload */}
       {Platform.OS === 'web' && (
         <input
@@ -491,40 +333,23 @@ export function EmployeeRegistrationCard({
         />
       )}
 
-      {/* Interactive Animated Sliding Switcher Tabs */}
-      <View
-        style={[
-          styles.modeTabsContainer,
-          {
-            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.8)' : '#e2e8f0',
-            borderColor: isDark ? 'rgba(51, 65, 85, 0.7)' : '#cbd5e1',
-          },
-        ]}
-      >
-        {/* Animated Sliding Highlight Pill */}
-        <Animated.View
-          style={[
-            styles.activeSliderPill,
-            {
-              left: tabSliderLeft,
-              backgroundColor: isDark ? '#2563eb' : '#1b3569',
-              shadowColor: isDark ? '#38bdf8' : '#1b3569',
-            },
-          ]}
-        />
-
+      {/* Interactive Switcher Tabs: Sign In vs Register */}
+      <View style={[styles.modeTabsContainer, { backgroundColor: isDark ? '#162033' : '#dbe5f1' }]}>
         <TouchableOpacity
-          style={styles.modeTab}
+          style={[
+            styles.modeTab,
+            mode === 'login' && [styles.modeTabActive, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }],
+          ]}
           onPress={() => switchMode('login')}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
           accessibilityRole="tab"
           accessibilityState={{ selected: mode === 'login' }}
         >
           <Text
             style={[
               styles.modeTabText,
-              { color: mode === 'login' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b') },
               mode === 'login' && styles.modeTabTextActive,
+              { color: mode === 'login' ? '#ffffff' : (isDark ? '#94a3b8' : '#556882') },
             ]}
           >
             🔐 Sign In
@@ -532,17 +357,20 @@ export function EmployeeRegistrationCard({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.modeTab}
+          style={[
+            styles.modeTab,
+            mode === 'register' && [styles.modeTabActive, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }],
+          ]}
           onPress={() => switchMode('register')}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
           accessibilityRole="tab"
           accessibilityState={{ selected: mode === 'register' }}
         >
           <Text
             style={[
               styles.modeTabText,
-              { color: mode === 'register' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b') },
               mode === 'register' && styles.modeTabTextActive,
+              { color: mode === 'register' ? '#ffffff' : (isDark ? '#94a3b8' : '#556882') },
             ]}
           >
             📝 Register
@@ -551,32 +379,24 @@ export function EmployeeRegistrationCard({
       </View>
 
       {/* Card Header Title */}
-      <View style={styles.cardHeaderWrapper}>
-        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-          {mode === 'register' ? 'Create Your Account' : 'Welcome Back'}
-        </Text>
-        <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-          {mode === 'register'
-            ? 'Fill in your details for verification & approval'
-            : 'Access your encrypted files & corporate vault'}
-        </Text>
-      </View>
+      <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+        {mode === 'register' ? '📝 Employee Registration' : '🔐 Sign In to Workspace'}
+      </Text>
 
       {mode === 'register' ? (
         /* REGISTRATION FORM */
         <View style={styles.formContent}>
+          {/* Full Name */}
           {/* Full Name */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, labelThemeStyle]}>
               👤 Full Name <Text style={styles.requiredMark}>*</Text>
             </Text>
             <TextInput
-              style={[styles.input, getInputStyle('fullName')]}
-              placeholder="e.g. Sarah Jenkins"
+              style={[styles.input, inputThemeStyle, errors.fullName ? styles.inputError : null]}
+              placeholder="John Doe"
               placeholderTextColor={placeholderColor}
               value={fullName}
-              onFocus={() => setFocusedField('fullName')}
-              onBlur={() => setFocusedField(null)}
               onChangeText={(text) => {
                 setFullName(text);
                 if (errors.fullName) setErrors({ ...errors, fullName: '' });
@@ -589,15 +409,13 @@ export function EmployeeRegistrationCard({
           {/* Work Email */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, labelThemeStyle]}>
-              ✉️ Corporate Work Email <Text style={styles.requiredMark}>*</Text>
+              ✉️ Work Email <Text style={styles.requiredMark}>*</Text>
             </Text>
             <TextInput
-              style={[styles.input, getInputStyle('workEmail')]}
+              style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
               placeholder="name@company.com"
               placeholderTextColor={placeholderColor}
               value={workEmail}
-              onFocus={() => setFocusedField('workEmail')}
-              onBlur={() => setFocusedField(null)}
               onChangeText={(text) => {
                 setWorkEmail(text);
                 if (errors.workEmail) setErrors({ ...errors, workEmail: '' });
@@ -612,16 +430,14 @@ export function EmployeeRegistrationCard({
           {/* Password */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, labelThemeStyle]}>
-              🔒 Vault Password <Text style={styles.requiredMark}>*</Text>
+              🔒 Password <Text style={styles.requiredMark}></Text>
             </Text>
-            <View style={[styles.passwordInputContainer, getInputStyle('password')]}>
+            <View style={[styles.passwordInputContainer, inputThemeStyle, errors.password ? styles.inputError : null]}>
               <TextInput
-                style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#0f172a' }]}
-                placeholder="Create strong enterprise password"
+                style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }]}
+                placeholder="Enter strong password"
                 placeholderTextColor={placeholderColor}
                 value={password}
-                onFocus={() => setFocusedField('password')}
-                onBlur={() => setFocusedField(null)}
                 onChangeText={(text) => {
                   setPassword(text);
                   if (errors.password) setErrors({ ...errors, password: '' });
@@ -644,23 +460,15 @@ export function EmployeeRegistrationCard({
             </View>
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
-            {/* Real-time Animated Password Strength Meter */}
+            {/* Real-time Password Strength Meter in Register Mode */}
             {password.length > 0 && (
-              <View
-                style={[
-                  styles.pwdStrengthWrapper,
-                  {
-                    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : 'rgba(241, 245, 249, 0.8)',
-                    borderColor: isDark ? 'rgba(51, 65, 85, 0.7)' : '#e2e8f0',
-                  },
-                ]}
-              >
+              <View style={styles.pwdStrengthWrapper}>
                 <View style={styles.pwdProgressBar}>
-                  <Animated.View
+                  <View
                     style={[
                       styles.pwdProgressFill,
                       {
-                        width: progressWidth,
+                        width: `${(passwordScore / 5) * 100}%`,
                         backgroundColor: getScoreColor(passwordScore),
                       },
                     ]}
@@ -671,61 +479,45 @@ export function EmployeeRegistrationCard({
                     {getScoreLabel(passwordScore)}
                   </Text>
                   <Text style={[styles.pwdHintText, { color: colors.textSecondary }]}>
-                    {passwordScore === 5 ? '✓ Enterprise ready' : `${passwordScore}/5 criteria met`}
+                    {passwordScore === 5 ? '✓ All requirements met' : `${passwordScore}/5 met`}
                   </Text>
                 </View>
                 <View style={styles.pwdRulesGrid}>
-                  <View style={[styles.rulePill, pwdRules.hasMinLength && styles.rulePillActive]}>
-                    <Text style={[styles.pwdRuleText, { color: pwdRules.hasMinLength ? '#10b981' : (isDark ? '#94a3b8' : '#64748b') }]}>
-                      {pwdRules.hasMinLength ? '✓' : '•'} 8+ chars
-                    </Text>
-                  </View>
-                  <View style={[styles.rulePill, pwdRules.hasUpper && styles.rulePillActive]}>
-                    <Text style={[styles.pwdRuleText, { color: pwdRules.hasUpper ? '#10b981' : (isDark ? '#94a3b8' : '#64748b') }]}>
-                      {pwdRules.hasUpper ? '✓' : '•'} Upper (A-Z)
-                    </Text>
-                  </View>
-                  <View style={[styles.rulePill, pwdRules.hasLower && styles.rulePillActive]}>
-                    <Text style={[styles.pwdRuleText, { color: pwdRules.hasLower ? '#10b981' : (isDark ? '#94a3b8' : '#64748b') }]}>
-                      {pwdRules.hasLower ? '✓' : '•'} Lower (a-z)
-                    </Text>
-                  </View>
-                  <View style={[styles.rulePill, pwdRules.hasNumber && styles.rulePillActive]}>
-                    <Text style={[styles.pwdRuleText, { color: pwdRules.hasNumber ? '#10b981' : (isDark ? '#94a3b8' : '#64748b') }]}>
-                      {pwdRules.hasNumber ? '✓' : '•'} Number (0-9)
-                    </Text>
-                  </View>
-                  <View style={[styles.rulePill, pwdRules.hasSpecial && styles.rulePillActive]}>
-                    <Text style={[styles.pwdRuleText, { color: pwdRules.hasSpecial ? '#10b981' : (isDark ? '#94a3b8' : '#64748b') }]}>
-                      {pwdRules.hasSpecial ? '✓' : '•'} Symbol (!@#...)
-                    </Text>
-                  </View>
+                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasMinLength ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
+                    {pwdRules.hasMinLength ? '✓' : '•'} 8+ characters
+                  </Text>
+                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasUpper ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
+                    {pwdRules.hasUpper ? '✓' : '•'} Uppercase (A-Z)
+                  </Text>
+                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasLower ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
+                    {pwdRules.hasLower ? '✓' : '•'} Lowercase (a-z)
+                  </Text>
+                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasNumber ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
+                    {pwdRules.hasNumber ? '✓' : '•'} Number (0-9)
+                  </Text>
+                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasSpecial ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
+                    {pwdRules.hasSpecial ? '✓' : '•'} Symbol (!@#$%...)
+                  </Text>
                 </View>
               </View>
             )}
           </View>
 
-          {/* Profile Photo */}
+          {/* Face Image */}
           <View style={styles.fieldGroup}>
             <View style={styles.faceLabelRow}>
               <Text style={[styles.label, labelThemeStyle]}>
-                📷 Profile Photo <Text style={styles.requiredMark}>*</Text>
+                📷 Profile Photo <Text style={styles.requiredMark}></Text>
               </Text>
               {faceImage && (
-                <TouchableOpacity onPress={() => setFaceImage(null)} activeOpacity={0.7}>
+                <TouchableOpacity onPress={() => setFaceImage(null)}>
                   <Text style={styles.removePhotoText}>🗑️ Remove</Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            <View
-              style={[
-                styles.faceUploadBox,
-                getInputStyle('faceImage'),
-                errors.faceImage ? styles.inputError : null,
-              ]}
-            >
-              <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#1e293b' : '#cbd5e1' }]}>
+            <View style={[styles.faceUploadBox, inputThemeStyle, errors.faceImage ? styles.inputError : null]}>
+              <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#28364e' : '#cbd5e1' }]}>
                 <Image
                   source={faceImage ? { uri: faceImage } : { uri: DEFAULT_AVATAR_SVG }}
                   style={styles.avatarImage}
@@ -737,8 +529,8 @@ export function EmployeeRegistrationCard({
                 style={[
                   styles.uploadButton,
                   {
-                    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.9)' : '#f8fafc',
-                    borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#2563eb'),
+                    backgroundColor: isDark ? '#1e293b' : '#f1f5fa',
+                    borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569'),
                   },
                 ]}
                 onPress={handleChoosePhoto}
@@ -747,7 +539,7 @@ export function EmployeeRegistrationCard({
                 <Text
                   style={[
                     styles.uploadButtonText,
-                    { color: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#2563eb') },
+                    { color: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569') },
                   ]}
                 >
                   {faceImage ? '🔄 Change Photo' : '🖼️ Upload Photo *'}
@@ -764,35 +556,25 @@ export function EmployeeRegistrationCard({
             </View>
           ) : null}
 
-          {/* Animated Primary Submit Button */}
-          <Animated.View style={{ transform: [{ scale: buttonScaleAnim }] }}>
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                {
-                  backgroundColor: isDark ? '#2563eb' : '#1b3569',
-                  shadowColor: isDark ? '#38bdf8' : '#1b3569',
-                },
-              ]}
-              onPress={handleSubmit}
-              onPressIn={onPressInButton}
-              onPressOut={onPressOutButton}
-              disabled={isSubmitting}
-              activeOpacity={0.88}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#ffffff" size="small" />
-              ) : (
-                <Text style={styles.primaryButtonText}>🚀 Submit Registration for Approval</Text>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
+          {/* Submit Button */}
+          <TouchableOpacity
+            style={[styles.primaryButton, primaryBtnStyle]}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+            activeOpacity={0.85}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#ffffff" size="small" />
+            ) : (
+              <Text style={styles.primaryButtonText}>📤 Submit Registration for Approval</Text>
+            )}
+          </TouchableOpacity>
 
           {/* Footer toggle */}
           <View style={styles.footerRow}>
             <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already registered? </Text>
             <TouchableOpacity onPress={() => switchMode('login')} activeOpacity={0.7}>
-              <Text style={[styles.loginLink, { color: isDark ? '#38bdf8' : '#1e40af' }]}>🔐 Sign In</Text>
+              <Text style={[styles.loginLink, linkThemeStyle]}>🔐 Login</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -803,12 +585,10 @@ export function EmployeeRegistrationCard({
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, labelThemeStyle]}>✉️ Work Email</Text>
             <TextInput
-              style={[styles.input, getInputStyle('workEmail')]}
-              placeholder="name@company.com or admin"
+              style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
+              placeholder="name@company.com"
               placeholderTextColor={placeholderColor}
               value={workEmail}
-              onFocus={() => setFocusedField('workEmail')}
-              onBlur={() => setFocusedField(null)}
               onChangeText={(text) => {
                 setWorkEmail(text);
                 if (errors.workEmail) setErrors({ ...errors, workEmail: '' });
@@ -822,26 +602,14 @@ export function EmployeeRegistrationCard({
 
           {/* Password */}
           <View style={styles.fieldGroup}>
-            <View style={styles.passwordHeaderRow}>
-              <Text style={[styles.label, labelThemeStyle]}>🔒 Password</Text>
-              <TouchableOpacity
-                onPress={() => setForgotModalVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.forgotPasswordLink, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
-                  Forgot Password?
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={[styles.label, labelThemeStyle]}>🔒 Password</Text>
 
-            <View style={[styles.passwordInputContainer, getInputStyle('password')]}>
+            <View style={[styles.passwordInputContainer, inputThemeStyle]}>
               <TextInput
-                style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#0f172a' }]}
+                style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }, errors.password ? styles.inputError : null]}
                 placeholder="••••••••••"
                 placeholderTextColor={placeholderColor}
                 value={password}
-                onFocus={() => setFocusedField('password')}
-                onBlur={() => setFocusedField(null)}
                 onChangeText={(text) => {
                   setPassword(text);
                   if (errors.password) setErrors({ ...errors, password: '' });
@@ -872,40 +640,39 @@ export function EmployeeRegistrationCard({
             </View>
           ) : null}
 
-          {/* Animated Primary Login Button */}
-          <Animated.View style={{ transform: [{ scale: buttonScaleAnim }] }}>
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                {
-                  backgroundColor: isDark ? '#2563eb' : '#1b3569',
-                  shadowColor: isDark ? '#38bdf8' : '#1b3569',
-                },
-              ]}
-              onPress={handleSubmit}
-              onPressIn={onPressInButton}
-              onPressOut={onPressOutButton}
-              disabled={isSubmitting}
-              activeOpacity={0.88}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#ffffff" size="small" />
-              ) : (
-                <Text style={styles.primaryButtonText}>🔑 Enter Workspace</Text>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
+          {/* Login Button */}
+          <TouchableOpacity
+            style={[styles.primaryButton, primaryBtnStyle]}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+            activeOpacity={0.85}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#ffffff" size="small" />
+            ) : (
+              <Text style={styles.primaryButtonText}>🔑 Login</Text>
+            )}
+          </TouchableOpacity>
 
           {/* Footer: New to the company? Register as Employee */}
           <View style={styles.footerRow}>
             <Text style={[styles.footerText, { color: colors.textSecondary }]}>New to the company? </Text>
             <TouchableOpacity onPress={() => switchMode('register')} activeOpacity={0.7}>
-              <Text style={[styles.loginLink, { color: isDark ? '#38bdf8' : '#1e40af' }]}>
-                📝 Register Account
-              </Text>
+              <Text style={[styles.loginLink, linkThemeStyle]}>📝 Register as Employee</Text>
             </TouchableOpacity>
           </View>
         </View>
+      )}
+
+      {/* Hidden File Input for Web */}
+      {Platform.OS === 'web' && (
+        <input
+          type="file"
+          ref={fileInputRef as any}
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleWebFileChange}
+        />
       )}
 
       {/* Device Storage Permission Modal (Yes / No) */}
@@ -921,16 +688,17 @@ export function EmployeeRegistrationCard({
               styles.permCard,
               {
                 backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#e2e8f0',
+                borderColor: isDark ? '#334155' : '#e2e8f0',
               },
             ]}
           >
+            {/* Icon Header */}
             <View
               style={[
                 styles.permIconBadge,
                 {
-                  backgroundColor: isDark ? 'rgba(15, 23, 42, 0.8)' : '#eff6ff',
-                  borderColor: isDark ? '#38bdf8' : '#bfdbfe',
+                  backgroundColor: isDark ? '#0f172a' : '#eff6ff',
+                  borderColor: isDark ? '#3b82f6' : '#bfdbfe',
                 },
               ]}
             >
@@ -949,6 +717,7 @@ export function EmployeeRegistrationCard({
               🔒 Only the photo you choose will be uploaded.
             </Text>
 
+            {/* Yes / No Action Buttons */}
             <View style={styles.permBtnRow}>
               <TouchableOpacity
                 style={[
@@ -962,7 +731,7 @@ export function EmployeeRegistrationCard({
                 activeOpacity={0.7}
               >
                 <Text style={[styles.permDenyBtnText, { color: isDark ? '#f1f5f9' : '#475569' }]}>
-                  ✕ Deny
+                  ✕ No / Deny
                 </Text>
               </TouchableOpacity>
 
@@ -976,7 +745,9 @@ export function EmployeeRegistrationCard({
                 onPress={() => handlePermissionDecision(true)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.permAllowBtnText}>✓ Allow Access</Text>
+                <Text style={styles.permAllowBtnText}>
+                  ✓ Yes / Allow
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -996,7 +767,7 @@ export function EmployeeRegistrationCard({
               styles.modalDialog,
               {
                 backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'transparent',
                 borderWidth: isDark ? 1 : 0,
               },
             ]}
@@ -1016,9 +787,9 @@ export function EmployeeRegistrationCard({
             </Text>
 
             <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
+              style={[styles.modalButton, primaryBtnStyle]}
               onPress={handleReset}
-              activeOpacity={0.85}
+              activeOpacity={0.8}
             >
               <Text style={styles.modalButtonText}>
                 {mode === 'register' ? 'Return to Sign In 🔐' : 'Enter Workspace 🚀'}
@@ -1041,7 +812,7 @@ export function EmployeeRegistrationCard({
               styles.modalDialog,
               {
                 backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'transparent',
                 borderWidth: isDark ? 1 : 0,
               },
             ]}
@@ -1053,7 +824,7 @@ export function EmployeeRegistrationCard({
             <TextInput
               style={[
                 styles.input,
-                getInputStyle('forgotEmail'),
+                inputThemeStyle,
                 { width: '100%', marginBottom: 16 },
               ]}
               placeholder="name@company.com"
@@ -1064,8 +835,8 @@ export function EmployeeRegistrationCard({
               autoCapitalize="none"
             />
             {forgotSent ? (
-              <Text style={{ color: '#10b981', fontSize: 13, marginBottom: 12, fontWeight: '600' }}>
-                ✓ Reset instructions sent to your email!
+              <Text style={{ color: '#16a34a', fontSize: 13, marginBottom: 12, fontWeight: '500' }}>
+                Reset instructions sent to your email!
               </Text>
             ) : null}
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
@@ -1084,10 +855,7 @@ export function EmployeeRegistrationCard({
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  { flex: 1, backgroundColor: isDark ? '#2563eb' : '#1b3569' },
-                ]}
+                style={[styles.modalButton, primaryBtnStyle, { flex: 1 }]}
                 onPress={handleSendResetLink}
               >
                 <Text style={styles.modalButtonText}>Send Link</Text>
@@ -1096,113 +864,64 @@ export function EmployeeRegistrationCard({
           </View>
         </View>
       </Modal>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   cardContainer: {
     width: '100%',
-    borderRadius: 28,
+    backgroundColor: '#ebf1f8',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     paddingHorizontal: 22,
     paddingTop: 24,
     paddingBottom: 28,
-    borderWidth: 1.5,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 28,
-    elevation: 8,
-    position: 'relative',
-    overflow: 'hidden',
-    ...(Platform.OS === 'web'
-      ? {
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-        }
-      : {}),
-  },
-  specularLine: {
-    position: 'absolute',
-    top: 0,
-    left: 20,
-    right: 20,
-    height: 1.5,
-    borderRadius: 1,
-  },
-  securityPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
     borderWidth: 1,
-    marginBottom: 16,
-    gap: 7,
-  },
-  beaconDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#10b981',
-  },
-  securityPillText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 0.6,
+    borderColor: '#d7e1ee',
+    shadowColor: '#1e3a8a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
   },
   modeTabsContainer: {
-    position: 'relative',
     flexDirection: 'row',
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 4,
-    marginBottom: 20,
-    borderWidth: 1,
-  },
-  activeSliderPill: {
-    position: 'absolute',
-    top: 4,
-    bottom: 4,
-    width: '48%',
-    borderRadius: 11,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: 18,
   },
   modeTab: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 11,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2,
+  },
+  modeTabActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
   modeTabText: {
     fontSize: 14,
     fontWeight: '600',
-    letterSpacing: -0.1,
+    letterSpacing: -0.2,
   },
   modeTabTextActive: {
-    fontWeight: '800',
-  },
-  cardHeaderWrapper: {
-    alignItems: 'center',
-    marginBottom: 20,
+    fontWeight: '700',
   },
   cardTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a2333',
     textAlign: 'center',
-    marginBottom: 4,
-    letterSpacing: -0.4,
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    textAlign: 'center',
-    letterSpacing: -0.1,
-    paddingHorizontal: 8,
+    marginBottom: 20,
+    letterSpacing: -0.2,
   },
   formContent: {
     gap: 16,
@@ -1211,8 +930,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    fontSize: 13.5,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#556882',
     letterSpacing: -0.1,
   },
   passwordHeaderRow: {
@@ -1221,8 +941,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   forgotPasswordLink: {
-    fontSize: 12.5,
-    fontWeight: '600',
+    fontSize: 13,
+    color: '#3b82f6',
+    fontWeight: '500',
   },
   faceLabelRow: {
     flexDirection: 'row',
@@ -1232,19 +953,24 @@ const styles = StyleSheet.create({
   removePhotoText: {
     fontSize: 12,
     color: '#ef4444',
-    fontWeight: '600',
+    fontWeight: '500',
   },
   input: {
     height: 48,
+    backgroundColor: '#f1f5fa',
     borderWidth: 1.5,
-    borderRadius: 12,
+    borderColor: '#c6d4e4',
+    borderRadius: 8,
     paddingHorizontal: 14,
-    fontSize: 14.5,
+    fontSize: 15,
+    color: '#1e293b',
   },
   passwordInputContainer: {
     height: 48,
+    backgroundColor: '#f1f5fa',
     borderWidth: 1.5,
-    borderRadius: 12,
+    borderColor: '#c6d4e4',
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     paddingLeft: 14,
@@ -1253,24 +979,30 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     height: '100%',
-    fontSize: 14.5,
+    fontSize: 15,
+    color: '#1e293b',
   },
   eyeButton: {
     padding: 6,
+  },
+  eyeIcon: {
+    width: 20,
+    height: 20,
   },
   inputError: {
     borderColor: '#ef4444',
   },
   errorText: {
     fontSize: 12,
-    color: '#ef4444',
+    color: '#dc2626',
     marginTop: 2,
-    fontWeight: '500',
   },
   faceUploadBox: {
     height: 64,
+    backgroundColor: '#f1f5fa',
     borderWidth: 1.5,
-    borderRadius: 12,
+    borderColor: '#c6d4e4',
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
@@ -1280,6 +1012,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     overflow: 'hidden',
+    backgroundColor: '#cbd5e1',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1292,70 +1025,77 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 14,
     height: 42,
+    backgroundColor: '#f1f5fa',
     borderWidth: 1.5,
-    borderRadius: 10,
+    borderColor: '#1b3569',
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   uploadButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1b3569',
     letterSpacing: -0.1,
   },
   primaryButton: {
-    height: 50,
-    borderRadius: 13,
+    height: 48,
+    backgroundColor: '#1b3569',
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    elevation: 5,
+    marginTop: 6,
+    shadowColor: '#1b3569',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   primaryButtonText: {
     color: '#ffffff',
-    fontSize: 15.5,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     letterSpacing: -0.1,
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 6,
   },
   footerText: {
-    fontSize: 13.5,
+    fontSize: 14,
+    color: '#64748b',
   },
   loginLink: {
-    fontSize: 13.5,
-    fontWeight: '700',
+    fontSize: 14,
+    color: '#1e40af',
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(10px)' } : {}),
   },
   modalDialog: {
     width: '100%',
     maxWidth: 380,
-    borderRadius: 22,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
     padding: 26,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
     elevation: 10,
   },
   successIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: '#dcfce7',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1363,37 +1103,39 @@ const styles = StyleSheet.create({
   },
   checkmarkText: {
     fontSize: 28,
-    color: '#10b981',
+    color: '#16a34a',
     fontWeight: 'bold',
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '700',
+    color: '#0f172a',
     marginBottom: 10,
     textAlign: 'center',
-    letterSpacing: -0.2,
   },
   modalBody: {
     fontSize: 14,
     lineHeight: 21,
+    color: '#475569',
     textAlign: 'center',
     marginBottom: 20,
   },
   modalButton: {
+    backgroundColor: '#1b3569',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 11,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalButtonText: {
     color: '#ffffff',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   permOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -1405,7 +1147,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
@@ -1448,7 +1190,7 @@ const styles = StyleSheet.create({
   permDenyBtn: {
     flex: 1,
     paddingVertical: 13,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1460,7 +1202,7 @@ const styles = StyleSheet.create({
   permAllowBtn: {
     flex: 1.25,
     paddingVertical: 13,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#1b3569',
@@ -1475,15 +1217,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   formErrorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: '#fee2e2',
     borderWidth: 1,
     borderColor: '#ef4444',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
   formErrorText: {
-    color: '#ef4444',
+    color: '#b91c1c',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1493,26 +1235,26 @@ const styles = StyleSheet.create({
   },
   pwdStrengthWrapper: {
     marginTop: 6,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.03)',
   },
   pwdProgressBar: {
-    height: 5,
+    height: 4,
     backgroundColor: '#cbd5e1',
-    borderRadius: 3,
+    borderRadius: 2,
     overflow: 'hidden',
   },
   pwdProgressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 2,
   },
   pwdStatusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: 6,
+    marginBottom: 6,
   },
   pwdStrengthLabel: {
     fontSize: 12,
@@ -1520,21 +1262,12 @@ const styles = StyleSheet.create({
   },
   pwdHintText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   pwdRulesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-  },
-  rulePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: 'rgba(148, 163, 184, 0.12)',
-  },
-  rulePillActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+    gap: 8,
   },
   pwdRuleText: {
     fontSize: 11,
