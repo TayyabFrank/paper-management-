@@ -199,14 +199,15 @@ export function AdminBottomNavbar({
   const insets = useSafeAreaInsets();
   const { isDark } = useDocuVaultTheme();
 
-  // High contrast design tokens ensuring unmistakable visibility
-  const barBg = isDark ? '#0f172a' : '#ffffff';
-  const borderTopColor = isDark ? 'rgba(255, 255, 255, 0.14)' : '#cbd5e1';
+  // High contrast luxury design tokens
+  const isDarkTheme = isDark;
+  const barBg = isDarkTheme ? '#0b1120' : '#ffffff';
+  const borderTopColor = isDarkTheme ? 'rgba(56, 189, 248, 0.18)' : 'rgba(37, 99, 235, 0.12)';
   const activeCapsuleBg = '#2563eb';
   const activeIconColor = '#ffffff';
-  const inactiveIconColor = isDark ? '#94a3b8' : '#475569';
-  const activeLabelColor = isDark ? '#38bdf8' : '#1d4ed8';
-  const inactiveLabelColor = isDark ? '#94a3b8' : '#475569';
+  const inactiveIconColor = isDarkTheme ? '#94a3b8' : '#64748b';
+  const activeLabelColor = isDarkTheme ? '#38bdf8' : '#1d4ed8';
+  const inactiveLabelColor = isDarkTheme ? '#64748b' : '#64748b';
 
   return (
     <View
@@ -218,9 +219,12 @@ export function AdminBottomNavbar({
           borderTopColor: borderTopColor,
         },
         Platform.OS === 'web' && ({
-          boxShadow: isDark
-            ? '0 -4px 20px rgba(0, 0, 0, 0.45)'
-            : '0 -4px 20px rgba(15, 23, 42, 0.08)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          backgroundColor: isDarkTheme ? 'rgba(11, 17, 32, 0.92)' : 'rgba(255, 255, 255, 0.94)',
+          boxShadow: isDarkTheme
+            ? '0 -6px 28px rgba(0, 0, 0, 0.65), 0 -1px 0 rgba(56, 189, 248, 0.15)'
+            : '0 -6px 24px rgba(15, 23, 42, 0.08), 0 -1px 0 rgba(37, 99, 235, 0.1)',
         } as any),
       ]}
       accessibilityRole="tablist"
@@ -237,10 +241,14 @@ export function AdminBottomNavbar({
               key={tab.key}
               style={[
                 styles.tabButton,
-                Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+                Platform.OS === 'web' && ({
+                  cursor: 'pointer',
+                  transition: 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  transform: isActive ? 'translateY(-2px)' : 'none',
+                } as any),
               ]}
               onPress={() => onTabChange(tab.key)}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={`${tab.label} tab`}
@@ -250,7 +258,14 @@ export function AdminBottomNavbar({
                 style={[
                   styles.iconSlot,
                   isActive
-                    ? [styles.activeCapsulePill, { backgroundColor: activeCapsuleBg }]
+                    ? [
+                        styles.activeCapsulePill,
+                        { backgroundColor: activeCapsuleBg },
+                        Platform.OS === 'web' && ({
+                          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                          boxShadow: '0 4px 16px rgba(37, 99, 235, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35)',
+                        } as any),
+                      ]
                     : styles.inactiveIconSlot,
                 ]}
               >
@@ -282,11 +297,14 @@ export function AdminBottomNavbar({
                 {tab.label}
               </Text>
 
-              {/* Active indicator dot */}
+              {/* Active indicator bar */}
               <View
                 style={[
-                  styles.activeDot,
-                  { backgroundColor: isActive ? activeLabelColor : 'transparent' },
+                  styles.activeIndicatorBar,
+                  {
+                    backgroundColor: isActive ? activeLabelColor : 'transparent',
+                    width: isActive ? 16 : 0,
+                  },
                 ]}
               />
             </TouchableOpacity>
@@ -302,19 +320,19 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingTop: 8,
     paddingHorizontal: 8,
-    borderTopWidth: 1.5,
+    borderTopWidth: 1,
     shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 16,
     zIndex: 999,
   },
   navRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    maxWidth: 580,
+    maxWidth: 600,
     alignSelf: 'center',
     width: '100%',
   },
@@ -323,7 +341,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 2,
-    minHeight: 52,
+    minHeight: 54,
   },
   iconSlot: {
     alignItems: 'center',
@@ -332,32 +350,27 @@ const styles = StyleSheet.create({
   },
   activeCapsulePill: {
     width: 52,
-    height: 30,
-    borderRadius: 15,
+    height: 32,
+    borderRadius: 16,
     shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 5,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    elevation: 6,
   },
   inactiveIconSlot: {
     width: 52,
-    height: 30,
-  },
-  tabIcon: {
-    width: 22,
-    height: 22,
+    height: 32,
   },
   tabLabel: {
     fontSize: 11.5,
     marginTop: 3,
-    letterSpacing: -0.1,
+    letterSpacing: -0.2,
   },
-  activeDot: {
-    width: 4,
-    height: 4,
+  activeIndicatorBar: {
+    height: 3,
     borderRadius: 2,
-    marginTop: 2,
+    marginTop: 3,
   },
   badgePill: {
     position: 'absolute',
@@ -374,13 +387,13 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
     shadowColor: '#ef4444',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.4,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
   badgeText: {
     color: '#ffffff',
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
   },
 });

@@ -700,6 +700,18 @@ export function AdminDocsTab({
         ) : (
           filteredDocs.map((doc) => {
             const isNotUploaded = doc.subtitle?.toLowerCase().includes('not uploaded');
+            const docAccentColor =
+              doc.type === 'pdf'
+                ? '#ef4444'
+                : doc.type === 'docx'
+                ? '#2563eb'
+                : doc.type === 'article'
+                ? '#8b5cf6'
+                : doc.type === 'image'
+                ? '#06b6d4'
+                : doc.type === 'video'
+                ? '#f43f5e'
+                : '#10b981';
 
             return (
               <TouchableOpacity
@@ -707,15 +719,25 @@ export function AdminDocsTab({
                 style={[
                   styles.docCard,
                   {
-                    backgroundColor: isDark ? '#111827' : '#ffffff',
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                    backgroundColor: isDark ? 'rgba(17, 24, 39, 0.8)' : '#ffffff',
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                    borderLeftColor: docAccentColor,
+                    borderLeftWidth: 4,
                   },
+                  Platform.OS === 'web' && ({
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: isDark
+                      ? '0 6px 20px rgba(0, 0, 0, 0.3)'
+                      : '0 4px 16px rgba(15, 23, 42, 0.06)',
+                    cursor: 'pointer',
+                    transition: 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease',
+                  } as any),
                 ]}
                 onPress={() => onOpenDocument(doc)}
                 activeOpacity={0.8}
               >
                 {/* File Icon Badge */}
-                <View style={styles.badgeContainer}>
+                <View style={[styles.badgeContainer, { backgroundColor: isDark ? 'rgba(30, 41, 59, 0.5)' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0' }]}>
                   {Platform.OS === 'web' ? (
                     <Image
                       source={{ uri: getMiniFileBadge(doc) }}
@@ -792,14 +814,18 @@ export function AdminDocsTab({
                 {/* Actions: Eye View & Trash Delete */}
                 <View style={styles.cardActionsCol}>
                   <TouchableOpacity
-                    style={styles.eyeBtn}
+                    style={[
+                      styles.eyeBtn,
+                      { backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : '#eff6ff', borderColor: isDark ? '#0284c7' : '#bfdbfe' },
+                      Platform.OS === 'web' && ({ cursor: 'pointer', transition: 'all 0.15s ease' } as any),
+                    ]}
                     onPress={() => onOpenDocument(doc)}
                     activeOpacity={0.7}
                   >
                     {Platform.OS === 'web' ? (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#94a3b8' : '#64748b'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#38bdf8' : '#2563eb'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
                         <path d="M2 12C2 12 5.5 5.5 12 5.5C18.5 5.5 22 12 22 12C22 12 18.5 18.5 12 18.5C5.5 18.5 2 12 2 12Z"/>
-                        <circle cx="12" cy="12" r="3.5" fill={isDark ? '#94a3b8' : '#64748b'}/>
+                        <circle cx="12" cy="12" r="3.5" fill={isDark ? '#38bdf8' : '#2563eb'}/>
                       </svg>
                     ) : (
                       <Text style={{ fontSize: 16 }}>👁️</Text>
@@ -807,7 +833,11 @@ export function AdminDocsTab({
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.trashBtn}
+                    style={[
+                      styles.trashBtn,
+                      { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#fef2f2', borderColor: isDark ? '#b91c1c' : '#fecaca' },
+                      Platform.OS === 'web' && ({ cursor: 'pointer', transition: 'all 0.15s ease' } as any),
+                    ]}
                     onPress={(e) => {
                       e.stopPropagation?.();
                       setDocToDelete(doc);
@@ -815,11 +845,9 @@ export function AdminDocsTab({
                     activeOpacity={0.7}
                   >
                     {Platform.OS === 'web' ? (
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' } as any}>
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        <line x1="10" y1="11" x2="10" y2="17" />
-                        <line x1="14" y1="11" x2="14" y2="17" />
                       </svg>
                     ) : (
                       <Text style={{ fontSize: 14 }}>🗑️</Text>

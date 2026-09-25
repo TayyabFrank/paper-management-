@@ -139,7 +139,7 @@ interface AdminPortalViewProps {
 }
 
 export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps = {}) {
-  const { isDark, colors } = useDocuVaultTheme();
+  const { isDark, colors, toggleTheme } = useDocuVaultTheme();
   const { registeredAccounts, logout, user, syncWithBackend } = useAuth();
   const { refreshDocuments } = useDocuments();
   const [activeTab, setActiveTab] = useState<AdminTabKey>('dashboard');
@@ -250,9 +250,13 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
               style={[
                 styles.drawerPanel,
                 {
-                  backgroundColor: isDark ? '#0f172a' : '#ffffff',
-                  borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
+                  backgroundColor: isDark ? 'rgba(11, 17, 32, 0.94)' : 'rgba(255, 255, 255, 0.96)',
+                  borderColor: isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(37, 99, 235, 0.15)',
                 },
+                Platform.OS === 'web' && ({
+                  backdropFilter: 'blur(28px)',
+                  WebkitBackdropFilter: 'blur(28px)',
+                } as any),
               ]}
               activeOpacity={1}
               onPress={(e) => e?.stopPropagation?.()}
@@ -260,16 +264,19 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
               {/* Drawer Top Header with Brand and Close Button */}
               <View style={styles.drawerTopBar}>
                 <View style={styles.drawerBrandRow}>
-                  <Image
-                    source={APP_LOGO}
-                    style={styles.drawerAppLogo}
-                    resizeMode="contain"
-                  />
+                  <View style={styles.drawerLogoWrapper}>
+                    <Image
+                      source={APP_LOGO}
+                      style={styles.drawerAppLogo}
+                      resizeMode="contain"
+                    />
+                  </View>
                   <View>
-                    <Text style={[styles.drawerTitle, { color: isDark ? colors.textPrimary : '#1e3a8a' }]}>
+                    <Text style={[styles.drawerTitle, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
                       DocuVault
                     </Text>
                     <View style={[styles.drawerRolePill, { backgroundColor: isDark ? '#1e3a8a' : '#dbeafe' }]}>
+                      <View style={styles.drawerBeaconDot} />
                       <Text style={[styles.drawerRoleText, { color: isDark ? '#93c5fd' : '#1d4ed8' }]}>
                         ADMIN CONSOLE
                       </Text>
@@ -308,8 +315,8 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
                 style={[
                   styles.drawerUserCard,
                   {
-                    backgroundColor: isDark ? '#1e293b' : '#f8fafc',
-                    borderColor: isDark ? '#334155' : '#e2e8f0',
+                    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : '#f8fafc',
+                    borderColor: isDark ? 'rgba(56, 189, 248, 0.16)' : '#e2e8f0',
                   },
                 ]}
                 onPress={() => {
@@ -342,6 +349,22 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
                 </View>
               </TouchableOpacity>
 
+              {/* Vault Security Chip */}
+              <View
+                style={[
+                  styles.securityChip,
+                  {
+                    backgroundColor: isDark ? 'rgba(56, 189, 248, 0.08)' : '#eff6ff',
+                    borderColor: isDark ? 'rgba(56, 189, 248, 0.2)' : '#bfdbfe',
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 13, marginRight: 6 }}>🛡️</Text>
+                <Text style={[styles.securityChipText, { color: isDark ? '#7dd3fc' : '#1d4ed8' }]}>
+                  AES-256 VAULT • ZERO LATENCY
+                </Text>
+              </View>
+
               <View style={[styles.drawerDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }]} />
 
               {/* Navigation Heading */}
@@ -368,7 +391,7 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
                         {
                           backgroundColor: isActive
                             ? isDark
-                              ? 'rgba(37, 99, 235, 0.22)'
+                              ? 'rgba(37, 99, 235, 0.24)'
                               : '#eff6ff'
                             : isDark
                             ? 'rgba(30, 41, 59, 0.35)'
@@ -392,6 +415,9 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
                       }}
                       activeOpacity={0.75}
                     >
+                      {/* Active Indicator Bar on Left */}
+                      {isActive && <View style={styles.activeLeftIndicator} />}
+
                       {/* Logo / Icon Box */}
                       <View
                         style={[
@@ -513,6 +539,24 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
 
               <View style={[styles.drawerDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }]} />
 
+              {/* Quick Theme Toggle in Drawer */}
+              <TouchableOpacity
+                style={[
+                  styles.themeToggleBtn,
+                  {
+                    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.7)' : '#f1f5f9',
+                    borderColor: isDark ? '#334155' : '#cbd5e1',
+                  },
+                ]}
+                onPress={toggleTheme}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 16, marginRight: 8 }}>{isDark ? '☀️' : '🌙'}</Text>
+                <Text style={[styles.themeToggleText, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
+                  {isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+                </Text>
+              </TouchableOpacity>
+
               {/* Sign Out Button */}
               <TouchableOpacity
                 style={[
@@ -554,21 +598,21 @@ const styles = StyleSheet.create({
   },
   drawerOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
   },
   drawerPanel: {
-    width: '84%',
-    maxWidth: 340,
+    width: '85%',
+    maxWidth: 350,
     height: '100%',
     padding: 22,
     borderLeftWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 10,
+    shadowOffset: { width: -6, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 16,
   },
   drawerTopBar: {
     flexDirection: 'row',
@@ -581,11 +625,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  drawerAppLogo: {
-    width: 44,
-    height: 38,
-    borderRadius: 8,
+  drawerLogoWrapper: {
+    padding: 4,
+    borderRadius: 10,
     backgroundColor: '#ffffff',
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  drawerAppLogo: {
+    width: 38,
+    height: 34,
+    borderRadius: 6,
   },
   drawerTitle: {
     fontSize: 20,
@@ -593,11 +646,20 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   drawerRolePill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 6,
     marginTop: 2,
     alignSelf: 'flex-start',
+    gap: 5,
+  },
+  drawerBeaconDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10b981',
   },
   drawerRoleText: {
     fontSize: 9.5,
@@ -617,13 +679,15 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 14,
     borderWidth: 1,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   drawerUserAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#cbd5e1',
+    borderWidth: 2,
+    borderColor: '#3b82f6',
   },
   drawerUserName: {
     fontSize: 14.5,
@@ -643,6 +707,20 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     fontWeight: '700',
   },
+  securityChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  securityChipText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   drawerDivider: {
     height: 1,
     marginVertical: 14,
@@ -659,12 +737,22 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   sideNavItemCard: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 11,
     paddingHorizontal: 12,
     borderRadius: 14,
     borderWidth: 1,
+    overflow: 'hidden',
+  },
+  activeLeftIndicator: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3.5,
+    backgroundColor: '#3b82f6',
   },
   sideNavLogoBox: {
     width: 40,
@@ -710,18 +798,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: 2,
   },
+  themeToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  themeToggleText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
   drawerActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 11,
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   drawerActionBtnText: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '700',
   },
   drawerFooterText: {

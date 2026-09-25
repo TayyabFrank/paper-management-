@@ -444,19 +444,32 @@ export function AdminDashboardTab({
 
   return (
     <View style={[styles.screenContainer, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>
-      {/* Top Header Banner matching DocuVault Admin Spec */}
-      <View style={[styles.topHeaderBar, { backgroundColor: isDark ? '#0f172a' : '#172554' }]}>
+      {/* Top Header Banner with Luxury Gradient & Glassmorphism */}
+      <View
+        style={[
+          styles.topHeaderBar,
+          { backgroundColor: isDark ? '#0b1120' : '#172554' },
+          Platform.OS === 'web' && ({
+            background: isDark
+              ? 'linear-gradient(135deg, #090e1a 0%, #0f172a 100%)'
+              : 'linear-gradient(135deg, #172554 0%, #1e3a8a 100%)',
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.28), 0 1px 0 rgba(255, 255, 255, 0.08)',
+          } as any),
+        ]}
+      >
         <View style={styles.topHeaderContent}>
           <View style={styles.brandRow}>
-            <Image
-              source={APP_LOGO}
-              style={styles.logoBadge}
-              resizeMode="contain"
-            />
+            <View style={styles.logoBadgeContainer}>
+              <Image
+                source={APP_LOGO}
+                style={styles.logoBadge}
+                resizeMode="contain"
+              />
+            </View>
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={styles.brandTitle}>DocuVault</Text>
-                <View style={styles.adminTagPill}>
+                <View style={[styles.adminTagPill, isDark && { borderColor: '#38bdf8' }]}>
                   <Text style={styles.adminTagText}>🛡️ ADMIN</Text>
                 </View>
               </View>
@@ -472,19 +485,24 @@ export function AdminDashboardTab({
                 {
                   backgroundColor: isLiveConnected
                     ? isDark
-                      ? 'rgba(6, 78, 59, 0.45)'
+                      ? 'rgba(6, 78, 59, 0.55)'
                       : '#ecfdf5'
                     : isDark
                       ? '#1e293b'
                       : '#f1f5f9',
                   borderColor: isLiveConnected
                     ? isDark
-                      ? '#059669'
+                      ? '#10b981'
                       : '#a7f3d0'
                     : isDark
                       ? '#334155'
                       : '#cbd5e1',
                 },
+                Platform.OS === 'web' && ({
+                  boxShadow: isLiveConnected
+                    ? '0 0 12px rgba(16, 185, 129, 0.35)'
+                    : 'none',
+                } as any),
               ]}
             >
               <View style={styles.beaconContainer}>
@@ -534,7 +552,10 @@ export function AdminDashboardTab({
             </View>
 
             <TouchableOpacity
-              style={styles.hamburgerBtn}
+              style={[
+                styles.hamburgerBtn,
+                Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+              ]}
               onPress={onOpenMenu}
               activeOpacity={0.7}
             >
@@ -600,9 +621,13 @@ export function AdminDashboardTab({
               style={[
                 styles.refreshPillBtn,
                 {
-                  backgroundColor: isDark ? '#1e293b' : '#eff6ff',
+                  backgroundColor: isDark ? 'rgba(30, 41, 59, 0.8)' : '#eff6ff',
                   borderColor: isDark ? '#334155' : '#bfdbfe',
                 },
+                Platform.OS === 'web' && ({
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease',
+                } as any),
               ]}
               onPress={handleManualRefresh}
               activeOpacity={0.7}
@@ -650,6 +675,16 @@ export function AdminDashboardTab({
                 backgroundColor: isDark ? '#1e1b4b' : '#1e3a8a',
                 borderColor: isDark ? '#4338ca' : '#1d4ed8',
               },
+              Platform.OS === 'web' && ({
+                background: isDark
+                  ? 'linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e293b 100%)'
+                  : 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%)',
+                boxShadow: isDark
+                  ? '0 12px 32px rgba(30, 27, 75, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.2)'
+                  : '0 12px 32px rgba(29, 78, 216, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease',
+              } as any),
             ]}
             onPress={() => onNavigateTab('docs', 'all')}
             activeOpacity={0.85}
@@ -684,9 +719,16 @@ export function AdminDashboardTab({
               style={[
                 styles.subKpiCard,
                 {
-                  backgroundColor: isDark ? '#18181b' : '#ffffff',
-                  borderColor: isDark ? '#27272a' : '#e4e4e7',
+                  backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : '#ffffff',
+                  borderColor: isDark ? 'rgba(168, 85, 247, 0.25)' : '#e4e4e7',
                 },
+                Platform.OS === 'web' && ({
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  boxShadow: isDark
+                    ? '0 4px 16px rgba(0, 0, 0, 0.3)'
+                    : '0 4px 16px rgba(168, 85, 247, 0.08)',
+                } as any),
               ]}
               onPress={() => onNavigateTab('docs', 'article')}
               activeOpacity={0.8}
@@ -715,9 +757,16 @@ export function AdminDashboardTab({
               style={[
                 styles.subKpiCard,
                 {
-                  backgroundColor: isDark ? '#18181b' : '#ffffff',
-                  borderColor: isDark ? '#27272a' : '#e4e4e7',
+                  backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : '#ffffff',
+                  borderColor: isDark ? 'rgba(244, 63, 94, 0.25)' : '#e4e4e7',
                 },
+                Platform.OS === 'web' && ({
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  boxShadow: isDark
+                    ? '0 4px 16px rgba(0, 0, 0, 0.3)'
+                    : '0 4px 16px rgba(244, 63, 94, 0.08)',
+                } as any),
               ]}
               onPress={() => onNavigateTab('docs', 'video')}
               activeOpacity={0.8}
@@ -746,9 +795,16 @@ export function AdminDashboardTab({
               style={[
                 styles.subKpiCard,
                 {
-                  backgroundColor: isDark ? '#18181b' : '#ffffff',
-                  borderColor: isDark ? '#27272a' : '#e4e4e7',
+                  backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : '#ffffff',
+                  borderColor: isDark ? 'rgba(56, 189, 248, 0.25)' : '#e4e4e7',
                 },
+                Platform.OS === 'web' && ({
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  boxShadow: isDark
+                    ? '0 4px 16px rgba(0, 0, 0, 0.3)'
+                    : '0 4px 16px rgba(2, 132, 199, 0.08)',
+                } as any),
               ]}
               onPress={() => onNavigateTab('users')}
               activeOpacity={0.8}
@@ -1193,6 +1249,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  logoBadgeContainer: {
+    padding: 3,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
   logoBadge: {
     width: 36,

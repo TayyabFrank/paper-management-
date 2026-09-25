@@ -320,14 +320,20 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
           />
         </View>
 
-        {/* Elevated Profile Card */}
+        {/* Elevated Profile Card with Glassmorphism */}
         <View
           style={[
             styles.profileCard,
             {
-              backgroundColor: isDark ? '#111827' : '#ffffff',
-              borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+              backgroundColor: isDark ? 'rgba(17, 24, 39, 0.85)' : '#ffffff',
+              borderColor: isDark ? 'rgba(56, 189, 248, 0.2)' : '#e2e8f0',
             },
+            Platform.OS === 'web' && ({
+              backdropFilter: 'blur(16px)',
+              boxShadow: isDark
+                ? '0 12px 32px rgba(0, 0, 0, 0.45)'
+                : '0 10px 30px rgba(15, 23, 42, 0.08)',
+            } as any),
           ]}
         >
           {/* Overlapping Avatar Circle with Camera Quick Edit Badge */}
@@ -338,6 +344,10 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
                 backgroundColor: isDark ? '#1e293b' : '#e0e7ff',
                 borderColor: isDark ? '#38bdf8' : '#ffffff',
               },
+              Platform.OS === 'web' && ({
+                boxShadow: '0 6px 20px rgba(56, 189, 248, 0.35)',
+                cursor: 'pointer',
+              } as any),
             ]}
             onPress={handleOpenEdit}
             activeOpacity={0.85}
@@ -493,15 +503,17 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
           <TouchableOpacity
             style={[
               styles.editProfileBtn,
-              {
-                backgroundColor: isDark ? '#1e293b' : '#f0f9ff',
-                borderColor: isDark ? '#38bdf8' : '#bfdbfe',
-              },
+              Platform.OS === 'web' && ({
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
+                cursor: 'pointer',
+                transition: 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              } as any),
             ]}
             onPress={handleOpenEdit}
             activeOpacity={0.8}
           >
-            <Text style={[styles.editProfileBtnText, { color: isDark ? '#38bdf8' : '#0284c7' }]}>
+            <Text style={[styles.editProfileBtnText, { color: '#ffffff' }]}>
               ✏️ Edit Admin Profile (Photo, Name, Email, Password)
             </Text>
           </TouchableOpacity>
@@ -510,11 +522,22 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
         {/* Sign Out Button */}
         <View style={styles.bottomActionsCol}>
           <TouchableOpacity
-            style={styles.signOutBtn}
+            style={[
+              styles.signOutBtn,
+              {
+                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#fef2f2',
+                borderColor: isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca',
+                borderWidth: 1,
+              },
+              Platform.OS === 'web' && ({
+                cursor: 'pointer',
+                transition: 'all 0.18s ease',
+              } as any),
+            ]}
             onPress={logout}
             activeOpacity={0.8}
           >
-            <Text style={styles.signOutBtnText}>🚪 Sign Out</Text>
+            <Text style={[styles.signOutBtnText, { color: '#ef4444' }]}>🚪 Sign Out of Console</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
