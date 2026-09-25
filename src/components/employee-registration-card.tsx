@@ -239,18 +239,6 @@ export function EmployeeRegistrationCard({
     }
   };
 
-  // Quick fill test credentials
-  const fillQuickAdmin = () => {
-    setWorkEmail('admin@enterprise.com');
-    setPassword('admin');
-    setErrors({});
-  };
-
-  const fillQuickStaff = () => {
-    setWorkEmail('sarah.jenkins@enterprise.com');
-    setPassword('Sarah@2025!');
-    setErrors({});
-  };
 
   const handleChoosePhoto = () => {
     setShowPermissionDialog(true);
@@ -572,45 +560,6 @@ export function EmployeeRegistrationCard({
         </Text>
       </View>
 
-      {/* Quick Test Fill Pills for fast evaluation */}
-      {mode === 'login' && (
-        <View style={styles.quickFillContainer}>
-          <Text style={[styles.quickFillLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-            Quick Fill:
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.quickChip,
-              {
-                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(37, 99, 235, 0.08)',
-                borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : 'rgba(37, 99, 235, 0.2)',
-              },
-            ]}
-            onPress={fillQuickAdmin}
-            activeOpacity={0.75}
-          >
-            <Text style={[styles.quickChipText, { color: isDark ? '#38bdf8' : '#1e40af' }]}>
-              👑 Admin
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.quickChip,
-              {
-                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.08)',
-                borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.2)',
-              },
-            ]}
-            onPress={fillQuickStaff}
-            activeOpacity={0.75}
-          >
-            <Text style={[styles.quickChipText, { color: isDark ? '#34d399' : '#047857' }]}>
-              👤 Staff
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Animated Form Content */}
       <Animated.View style={{ opacity: contentFadeAnim, width: '100%' }}>
@@ -896,7 +845,7 @@ export function EmployeeRegistrationCard({
               <Text style={[styles.label, labelThemeStyle]}>✉️ Work Email</Text>
               <TextInput
                 style={getFieldContainerStyle('workEmail', !!errors.workEmail)}
-                placeholder="name@company.com or admin"
+                placeholder="name@company.com"
                 placeholderTextColor={placeholderColor}
                 value={workEmail}
                 onFocus={() => setFocusedField('workEmail')}
@@ -1286,31 +1235,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingHorizontal: 8,
   },
-  quickFillContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 18,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.02)',
-  },
-  quickFillLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  quickChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  quickChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+
   formContent: {
     gap: 16,
   },
