@@ -46,6 +46,7 @@
     "web": "expo start --web",
     "backend": "node backend/server.js",
     "backend:dev": "nodemon backend/server.js",
+    "db": "\"C:\\Program Files\\MongoDB\\Server\\7.0\\bin\\mongod.exe\" --dbpath backend/data/db --bind_ip 127.0.0.1 --port 27017",
     "lint": "expo lint"
   },
   "private": true

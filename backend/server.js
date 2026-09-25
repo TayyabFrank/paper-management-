@@ -55,24 +55,39 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Connect with auto-retry
+let isConnecting = false;
+async function connectWithRetry() {
+  if (isConnecting || mongoose.connection.readyState === 1) return;
+  isConnecting = true;
+  console.log('[DocuVault Server] Connecting to database...');
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    console.log('✓ Successfully connected to MongoDB!');
+    await seedInitialData();
+  } catch (err) {
+    console.warn('⚠ MongoDB connection failed (Server still running):', err.message);
+    console.warn('👉 Retrying connection in 5 seconds...');
+    setTimeout(() => {
+      isConnecting = false;
+      connectWithRetry();
+    }, 5000);
+  } finally {
+    isConnecting = false;
+  }
+}
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠ MongoDB disconnected. Attempting to reconnect...');
+  setTimeout(connectWithRetry, 5000);
+});
+
 // Start listening immediately
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[DocuVault Server] Running on port ${PORT} (http://localhost:${PORT})`);
-  console.log('[DocuVault Server] Connecting to database...');
-
-  // Connect to MongoDB asynchronously with 5 second timeout
-  mongoose
-    .connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-    })
-    .then(async () => {
-      console.log('✓ Successfully connected to MongoDB!');
-      await seedInitialData();
-    })
-    .catch((err) => {
-      console.warn('⚠ MongoDB connection failed (Server still running):', err.message);
-      console.warn('👉 To connect to MongoDB Atlas, add your MONGODB_URI in backend/.env');
-    });
+  connectWithRetry();
 });
 
 module.exports = { app, server };
