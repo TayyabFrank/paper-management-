@@ -1,6 +1,7 @@
 import { useAuth } from '@/context/auth-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useResponsive } from '@/hooks/use-responsive';
+import { FadeInView, ScalePressable, PulseView } from '@/components/ui/animated-components';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -588,15 +589,14 @@ export function EmployeeRegistrationCard({
 
       {/* Interactive Switcher Tabs: Sign In vs Register */}
       <View style={[styles.modeTabsContainer, { backgroundColor: isDark ? '#162033' : '#dbe5f1' }]}>
-        <TouchableOpacity
+        <ScalePressable
           style={[
             styles.modeTab,
             mode === 'login' && [styles.modeTabActive, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }],
           ]}
           onPress={() => switchMode('login')}
-          activeOpacity={0.8}
           accessibilityRole="tab"
-          accessibilityState={{ selected: mode === 'login' }}
+          accessibilityLabel="Sign In Tab"
         >
           <Text
             style={[
@@ -607,17 +607,16 @@ export function EmployeeRegistrationCard({
           >
             🔐 Sign In
           </Text>
-        </TouchableOpacity>
+        </ScalePressable>
 
-        <TouchableOpacity
+        <ScalePressable
           style={[
             styles.modeTab,
             mode === 'register' && [styles.modeTabActive, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }],
           ]}
           onPress={() => switchMode('register')}
-          activeOpacity={0.8}
           accessibilityRole="tab"
-          accessibilityState={{ selected: mode === 'register' }}
+          accessibilityLabel="Register Tab"
         >
           <Text
             style={[
@@ -628,7 +627,7 @@ export function EmployeeRegistrationCard({
           >
             📝 Register
           </Text>
-        </TouchableOpacity>
+        </ScalePressable>
       </View>
 
       {/* Card Header Title */}
@@ -647,7 +646,8 @@ export function EmployeeRegistrationCard({
 
       {mode === 'register' ? (
         /* REGISTRATION FORM */
-        <View style={[styles.formContent, { gap: isSmallPhone ? 12 : 16 }]}>
+        <FadeInView key="register-mode" delay={0} duration={240}>
+          <View style={[styles.formContent, { gap: isSmallPhone ? 12 : 16 }]}>
           {/* Full Name */}
           {/* Full Name */}
           <View style={styles.fieldGroup}>
@@ -952,24 +952,25 @@ export function EmployeeRegistrationCard({
 
           {/* Global Form Error Banner */}
           {errors.form ? (
-            <View style={styles.formErrorBanner}>
-              <Text style={styles.formErrorText}>⚠️ {errors.form}</Text>
-            </View>
+            <FadeInView delay={0} scale>
+              <View style={styles.formErrorBanner}>
+                <Text style={styles.formErrorText}>⚠️ {errors.form}</Text>
+              </View>
+            </FadeInView>
           ) : null}
 
           {/* Submit Button */}
-          <TouchableOpacity
+          <ScalePressable
             style={[styles.primaryButton, primaryBtnStyle]}
             onPress={handleSubmit}
             disabled={isSubmitting}
-            activeOpacity={0.85}
           >
             {isSubmitting ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
               <Text style={styles.primaryButtonText}>📤 Submit Registration for Approval</Text>
             )}
-          </TouchableOpacity>
+          </ScalePressable>
 
           {/* Footer toggle */}
           <View style={styles.footerRow}>
@@ -979,90 +980,94 @@ export function EmployeeRegistrationCard({
             </TouchableOpacity>
           </View>
         </View>
+        </FadeInView>
       ) : (
         /* SIGN IN TO WORKSPACE FORM */
-        <View style={[styles.formContent, { gap: isSmallPhone ? 12 : 16 }]}>
-          {/* Work Email */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>✉️ Work Email</Text>
-            <TextInput
-              style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
-              placeholder="name@company.com"
-              placeholderTextColor={placeholderColor}
-              value={workEmail}
-              onChangeText={(text) => {
-                setWorkEmail(text);
-                if (errors.workEmail) setErrors({ ...errors, workEmail: '' });
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {errors.workEmail ? <Text style={styles.errorText}>{errors.workEmail}</Text> : null}
-          </View>
-
-          {/* Password */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>🔒 Password</Text>
-
-            <View style={[styles.passwordInputContainer, inputThemeStyle]}>
+        <FadeInView key="login-mode" delay={0} duration={240}>
+          <View style={[styles.formContent, { gap: isSmallPhone ? 12 : 16 }]}>
+            {/* Work Email */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, labelThemeStyle]}>✉️ Work Email</Text>
               <TextInput
-                style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }, errors.password ? styles.inputError : null]}
-                placeholder="••••••••••"
+                style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
+                placeholder="name@company.com"
                 placeholderTextColor={placeholderColor}
-                value={password}
+                value={workEmail}
                 onChangeText={(text) => {
-                  setPassword(text);
-                  if (errors.password) setErrors({ ...errors, password: '' });
+                  setWorkEmail(text);
+                  if (errors.workEmail) setErrors({ ...errors, workEmail: '' });
                 }}
-                secureTextEntry={!showPassword}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
-                activeOpacity={0.7}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                accessibilityRole="button"
-              >
-                <PasswordEyeIcon
-                  visible={showPassword}
-                  color={showPassword ? (isDark ? '#38bdf8' : '#1b3569') : (isDark ? '#94a3b8' : '#64748b')}
+              {errors.workEmail ? <Text style={styles.errorText}>{errors.workEmail}</Text> : null}
+            </View>
+
+            {/* Password */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, labelThemeStyle]}>🔒 Password</Text>
+
+              <View style={[styles.passwordInputContainer, inputThemeStyle]}>
+                <TextInput
+                  style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }, errors.password ? styles.inputError : null]}
+                  placeholder="••••••••••"
+                  placeholderTextColor={placeholderColor}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (errors.password) setErrors({ ...errors, password: '' });
+                  }}
+                  secureTextEntry={!showPassword}
                 />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeButton}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  accessibilityRole="button"
+                >
+                  <PasswordEyeIcon
+                    visible={showPassword}
+                    color={showPassword ? (isDark ? '#38bdf8' : '#1b3569') : (isDark ? '#94a3b8' : '#64748b')}
+                  />
+                </TouchableOpacity>
+              </View>
+              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+            </View>
+
+            {/* Global Form Error Banner */}
+            {errors.form ? (
+              <FadeInView delay={0} scale>
+                <View style={styles.formErrorBanner}>
+                  <Text style={styles.formErrorText}>⚠️ {errors.form}</Text>
+                </View>
+              </FadeInView>
+            ) : null}
+
+            {/* Login Button */}
+            <ScalePressable
+              style={[styles.primaryButton, primaryBtnStyle]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <Text style={styles.primaryButtonText}>🔑 Login</Text>
+              )}
+            </ScalePressable>
+
+            {/* Footer: New to the company? Register as Employee */}
+            <View style={styles.footerRow}>
+              <Text style={[styles.footerText, { color: colors.textSecondary }]}>New to the company? </Text>
+              <TouchableOpacity onPress={() => switchMode('register')} activeOpacity={0.7}>
+                <Text style={[styles.loginLink, linkThemeStyle]}>📝 Register as Employee</Text>
               </TouchableOpacity>
             </View>
-            {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
           </View>
-
-          {/* Global Form Error Banner */}
-          {errors.form ? (
-            <View style={styles.formErrorBanner}>
-              <Text style={styles.formErrorText}>⚠️ {errors.form}</Text>
-            </View>
-          ) : null}
-
-          {/* Login Button */}
-          <TouchableOpacity
-            style={[styles.primaryButton, primaryBtnStyle]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-            activeOpacity={0.85}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#ffffff" size="small" />
-            ) : (
-              <Text style={styles.primaryButtonText}>🔑 Login</Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Footer: New to the company? Register as Employee */}
-          <View style={styles.footerRow}>
-            <Text style={[styles.footerText, { color: colors.textSecondary }]}>New to the company? </Text>
-            <TouchableOpacity onPress={() => switchMode('register')} activeOpacity={0.7}>
-              <Text style={[styles.loginLink, linkThemeStyle]}>📝 Register as Employee</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        </FadeInView>
       )}
 
       {/* Live Web Camera Viewfinder Modal */}
@@ -1338,11 +1343,13 @@ export function EmployeeRegistrationCard({
               },
             ]}
           >
-            <View style={[styles.successIconCircle, mode === 'register' ? { backgroundColor: '#fef3c7' } : null]}>
-              <Text style={[styles.checkmarkText, mode === 'register' ? { color: '#d97706' } : null]}>
-                {mode === 'register' ? '⏳' : '✓'}
-              </Text>
-            </View>
+            <PulseView minScale={0.9} maxScale={1.1}>
+              <View style={[styles.successIconCircle, mode === 'register' ? { backgroundColor: '#fef3c7' } : null]}>
+                <Text style={[styles.checkmarkText, mode === 'register' ? { color: '#d97706' } : null]}>
+                  {mode === 'register' ? '⏳' : '✓'}
+                </Text>
+              </View>
+            </PulseView>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
               {mode === 'register' ? 'Approval Request Sent!' : 'Welcome Back!'}
             </Text>
@@ -1352,15 +1359,14 @@ export function EmployeeRegistrationCard({
                 : `Successfully authenticated as ${workEmail}. Redirecting to your workspace...`}
             </Text>
 
-            <TouchableOpacity
+            <ScalePressable
               style={[styles.modalButton, primaryBtnStyle]}
               onPress={handleReset}
-              activeOpacity={0.8}
             >
               <Text style={styles.modalButtonText}>
                 {mode === 'register' ? 'Return to Sign In 🔐' : 'Enter Workspace 🚀'}
               </Text>
-            </TouchableOpacity>
+            </ScalePressable>
           </View>
         </View>
       </Modal>

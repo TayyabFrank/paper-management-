@@ -21,6 +21,7 @@ import { AdminPortalView } from '@/components/admin/admin-portal-view';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 import { useResponsive } from '@/hooks/use-responsive';
+import { FadeInView } from '@/components/ui/animated-components';
 
 export default function HomeScreen() {
   const { isDark, colors } = useDocuVaultTheme();
@@ -63,32 +64,34 @@ export default function HomeScreen() {
 
         {/* Tab Content View */}
         <View style={styles.workspaceBody}>
-          {activeTab === 'home' && (
-            <HomeDashboardView onNavigateTab={(tab) => setActiveTab(tab)} />
-          )}
+          <FadeInView key={activeTab} delay={0} duration={260} style={{ flex: 1 }}>
+            {activeTab === 'home' && (
+              <HomeDashboardView onNavigateTab={(tab) => setActiveTab(tab)} />
+            )}
 
-          {activeTab === 'docs' && (
-            <ScrollView
-              contentContainerStyle={styles.dashboardScrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <DocumentsDashboard
-                onBack={() => setActiveTab('home')}
-                onNavigateNewDoc={() => setActiveTab('new-doc')}
-                employeeName={user.name}
-                employeeEmail={user.email}
-                employeeAvatar={user.avatar}
-              />
-            </ScrollView>
-          )}
+            {activeTab === 'docs' && (
+              <ScrollView
+                contentContainerStyle={styles.dashboardScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <DocumentsDashboard
+                  onBack={() => setActiveTab('home')}
+                  onNavigateNewDoc={() => setActiveTab('new-doc')}
+                  employeeName={user.name}
+                  employeeEmail={user.email}
+                  employeeAvatar={user.avatar}
+                />
+              </ScrollView>
+            )}
 
-          {activeTab === 'new-doc' && (
-            <NewDocView onNavigateTab={(tab) => setActiveTab(tab)} />
-          )}
+            {activeTab === 'new-doc' && (
+              <NewDocView onNavigateTab={(tab) => setActiveTab(tab)} />
+            )}
 
-          {activeTab === 'profile' && (
-            <EmployeeProfileView onNavigateTab={(tab) => setActiveTab(tab)} />
-          )}
+            {activeTab === 'profile' && (
+              <EmployeeProfileView onNavigateTab={(tab) => setActiveTab(tab)} />
+            )}
+          </FadeInView>
         </View>
 
         {/* Fixed Employee Bottom Navbar matching the user's design */}
@@ -123,7 +126,9 @@ export default function HomeScreen() {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={true}
         >
-          <View
+          <FadeInView
+            delay={0}
+            scale
             style={[
               styles.innerContainer,
               {
@@ -151,7 +156,7 @@ export default function HomeScreen() {
                 setActiveTab('home');
               }}
             />
-          </View>
+          </FadeInView>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

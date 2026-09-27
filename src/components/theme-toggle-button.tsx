@@ -1,5 +1,14 @@
-import React from 'react';
-import { TouchableOpacity, View, Text, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+  TouchableOpacity,
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  Animated,
+  Platform,
+  Easing,
+} from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 
 const SUN_ICON_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -29,6 +38,37 @@ interface ThemeToggleButtonProps {
 
 export function ThemeToggleButton({ compact = false, showLabel = true }: ThemeToggleButtonProps) {
   const { isDark, toggleTheme } = useDocuVaultTheme();
+  const rotateAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(rotateAnim, {
+        toValue: isDark ? 1 : 0,
+        duration: 350,
+        easing: Easing.out(Easing.back(1.5)),
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 0.82,
+          duration: 120,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 4,
+          tension: 40,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ]),
+    ]).start();
+  }, [isDark]);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   return (
     <TouchableOpacity
@@ -46,11 +86,12 @@ export function ThemeToggleButton({ compact = false, showLabel = true }: ThemeTo
       accessibilityRole="button"
       accessibilityLabel={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
     >
-      <View
+      <Animated.View
         style={[
           styles.iconBadge,
           {
             backgroundColor: isDark ? 'rgba(56, 189, 248, 0.16)' : '#fef3c7',
+            transform: [{ rotate: spin }, { scale: scaleAnim }],
           },
         ]}
       >
@@ -59,7 +100,7 @@ export function ThemeToggleButton({ compact = false, showLabel = true }: ThemeTo
           style={styles.icon}
           resizeMode="contain"
         />
-      </View>
+      </Animated.View>
 
       {showLabel && (
         <Text

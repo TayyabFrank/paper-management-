@@ -18,6 +18,7 @@ import { useDocuments } from '@/context/documents-context';
 import { useAuth } from '@/context/auth-context';
 import { useResponsive } from '@/hooks/use-responsive';
 import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
+import { FadeInView, ScalePressable } from '@/components/ui/animated-components';
 
 // Vector icons as crisp SVG URIs
 const BACK_ARROW_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -876,81 +877,88 @@ export function DocumentsDashboard({
             </TouchableOpacity>
           </View>
         ) : (
-          filteredDocs.map((doc) => (
-            <TouchableOpacity
+          filteredDocs.map((doc, index) => (
+            <FadeInView
               key={doc.id}
-              style={[
-                styles.docCard,
-                {
-                  backgroundColor: isDark ? '#111827' : '#ffffff',
-                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e8edf4',
-                  shadowColor: isDark ? '#000000' : '#64748b',
-                  width: isPhone ? '100%' : isDesktop ? '31.8%' : '48.8%',
-                  flexGrow: isPhone ? 0 : 1,
-                },
-              ]}
-              onPress={() => setReadingDoc(doc)}
-              onLongPress={() => setDocToDelete(doc)}
-              activeOpacity={0.8}
+              delay={Math.min(index * 35, 350)}
+              scale
+              style={{
+                width: isPhone ? '100%' : isDesktop ? '31.8%' : '48.8%',
+                flexGrow: isPhone ? 0 : 1,
+              }}
             >
-              <View style={styles.docIconWrapper}>
-                <Image
-                  source={{ uri: getDocumentTypeIcon(doc.type, doc.title) }}
-                  style={styles.docTypeImage}
-                  resizeMode="contain"
-                />
-              </View>
+              <ScalePressable
+                activeScale={0.98}
+                style={[
+                  styles.docCard,
+                  {
+                    backgroundColor: isDark ? '#111827' : '#ffffff',
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e8edf4',
+                    shadowColor: isDark ? '#000000' : '#64748b',
+                    width: '100%',
+                  },
+                ]}
+                onPress={() => setReadingDoc(doc)}
+              >
+                <View style={styles.docIconWrapper}>
+                  <Image
+                    source={{ uri: getDocumentTypeIcon(doc.type, doc.title) }}
+                    style={styles.docTypeImage}
+                    resizeMode="contain"
+                  />
+                </View>
 
-              <View style={styles.docInfo}>
-                <Text
-                  style={[
-                    styles.docTitle,
-                    { color: colors.textPrimary },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {doc.title}
-                </Text>
-                <Text
-                  style={[
-                    styles.docSubtitle,
-                    { color: isDark ? '#94a3b8' : '#64748b' },
-                    doc.subtitle === 'Not Uploaded' ? (isDark ? { color: '#64748b' } : styles.notUploadedText) : null,
-                  ]}
-                >
-                  {doc.subtitle}
-                </Text>
-              </View>
+                <View style={styles.docInfo}>
+                  <Text
+                    style={[
+                      styles.docTitle,
+                      { color: colors.textPrimary },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {doc.title}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.docSubtitle,
+                      { color: isDark ? '#94a3b8' : '#64748b' },
+                      doc.subtitle === 'Not Uploaded' ? (isDark ? { color: '#64748b' } : styles.notUploadedText) : null,
+                    ]}
+                  >
+                    {doc.subtitle}
+                  </Text>
+                </View>
 
-              {/* Actions: Right side shows exactly two icons: Eye (Read) and Delete */}
-              <View style={styles.cardActionsRow}>
-                {/* Eye Button: View & Read */}
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={(e) => {
-                    e?.stopPropagation?.();
-                    setReadingDoc(doc);
-                  }}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`Read ${doc.title}`}
-                >
-                  <ActionIcon type="eye" isDark={isDark} />
-                </TouchableOpacity>
+                {/* Actions: Right side shows exactly two icons: Eye (Read) and Delete */}
+                <View style={styles.cardActionsRow}>
+                  {/* Eye Button: View & Read */}
+                  <TouchableOpacity
+                    style={styles.actionBtn}
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      setReadingDoc(doc);
+                    }}
+                    activeOpacity={0.7}
+                    accessibilityLabel={`Read ${doc.title}`}
+                  >
+                    <ActionIcon type="eye" isDark={isDark} />
+                  </TouchableOpacity>
 
-                {/* Delete Button: Delete document */}
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={(e) => {
-                    e?.stopPropagation?.();
-                    handleDeleteDoc(doc, e);
-                  }}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`Delete ${doc.title}`}
-                >
-                  <ActionIcon type="trash" isDark={isDark} />
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
+                  {/* Delete Button: Delete document */}
+                  <TouchableOpacity
+                    style={styles.actionBtn}
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      handleDeleteDoc(doc, e);
+                    }}
+                    activeOpacity={0.7}
+                    accessibilityLabel={`Delete ${doc.title}`}
+                  >
+                    <ActionIcon type="trash" isDark={isDark} />
+                  </TouchableOpacity>
+                </View>
+              </ScalePressable>
+            </FadeInView>
           ))
         )}
       </View>

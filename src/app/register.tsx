@@ -14,6 +14,7 @@ import { EmployeeRegistrationCard } from '@/components/employee-registration-car
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useResponsive } from '@/hooks/use-responsive';
+import { FadeInView } from '@/components/ui/animated-components';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -46,7 +47,11 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={true}
         >
-          <View style={[styles.innerContainer, { maxWidth: registerMaxWidth }]}>
+          <FadeInView
+            delay={0}
+            scale
+            style={[styles.innerContainer, { maxWidth: registerMaxWidth }]}
+          >
             <DocuVaultLogo
               size={isSmallPhone ? 'small' : 'medium'}
               subtitle="Create your enterprise account"
@@ -62,7 +67,7 @@ export default function RegisterScreen() {
                 router.replace('/');
               }}
             />
-          </View>
+          </FadeInView>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

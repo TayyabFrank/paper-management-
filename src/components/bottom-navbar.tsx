@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, Platform, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useResponsive } from '@/hooks/use-responsive';
@@ -150,6 +150,129 @@ function NavbarTabIcon({
   return <Text style={{ fontSize: 19 }}>{fallbackEmoji}</Text>;
 }
 
+function AnimatedTabButton({
+  tab,
+  isActive,
+  onPress,
+  activePillBg,
+  activeLabelColor,
+  inactiveColor,
+  isSmallPhone,
+}: {
+  tab: TabItemConfig;
+  isActive: boolean;
+  onPress: () => void;
+  activePillBg: string;
+  activeLabelColor: string;
+  inactiveColor: string;
+  isSmallPhone: boolean;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const pillScale = useRef(new Animated.Value(isActive ? 1 : 0.88)).current;
+  const dotScale = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(pillScale, {
+        toValue: isActive ? 1 : 0.9,
+        friction: 6,
+        tension: 50,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.spring(dotScale, {
+        toValue: isActive ? 1 : 0,
+        friction: 5,
+        tension: 60,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]).start();
+  }, [isActive]);
+
+  const handlePressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.92,
+      useNativeDriver: Platform.OS !== 'web',
+      speed: 40,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: Platform.OS !== 'web',
+      speed: 30,
+      bounciness: 6,
+    }).start();
+  };
+
+  const iconColor = isActive ? '#ffffff' : inactiveColor;
+  const labelColor = isActive ? activeLabelColor : inactiveColor;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[styles.tabItem, Platform.OS === 'web' && ({ cursor: 'pointer' } as any)]}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+      accessibilityLabel={`${tab.label} tab`}
+    >
+      <Animated.View style={{ alignItems: 'center', width: '100%', transform: [{ scale }] }}>
+        {/* Active pill capsule around the vector icon */}
+        <Animated.View
+          style={[
+            styles.iconSlot,
+            isActive
+              ? [
+                  styles.activeCapsulePill,
+                  {
+                    backgroundColor: activePillBg,
+                    width: isSmallPhone ? 50 : 60,
+                  },
+                ]
+              : [styles.inactiveIconSlot, { width: isSmallPhone ? 50 : 60 }],
+            { transform: [{ scale: pillScale }] },
+          ]}
+        >
+          <NavbarTabIcon
+            tabKey={tab.key}
+            color={iconColor}
+            fallbackEmoji={tab.emoji}
+          />
+        </Animated.View>
+
+        {/* Tab label */}
+        <Text
+          style={[
+            styles.tabLabel,
+            {
+              color: labelColor,
+              fontSize: isSmallPhone ? 10 : 11.5,
+            },
+            isActive && styles.activeTabLabel,
+          ]}
+          numberOfLines={1}
+        >
+          {tab.label}
+        </Text>
+
+        {/* Animated active indicator dot */}
+        <Animated.View
+          style={[
+            styles.activeDot,
+            {
+              backgroundColor: activeLabelColor,
+              transform: [{ scale: dotScale }],
+              opacity: dotScale,
+            },
+          ]}
+        />
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useDocuVaultTheme();
@@ -182,68 +305,18 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
       ]}
     >
       <View style={[styles.tabBarInner, { maxWidth: navbarMaxWidth }]}>
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.key;
-          const iconColor = isActive ? '#ffffff' : inactiveColor;
-          const labelColor = isActive ? activeLabelColor : inactiveColor;
-
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tabItem, Platform.OS === 'web' && ({ cursor: 'pointer' } as any)]}
-              onPress={() => onTabChange(tab.key)}
-              activeOpacity={0.7}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-              accessibilityLabel={`${tab.label} tab`}
-            >
-              {/* Active pill capsule around the vector icon */}
-              <View
-                style={[
-                  styles.iconSlot,
-                  isActive
-                    ? [
-                        styles.activeCapsulePill,
-                        {
-                          backgroundColor: activePillBg,
-                          width: isSmallPhone ? 50 : 60,
-                        },
-                      ]
-                    : [styles.inactiveIconSlot, { width: isSmallPhone ? 50 : 60 }],
-                ]}
-              >
-                <NavbarTabIcon
-                  tabKey={tab.key}
-                  color={iconColor}
-                  fallbackEmoji={tab.emoji}
-                />
-              </View>
-
-              {/* Tab label */}
-              <Text
-                style={[
-                  styles.tabLabel,
-                  {
-                    color: labelColor,
-                    fontSize: isSmallPhone ? 10 : 11.5,
-                  },
-                  isActive && styles.activeTabLabel,
-                ]}
-                numberOfLines={1}
-              >
-                {tab.label}
-              </Text>
-
-              {/* Subtle active indicator dot */}
-              <View
-                style={[
-                  styles.activeDot,
-                  { backgroundColor: isActive ? activeLabelColor : 'transparent' },
-                ]}
-              />
-            </TouchableOpacity>
-          );
-        })}
+        {tabs.map((tab) => (
+          <AnimatedTabButton
+            key={tab.key}
+            tab={tab}
+            isActive={activeTab === tab.key}
+            onPress={() => onTabChange(tab.key)}
+            activePillBg={activePillBg}
+            activeLabelColor={activeLabelColor}
+            inactiveColor={inactiveColor}
+            isSmallPhone={isSmallPhone}
+          />
+        ))}
       </View>
     </View>
   );

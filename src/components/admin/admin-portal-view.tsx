@@ -22,6 +22,7 @@ import { AdminUsersTab } from './admin-users-tab';
 import { AdminDocsTab } from './admin-docs-tab';
 import { AdminApprovalsTab } from './admin-approvals-tab';
 import { AdminProfileTab } from './admin-profile-tab';
+import { FadeInView } from '@/components/ui/animated-components';
 
 // Vector Logos for Admin Side Navbar
 const DASHBOARD_LOGO_SVG = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -167,55 +168,57 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
 
       {/* Tab Body */}
       <View style={styles.body}>
-        {activeTab === 'dashboard' && (
-          <AdminDashboardTab
-            onNavigateTab={(tab, category) => {
-              if (tab === 'docs') {
-                setSelectedEmployee(null);
-                if (category) {
-                  setSelectedCategory(category);
+        <FadeInView key={activeTab} delay={0} duration={260} style={{ flex: 1 }}>
+          {activeTab === 'dashboard' && (
+            <AdminDashboardTab
+              onNavigateTab={(tab, category) => {
+                if (tab === 'docs') {
+                  setSelectedEmployee(null);
+                  if (category) {
+                    setSelectedCategory(category);
+                  }
                 }
-              }
-              setActiveTab(tab);
-            }}
-            onOpenMenu={() => setShowDrawer(true)}
-            onOpenDocument={(doc) => setReadingDoc(doc)}
-          />
-        )}
+                setActiveTab(tab);
+              }}
+              onOpenMenu={() => setShowDrawer(true)}
+              onOpenDocument={(doc) => setReadingDoc(doc)}
+            />
+          )}
 
-        {activeTab === 'users' && (
-          <AdminUsersTab
-            onViewEmployeeDocs={(emp) => {
-              setSelectedEmployee(emp);
-              setSelectedCategory('all');
-              setActiveTab('docs');
-            }}
-          />
-        )}
+          {activeTab === 'users' && (
+            <AdminUsersTab
+              onViewEmployeeDocs={(emp) => {
+                setSelectedEmployee(emp);
+                setSelectedCategory('all');
+                setActiveTab('docs');
+              }}
+            />
+          )}
 
-        {activeTab === 'docs' && (
-          <AdminDocsTab
-            selectedEmployee={selectedEmployee}
-            onSelectEmployee={(emp) => setSelectedEmployee(emp)}
-            onBackToUsers={() => {
-              setSelectedEmployee(null);
-              setActiveTab('users');
-            }}
-            onOpenDocument={(doc) => setReadingDoc(doc)}
-            initialCategory={selectedCategory}
-            onCategoryChange={(cat) => setSelectedCategory(cat)}
-          />
-        )}
+          {activeTab === 'docs' && (
+            <AdminDocsTab
+              selectedEmployee={selectedEmployee}
+              onSelectEmployee={(emp) => setSelectedEmployee(emp)}
+              onBackToUsers={() => {
+                setSelectedEmployee(null);
+                setActiveTab('users');
+              }}
+              onOpenDocument={(doc) => setReadingDoc(doc)}
+              initialCategory={selectedCategory}
+              onCategoryChange={(cat) => setSelectedCategory(cat)}
+            />
+          )}
 
-        {activeTab === 'approvals' && (
-          <AdminApprovalsTab onOpenMenu={() => setShowDrawer(true)} />
-        )}
+          {activeTab === 'approvals' && (
+            <AdminApprovalsTab onOpenMenu={() => setShowDrawer(true)} />
+          )}
 
-        {activeTab === 'profile' && (
-          <AdminProfileTab
-            onBack={() => setActiveTab('dashboard')}
-          />
-        )}
+          {activeTab === 'profile' && (
+            <AdminProfileTab
+              onBack={() => setActiveTab('dashboard')}
+            />
+          )}
+        </FadeInView>
       </View>
 
       {/* Admin Bottom Navigation Bar matching Screenshot 2 */}

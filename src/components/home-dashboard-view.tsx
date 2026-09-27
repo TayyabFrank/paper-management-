@@ -15,6 +15,8 @@ import { TabKey } from './bottom-navbar';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { APP_LOGO } from '@/components/docuvault-logo';
 
+import { FadeInView, ScalePressable, PulseView } from '@/components/ui/animated-components';
+
 interface HomeDashboardViewProps {
   onNavigateTab: (tab: TabKey) => void;
 }
@@ -51,224 +53,268 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
     >
       <View style={[styles.maxWidthWrapper, { maxWidth: containerMaxWidth }]}>
         {/* Header with Welcome Greeting, DocuVault Logo and Theme Toggle */}
-        <View style={styles.topHeaderRow}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: isSmallPhone ? 8 : 12, flex: 1 }}>
-            <Image
-              source={APP_LOGO}
-              style={{
-                width: isSmallPhone ? 42 : 48,
-                height: isSmallPhone ? 32 : 36,
-                borderRadius: 8,
-                backgroundColor: '#ffffff',
-                borderWidth: isDark ? 1 : 0.5,
-                borderColor: isDark ? 'rgba(56, 189, 248, 0.4)' : '#e2e8f0',
-              }}
-              resizeMode="contain"
-            />
-            <View style={styles.greetingCol}>
-              <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
-                Welcome back,
-              </Text>
-              <Text
-                style={[
-                  styles.welcomeTitle,
-                  {
-                    color: colors.textPrimary,
-                    fontSize: isSmallPhone ? 20 : isTablet || isDesktop ? 28 : 24,
-                  },
-                ]}
-                numberOfLines={1}
-              >
-                {user.name}
-              </Text>
+        <FadeInView delay={0} direction="down">
+          <View style={styles.topHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: isSmallPhone ? 8 : 12, flex: 1 }}>
+              <Image
+                source={APP_LOGO}
+                style={{
+                  width: isSmallPhone ? 42 : 48,
+                  height: isSmallPhone ? 32 : 36,
+                  borderRadius: 8,
+                  backgroundColor: '#ffffff',
+                  borderWidth: isDark ? 1 : 0.5,
+                  borderColor: isDark ? 'rgba(56, 189, 248, 0.4)' : '#e2e8f0',
+                }}
+                resizeMode="contain"
+              />
+              <View style={styles.greetingCol}>
+                <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
+                  Welcome back,
+                </Text>
+                <Text
+                  style={[
+                    styles.welcomeTitle,
+                    {
+                      color: colors.textPrimary,
+                      fontSize: isSmallPhone ? 20 : isTablet || isDesktop ? 28 : 24,
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {user.name}
+                </Text>
+              </View>
             </View>
+            <ThemeToggleButton compact showLabel={false} />
           </View>
-          <ThemeToggleButton compact showLabel={false} />
-        </View>
+        </FadeInView>
 
         {/* User Workspace Status Banner */}
-        <View
-          style={[
-            styles.workspaceBanner,
-            {
-              backgroundColor: isDark ? '#111827' : '#1b3569',
-              borderColor: isDark ? 'rgba(56, 189, 248, 0.25)' : '#172554',
-              padding: isSmallPhone ? 14 : isTablet || isDesktop ? 24 : 18,
-            },
-          ]}
-        >
-          <View style={styles.bannerContent}>
-            <View style={styles.bannerBadge}>
-              <View style={styles.onlineDot} />
-              <Text style={styles.bannerBadgeText}>🟢 ENTERPRISE WORKSPACE ACTIVE</Text>
-            </View>
-            <Text
-              style={[
-                styles.bannerHeading,
-                { fontSize: isSmallPhone ? 16 : isTablet || isDesktop ? 22 : 18 },
-              ]}
-            >
-              🔒 Secure Document Vault
-            </Text>
-            <Text style={styles.bannerDesc}>
-              {user.department} • {user.role}
-            </Text>
-          </View>
-
-          <Image
-            source={{ uri: user.avatar }}
+        <FadeInView delay={80} scale>
+          <View
             style={[
-              styles.bannerAvatar,
+              styles.workspaceBanner,
               {
-                width: isSmallPhone ? 46 : isTablet || isDesktop ? 64 : 54,
-                height: isSmallPhone ? 46 : isTablet || isDesktop ? 64 : 54,
-                borderRadius: isSmallPhone ? 23 : isTablet || isDesktop ? 32 : 27,
+                backgroundColor: isDark ? '#111827' : '#1b3569',
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.25)' : '#172554',
+                padding: isSmallPhone ? 14 : isTablet || isDesktop ? 24 : 18,
               },
             ]}
-            resizeMode="cover"
-          />
-        </View>
+          >
+            <View style={styles.bannerContent}>
+              <View style={styles.bannerBadge}>
+                <PulseView minScale={0.8} maxScale={1.3}>
+                  <View style={styles.onlineDot} />
+                </PulseView>
+                <Text style={styles.bannerBadgeText}>🟢 ENTERPRISE WORKSPACE ACTIVE</Text>
+              </View>
+              <Text
+                style={[
+                  styles.bannerHeading,
+                  { fontSize: isSmallPhone ? 16 : isTablet || isDesktop ? 22 : 18 },
+                ]}
+              >
+                🔒 Secure Document Vault
+              </Text>
+              <Text style={styles.bannerDesc}>
+                {user.department} • {user.role}
+              </Text>
+            </View>
+
+            <Image
+              source={{ uri: user.avatar }}
+              style={[
+                styles.bannerAvatar,
+                {
+                  width: isSmallPhone ? 46 : isTablet || isDesktop ? 64 : 54,
+                  height: isSmallPhone ? 46 : isTablet || isDesktop ? 64 : 54,
+                  borderRadius: isSmallPhone ? 23 : isTablet || isDesktop ? 32 : 27,
+                },
+              ]}
+              resizeMode="cover"
+            />
+          </View>
+        </FadeInView>
 
         {/* Quick Metrics Grid */}
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📊 Vault Overview</Text>
+        <FadeInView delay={140}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📊 Vault Overview</Text>
+        </FadeInView>
+
         <View style={styles.metricsGrid}>
-          <View
-            style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-                flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
-              },
-            ]}
+          <FadeInView
+            delay={180}
+            scale
+            style={{
+              flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
+            }}
           >
-            <Text style={[styles.metricNumber, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
-              {userDocuments.length}
-            </Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>📁 Total Documents</Text>
-          </View>
+            <ScalePressable
+              onPress={() => onNavigateTab('docs')}
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Text style={[styles.metricNumber, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
+                {userDocuments.length}
+              </Text>
+              <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>📁 Total Documents</Text>
+            </ScalePressable>
+          </FadeInView>
 
-          <View
-            style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-                flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
-              },
-            ]}
+          <FadeInView
+            delay={220}
+            scale
+            style={{
+              flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
+            }}
           >
-            <Text style={[styles.metricNumber, { color: '#10b981' }]}>
-              {verifiedDocs}
-            </Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>✅ Verified & Active</Text>
-          </View>
+            <ScalePressable
+              onPress={() => onNavigateTab('docs')}
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Text style={[styles.metricNumber, { color: '#10b981' }]}>
+                {verifiedDocs}
+              </Text>
+              <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>✅ Verified & Active</Text>
+            </ScalePressable>
+          </FadeInView>
 
-          <View
-            style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-                flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
-              },
-            ]}
+          <FadeInView
+            delay={260}
+            scale
+            style={{
+              flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
+            }}
           >
-            <Text style={[styles.metricNumber, { color: '#f59e0b' }]}>
-              {pendingDocs}
-            </Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>⏳ Action Required</Text>
-          </View>
+            <ScalePressable
+              onPress={() => onNavigateTab('docs')}
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Text style={[styles.metricNumber, { color: '#f59e0b' }]}>
+                {pendingDocs}
+              </Text>
+              <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>⏳ Action Required</Text>
+            </ScalePressable>
+          </FadeInView>
 
-          <View
-            style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-                flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
-              },
-            ]}
+          <FadeInView
+            delay={300}
+            scale
+            style={{
+              flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
+            }}
           >
-            <Text style={[styles.metricNumber, { color: isDark ? '#c084fc' : '#8b5cf6' }]}>
-              {storageMB} MB
-            </Text>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>💾 Vault Encrypted</Text>
-          </View>
+            <ScalePressable
+              onPress={() => onNavigateTab('docs')}
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Text style={[styles.metricNumber, { color: isDark ? '#c084fc' : '#8b5cf6' }]}>
+                {storageMB} MB
+              </Text>
+              <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>💾 Vault Encrypted</Text>
+            </ScalePressable>
+          </FadeInView>
         </View>
 
         {/* Quick Actions Bar */}
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>⚡ Quick Actions</Text>
-        <View style={[styles.actionsRow, { flexDirection: isSmallPhone ? 'column' : 'row' }]}>
-          <TouchableOpacity
-            style={[
-              styles.actionTile,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
-              },
-            ]}
-            onPress={() => onNavigateTab('docs')}
-            activeOpacity={0.75}
-          >
-            <View style={[styles.actionIconBg, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
-              <Text style={{ fontSize: 20 }}>📂</Text>
-            </View>
-            <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>📄 Document Vault</Text>
-            <Text style={[styles.actionTileSub, { color: colors.textSecondary }]}>🔍 View and search all files</Text>
-          </TouchableOpacity>
+        <FadeInView delay={340}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>⚡ Quick Actions</Text>
+          <View style={[styles.actionsRow, { flexDirection: isSmallPhone ? 'column' : 'row' }]}>
+            <ScalePressable
+              style={[
+                styles.actionTile,
+                {
+                  flex: 1,
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                },
+              ]}
+              onPress={() => onNavigateTab('docs')}
+            >
+              <View style={[styles.actionIconBg, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}>
+                <Text style={{ fontSize: 20 }}>📂</Text>
+              </View>
+              <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>📄 Document Vault</Text>
+              <Text style={[styles.actionTileSub, { color: colors.textSecondary }]}>🔍 View and search all files</Text>
+            </ScalePressable>
 
-          <TouchableOpacity
-            style={[
-              styles.actionTile,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
-              },
-            ]}
-            onPress={() => onNavigateTab('new-doc')}
-            activeOpacity={0.75}
-          >
-            <View style={[styles.actionIconBg, { backgroundColor: isDark ? '#1e293b' : '#f0fdf4' }]}>
-              <Text style={{ fontSize: 20 }}>📤</Text>
-            </View>
-            <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>📤 Upload Document</Text>
-            <Text style={[styles.actionTileSub, { color: colors.textSecondary }]}>📄 Scan or upload a doc</Text>
-          </TouchableOpacity>
-        </View>
+            <ScalePressable
+              style={[
+                styles.actionTile,
+                {
+                  flex: 1,
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                },
+              ]}
+              onPress={() => onNavigateTab('new-doc')}
+            >
+              <View style={[styles.actionIconBg, { backgroundColor: isDark ? '#1e293b' : '#f0fdf4' }]}>
+                <Text style={{ fontSize: 20 }}>📤</Text>
+              </View>
+              <Text style={[styles.actionTileTitle, { color: colors.textPrimary }]}>📤 Upload Document</Text>
+              <Text style={[styles.actionTileSub, { color: colors.textSecondary }]}>📄 Scan or upload a doc</Text>
+            </ScalePressable>
+          </View>
+        </FadeInView>
 
         {/* Pinned Enterprise Notices */}
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📢 Important Notice</Text>
-        <View
-          style={[
-            styles.noticeCard,
-            {
-              backgroundColor: isDark ? '#16233b' : '#f8fafc',
-              borderColor: isDark ? '#273854' : '#e2e8f0',
-              padding: isSmallPhone ? 12 : 16,
-            },
-          ]}
-        >
-          <View style={styles.noticeHeader}>
-            <View style={styles.noticePill}>
-              <Text style={styles.noticePillText}>📋 ANNUAL COMPLIANCE</Text>
-            </View>
-            <Text style={[styles.noticeDate, { color: colors.textSecondary }]}>📅 Due 30 Sep 2026</Text>
-          </View>
-          <Text style={[styles.noticeTitle, { color: colors.textPrimary }]}>
-            ⚠️ Form W-2 & Annual Tax Certification Pending
-          </Text>
-          <Text style={[styles.noticeBody, { color: colors.textSecondary }]}>
-            Your 2023 W-2 Form has not been acknowledged yet. Please check your My Docs vault to upload or certify before the compliance audit deadline.
-          </Text>
-          <TouchableOpacity
-            style={[styles.noticeCta, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
-            onPress={() => onNavigateTab('docs')}
-            activeOpacity={0.8}
+        <FadeInView delay={400}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>📢 Important Notice</Text>
+          <View
+            style={[
+              styles.noticeCard,
+              {
+                backgroundColor: isDark ? '#16233b' : '#f8fafc',
+                borderColor: isDark ? '#273854' : '#e2e8f0',
+                padding: isSmallPhone ? 12 : 16,
+              },
+            ]}
           >
-            <Text style={styles.noticeCtaText}>📋 Review Tax Documents →</Text>
-          </TouchableOpacity>
-        </View>
+            <View style={styles.noticeHeader}>
+              <View style={styles.noticePill}>
+                <Text style={styles.noticePillText}>📋 ANNUAL COMPLIANCE</Text>
+              </View>
+              <Text style={[styles.noticeDate, { color: colors.textSecondary }]}>📅 Due 30 Sep 2026</Text>
+            </View>
+            <Text style={[styles.noticeTitle, { color: colors.textPrimary }]}>
+              ⚠️ Form W-2 & Annual Tax Certification Pending
+            </Text>
+            <Text style={[styles.noticeBody, { color: colors.textSecondary }]}>
+              Your 2023 W-2 Form has not been acknowledged yet. Please check your My Docs vault to upload or certify before the compliance audit deadline.
+            </Text>
+            <ScalePressable
+              style={[styles.noticeCta, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }]}
+              onPress={() => onNavigateTab('docs')}
+            >
+              <Text style={styles.noticeCtaText}>📋 Review Tax Documents →</Text>
+            </ScalePressable>
+          </View>
+        </FadeInView>
       </View>
     </ScrollView>
   );

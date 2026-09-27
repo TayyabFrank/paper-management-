@@ -21,6 +21,7 @@ import { DocumentReaderItem } from './document-reader';
 import { detectFileType, getDocumentTypeIcon } from './documents-dashboard';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { useResponsive } from '@/hooks/use-responsive';
+import { FadeInView, ScalePressable, PulseView } from '@/components/ui/animated-components';
 
 interface NewDocViewProps {
   onDocumentAdded?: () => void;
@@ -346,78 +347,84 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
 
       <View style={[styles.maxWidthWrapper, { maxWidth: formMaxWidth }]}>
         {/* Top Header Row with Folder Badge & Theme Toggle */}
-        <View style={styles.topHeaderRow}>
-          <View style={styles.topFolderBadge}>
-            <Image
-              source={{ uri: TOP_FOLDER_BADGE_SVG }}
-              style={styles.topFolderBadgeIcon}
-              resizeMode="contain"
-            />
-          </View>
-          <ThemeToggleButton compact showLabel={false} />
-        </View>
-
-        {/* Page Title and Subtitle */}
-        <Text style={[styles.mainHeading, { color: colors.textPrimary }]}>
-          New Document Upload
-        </Text>
-        <Text style={[styles.mainSubheading, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-          Add files to your private document workspace.
-        </Text>
-
-        {/* Feedback Toast */}
-        {feedbackToast && (
-          <View style={styles.toast}>
-            <Text style={styles.toastText}>{feedbackToast}</Text>
-          </View>
-        )}
-
-        {/* Main Upload Card Container */}
-        <View
-          style={[
-            styles.mainCard,
-            {
-              backgroundColor: isDark ? '#111827' : '#ffffff',
-              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-              shadowColor: isDark ? '#000000' : '#0f172a',
-            },
-          ]}
-        >
-          {/* Inner Dashed Box Matching Screenshot */}
-          <View
-            style={[
-              styles.dashedZone,
-              {
-                borderColor: isDark ? '#334155' : '#c7d2fe',
-                backgroundColor: isDark ? '#162033' : '#f8fafd',
-              },
-            ]}
-          >
-            {/* Overlapping Blue Documents Illustration */}
-            <View style={styles.illustrationWrapper}>
+        <FadeInView delay={0} direction="down">
+          <View style={styles.topHeaderRow}>
+            <View style={styles.topFolderBadge}>
               <Image
-                source={{ uri: OVERLAPPING_DOCS_SVG }}
-                style={styles.illustrationImage}
+                source={{ uri: TOP_FOLDER_BADGE_SVG }}
+                style={styles.topFolderBadgeIcon}
                 resizeMode="contain"
               />
             </View>
+            <ThemeToggleButton compact showLabel={false} />
+          </View>
 
-            {/* Upload from Device Button */}
-            <TouchableOpacity
+          {/* Page Title and Subtitle */}
+          <Text style={[styles.mainHeading, { color: colors.textPrimary }]}>
+            New Document Upload
+          </Text>
+          <Text style={[styles.mainSubheading, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+            Add files to your private document workspace.
+          </Text>
+        </FadeInView>
+
+        {/* Feedback Toast */}
+        {feedbackToast && (
+          <FadeInView delay={0} scale>
+            <View style={styles.toast}>
+              <Text style={styles.toastText}>{feedbackToast}</Text>
+            </View>
+          </FadeInView>
+        )}
+
+        {/* Main Upload Card Container */}
+        <FadeInView delay={80} scale>
+          <View
+            style={[
+              styles.mainCard,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                shadowColor: isDark ? '#000000' : '#0f172a',
+              },
+            ]}
+          >
+            {/* Inner Dashed Box Matching Screenshot */}
+            <View
               style={[
-                styles.uploadComputerBtn,
-                { backgroundColor: isDark ? '#2563eb' : '#1b3569' },
+                styles.dashedZone,
+                {
+                  borderColor: isDark ? '#334155' : '#c7d2fe',
+                  backgroundColor: isDark ? '#162033' : '#f8fafd',
+                },
               ]}
-              onPress={handleUploadFromDeviceClick}
-              activeOpacity={0.85}
             >
-              <Image
-                source={{ uri: UPLOAD_ARROW_SVG }}
-                style={styles.uploadArrowIcon}
-                resizeMode="contain"
-              />
-              <Text style={styles.uploadComputerBtnText}>Upload Your Device</Text>
-            </TouchableOpacity>
+              {/* Overlapping Blue Documents Illustration with gentle pulse */}
+              <PulseView minScale={0.96} maxScale={1.04}>
+                <View style={styles.illustrationWrapper}>
+                  <Image
+                    source={{ uri: OVERLAPPING_DOCS_SVG }}
+                    style={styles.illustrationImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              </PulseView>
+
+              {/* Upload from Device Button */}
+              <ScalePressable
+                style={[
+                  styles.uploadComputerBtn,
+                  { backgroundColor: isDark ? '#2563eb' : '#1b3569' },
+                ]}
+                onPress={handleUploadFromDeviceClick}
+              >
+                <Image
+                  source={{ uri: UPLOAD_ARROW_SVG }}
+                  style={styles.uploadArrowIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.uploadComputerBtnText}>Upload Your Device</Text>
+              </ScalePressable>
 
             {/* Selected File Card or Browsing Prompt */}
             {selectedFile ? (
@@ -571,7 +578,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
           </View>
 
           {/* SUBMIT Button */}
-          <TouchableOpacity
+          <ScalePressable
             style={[
               styles.submitButton,
               {
@@ -581,14 +588,13 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
             ]}
             onPress={handleSubmit}
             disabled={!sendToAdmin || isUploading}
-            activeOpacity={0.85}
           >
             {isUploading ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
               <Text style={styles.submitButtonText}>SUBMIT</Text>
             )}
-          </TouchableOpacity>
+          </ScalePressable>
 
           {!sendToAdmin && (
             <Text style={[styles.mustTickNotice, { color: isDark ? '#94a3b8' : '#64748b' }]}>
@@ -596,6 +602,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
             </Text>
           )}
         </View>
+        </FadeInView>
       </View>
 
       {/* Device Storage Permission Modal (Yes / No) */}

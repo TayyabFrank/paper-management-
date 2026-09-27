@@ -19,6 +19,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { TabKey } from './bottom-navbar';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { useResponsive } from '@/hooks/use-responsive';
+import { FadeInView, ScalePressable, PulseView } from '@/components/ui/animated-components';
 
 interface EmployeeProfileViewProps {
   onNavigateTab?: (tab: TabKey) => void;
@@ -251,175 +252,180 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
         )}
 
         {/* Hero Profile Identity Card */}
-        <View
-          style={[
-            styles.heroCard,
-            {
-              backgroundColor: isDark ? '#111827' : '#ffffff',
-              borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0',
-              shadowColor: isDark ? '#000000' : '#0f172a',
-            },
-          ]}
-        >
-          {/* Top Decorative Header Strip */}
+        <FadeInView delay={0} scale>
           <View
             style={[
-              styles.cardTopBanner,
-              { backgroundColor: isDark ? '#1e293b' : '#1b3569' },
-            ]}
-          >
-            <Text style={styles.bannerTag}>DOCUVAULT ENTERPRISE SECURITY CLEARANCE</Text>
-          </View>
-
-          {/* Centered Avatar with Ring & Verified Badge */}
-          <View style={styles.avatarContainer}>
-            <View
-              style={[
-                styles.avatarRing,
-                {
-                  borderColor: isDark ? '#3b82f6' : '#2563eb',
-                  backgroundColor: isDark ? '#0f172a' : '#ffffff',
-                },
-              ]}
-            >
-              <Image
-                source={{ uri: user.avatar }}
-                style={styles.avatar}
-                resizeMode="cover"
-              />
-            </View>
-            <View style={styles.verifiedCheckBadge}>
-              <Text style={styles.verifiedCheckText}>✓</Text>
-            </View>
-          </View>
-
-          {/* User Full Name and Email */}
-          <Text style={[styles.userName, { color: colors.textPrimary }]}>
-            {user.name}
-          </Text>
-          <Text style={[styles.userEmail, { color: isDark ? '#94a3b8' : '#475569' }]}>
-            {user.email}
-          </Text>
-
-          {/* Eye-Catching Badges Row */}
-          <View style={styles.badgeRow}>
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: isDark ? 'rgba(34, 197, 94, 0.18)' : '#ecfdf5',
-                  borderColor: isDark ? '#22c55e' : '#86efac',
-                },
-              ]}
-            >
-              <Text style={[styles.badgeText, { color: isDark ? '#4ade80' : '#15803d' }]}>
-                🛡️ Verified Employee
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: isDark ? 'rgba(59, 130, 246, 0.18)' : '#eff6ff',
-                  borderColor: isDark ? '#3b82f6' : '#bfdbfe',
-                },
-              ]}
-            >
-              <Text style={[styles.badgeText, { color: isDark ? '#60a5fa' : '#1d4ed8' }]}>
-                🪪 {user.employeeId}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: isDark ? 'rgba(234, 179, 8, 0.18)' : '#fefce8',
-                  borderColor: isDark ? '#eab308' : '#fde047',
-                },
-              ]}
-            >
-              <Text style={[styles.badgeText, { color: isDark ? '#facc15' : '#a16207' }]}>
-                ⚡ Tier-1
-              </Text>
-            </View>
-          </View>
-
-          {/* Edit Profile Information Trigger Button */}
-          <TouchableOpacity
-            style={[
-              styles.editProfileBtn,
+              styles.heroCard,
               {
-                backgroundColor: isDark ? '#1e293b' : '#f8fafc',
-                borderColor: isDark ? '#334155' : '#cbd5e1',
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0',
+                shadowColor: isDark ? '#000000' : '#0f172a',
               },
             ]}
-            onPress={handleOpenEdit}
-            activeOpacity={0.75}
           >
-            <Text style={[styles.editProfileBtnText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
-              ✏️ Edit Profile Details
+            {/* Top Decorative Header Strip */}
+            <View
+              style={[
+                styles.cardTopBanner,
+                { backgroundColor: isDark ? '#1e293b' : '#1b3569' },
+              ]}
+            >
+              <Text style={styles.bannerTag}>DOCUVAULT ENTERPRISE SECURITY CLEARANCE</Text>
+            </View>
+
+            {/* Centered Avatar with Ring & Verified Badge */}
+            <PulseView minScale={0.96} maxScale={1.04}>
+              <View style={styles.avatarContainer}>
+                <View
+                  style={[
+                    styles.avatarRing,
+                    {
+                      borderColor: isDark ? '#3b82f6' : '#2563eb',
+                      backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                    },
+                  ]}
+                >
+                  <Image
+                    source={{ uri: user.avatar }}
+                    style={styles.avatar}
+                    resizeMode="cover"
+                  />
+                </View>
+                <View style={styles.verifiedCheckBadge}>
+                  <Text style={styles.verifiedCheckText}>✓</Text>
+                </View>
+              </View>
+            </PulseView>
+
+            {/* User Full Name and Email */}
+            <Text style={[styles.userName, { color: colors.textPrimary }]}>
+              {user.name}
             </Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={[styles.userEmail, { color: isDark ? '#94a3b8' : '#475569' }]}>
+              {user.email}
+            </Text>
+
+            {/* Eye-Catching Badges Row */}
+            <View style={styles.badgeRow}>
+              <View
+                style={[
+                  styles.badge,
+                  {
+                    backgroundColor: isDark ? 'rgba(34, 197, 94, 0.18)' : '#ecfdf5',
+                    borderColor: isDark ? '#22c55e' : '#86efac',
+                  },
+                ]}
+              >
+                <Text style={[styles.badgeText, { color: isDark ? '#4ade80' : '#15803d' }]}>
+                  🛡️ Verified Employee
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.badge,
+                  {
+                    backgroundColor: isDark ? 'rgba(59, 130, 246, 0.18)' : '#eff6ff',
+                    borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                  },
+                ]}
+              >
+                <Text style={[styles.badgeText, { color: isDark ? '#60a5fa' : '#1d4ed8' }]}>
+                  🪪 {user.employeeId}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.badge,
+                  {
+                    backgroundColor: isDark ? 'rgba(234, 179, 8, 0.18)' : '#fefce8',
+                    borderColor: isDark ? '#eab308' : '#fde047',
+                  },
+                ]}
+              >
+                <Text style={[styles.badgeText, { color: isDark ? '#facc15' : '#a16207' }]}>
+                  ⚡ Tier-1
+                </Text>
+              </View>
+            </View>
+
+            {/* Edit Profile Information Trigger Button */}
+            <ScalePressable
+              style={[
+                styles.editProfileBtn,
+                {
+                  backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+                  borderColor: isDark ? '#334155' : '#cbd5e1',
+                },
+              ]}
+              onPress={handleOpenEdit}
+            >
+              <Text style={[styles.editProfileBtnText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
+                ✏️ Edit Profile Details
+              </Text>
+            </ScalePressable>
+          </View>
+        </FadeInView>
 
         {/* Live Workspace Metrics Counters */}
-        <View style={styles.metricsRow}>
-          <View
-            style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0',
-              },
-            ]}
-          >
-            <Text style={styles.metricEmoji}>📑</Text>
-            <Text style={[styles.metricNumber, { color: isDark ? '#38bdf8' : '#1e40af' }]}>
-              {userDocuments.length}
-            </Text>
-            <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
-              Uploaded Docs
-            </Text>
-          </View>
+        <FadeInView delay={90} scale>
+          <View style={styles.metricsRow}>
+            <View
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Text style={styles.metricEmoji}>📑</Text>
+              <Text style={[styles.metricNumber, { color: isDark ? '#38bdf8' : '#1e40af' }]}>
+                {userDocuments.length}
+              </Text>
+              <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
+                Uploaded Docs
+              </Text>
+            </View>
 
-          <View
-            style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0',
-              },
-            ]}
-          >
-            <Text style={styles.metricEmoji}>🛡️</Text>
-            <Text style={[styles.metricNumber, { color: isDark ? '#4ade80' : '#15803d' }]}>
-              100%
-            </Text>
-            <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
-              Verified SHA
-            </Text>
-          </View>
+            <View
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Text style={styles.metricEmoji}>🛡️</Text>
+              <Text style={[styles.metricNumber, { color: isDark ? '#4ade80' : '#15803d' }]}>
+                100%
+              </Text>
+              <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
+                Verified SHA
+              </Text>
+            </View>
 
-          <View
-            style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0',
-              },
-            ]}
-          >
-            <Text style={styles.metricEmoji}>⚡</Text>
-            <Text style={[styles.metricNumber, { color: isDark ? '#facc15' : '#b45309' }]}>
-              VIP
-            </Text>
-            <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
-              Access Level
-            </Text>
+            <View
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: isDark ? '#111827' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Text style={styles.metricEmoji}>⚡</Text>
+              <Text style={[styles.metricNumber, { color: isDark ? '#facc15' : '#b45309' }]}>
+                VIP
+              </Text>
+              <Text style={[styles.metricLabel, { color: isDark ? '#94a3b8' : '#475569' }]}>
+                Access Level
+              </Text>
+            </View>
           </View>
-        </View>
+        </FadeInView>
 
         {/* Enterprise Assignment Section */}
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
@@ -606,7 +612,7 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
         </View>
 
         {/* High-Contrast Logout Button */}
-        <TouchableOpacity
+        <ScalePressable
           style={[
             styles.logoutBtn,
             {
@@ -615,12 +621,11 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
             },
           ]}
           onPress={() => setLogoutModalVisible(true)}
-          activeOpacity={0.8}
         >
           <Text style={[styles.logoutBtnText, { color: isDark ? '#fca5a5' : '#b91c1c' }]}>
             🚪 Logout from Workspace
           </Text>
-        </TouchableOpacity>
+        </ScalePressable>
       </View>
 
       {/* Edit Profile Modal (Photo, Name, and Password Only) */}
