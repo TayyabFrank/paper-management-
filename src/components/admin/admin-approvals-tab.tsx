@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
+import { useResponsive } from '@/hooks/use-responsive';
 
 interface AdminApprovalsTabProps {
   onOpenMenu?: () => void;
@@ -26,6 +27,7 @@ const LOGO_BADGE_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 export function AdminApprovalsTab({ onOpenMenu }: AdminApprovalsTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
   const { registeredAccounts, approveAccount, rejectAccount } = useAuth();
+  const { adminContainerMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const pendingStaff = registeredAccounts.filter((a) => a.status === 'pending');
@@ -57,7 +59,7 @@ export function AdminApprovalsTab({ onOpenMenu }: AdminApprovalsTabProps) {
           } as any),
         ]}
       >
-        <View style={styles.topHeaderContent}>
+        <View style={[styles.topHeaderContent, { maxWidth: adminContainerMaxWidth }]}>
           <View style={styles.brandRow}>
             <View style={styles.logoBadgeContainer}>
               <Image source={{ uri: LOGO_BADGE_SVG }} style={{ width: 26, height: 26 }} resizeMode="contain" />
@@ -113,7 +115,14 @@ export function AdminApprovalsTab({ onOpenMenu }: AdminApprovalsTabProps) {
       )}
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            maxWidth: adminContainerMaxWidth,
+            paddingHorizontal: paddingHorizontal,
+            paddingTop: isSmallPhone ? 14 : 24,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Title and Subtitle with Pending Count Badge */}
@@ -293,7 +302,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
   },
@@ -307,6 +315,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     letterSpacing: -0.3,
+  },
+  brandSub: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
   },
   adminTagPill: {
     backgroundColor: '#2563eb',
@@ -350,10 +364,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scrollContent: {
-    paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 40,
-    maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
   },

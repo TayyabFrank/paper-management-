@@ -14,6 +14,7 @@ import {
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth, StoredAccount } from '@/context/auth-context';
 import { useDocuments } from '@/context/documents-context';
+import { useResponsive } from '@/hooks/use-responsive';
 
 interface AdminUsersTabProps {
   onViewEmployeeDocs: (employee: StoredAccount) => void;
@@ -23,6 +24,7 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
   const { registeredAccounts, removeAccount, syncWithBackend } = useAuth();
   const { documents, refreshDocuments } = useDocuments();
+  const { adminContainerMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('All');
   const [employeeToRemove, setEmployeeToRemove] = useState<StoredAccount | null>(null);
@@ -66,7 +68,14 @@ export function AdminUsersTab({ onViewEmployeeDocs }: AdminUsersTabProps) {
   return (
     <View style={[styles.container, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            maxWidth: adminContainerMaxWidth,
+            paddingHorizontal: paddingHorizontal,
+            paddingTop: isSmallPhone ? 14 : 20,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -432,10 +441,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 40,
-    maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
   },

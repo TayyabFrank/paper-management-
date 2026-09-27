@@ -10,6 +10,7 @@ import {
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 import { useDocuments } from '@/context/documents-context';
+import { useResponsive } from '@/hooks/use-responsive';
 import { TabKey } from './bottom-navbar';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { APP_LOGO } from '@/components/docuvault-logo';
@@ -22,6 +23,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
   const { isDark, colors } = useDocuVaultTheme();
   const { user } = useAuth();
   const { documents } = useDocuments();
+  const { containerMaxWidth, paddingHorizontal, isTablet, isDesktop, isSmallPhone } = useResponsive();
 
   const userDocuments = documents.filter((d) => {
     const docEmail = (d.employeeEmail || '').trim().toLowerCase();
@@ -31,20 +33,31 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
     return (userEmail && docEmail === userEmail) || (userName && docName === userName);
   });
 
+  const verifiedDocs = userDocuments.filter((d) => d.subtitle !== 'Not Uploaded').length;
+  const pendingDocs = userDocuments.filter((d) => d.subtitle === 'Not Uploaded').length;
+  const storageMB = ((userDocuments.length * 1.5) || 2.4).toFixed(1);
+
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          paddingHorizontal: paddingHorizontal,
+          paddingTop: isSmallPhone ? 12 : 20,
+        },
+      ]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.maxWidthWrapper}>
+      <View style={[styles.maxWidthWrapper, { maxWidth: containerMaxWidth }]}>
         {/* Header with Welcome Greeting, DocuVault Logo and Theme Toggle */}
         <View style={styles.topHeaderRow}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: isSmallPhone ? 8 : 12, flex: 1 }}>
             <Image
               source={APP_LOGO}
               style={{
-                width: 48,
-                height: 36,
+                width: isSmallPhone ? 42 : 48,
+                height: isSmallPhone ? 32 : 36,
                 borderRadius: 8,
                 backgroundColor: '#ffffff',
                 borderWidth: isDark ? 1 : 0.5,
@@ -56,7 +69,16 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
               <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
                 Welcome back,
               </Text>
-              <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>
+              <Text
+                style={[
+                  styles.welcomeTitle,
+                  {
+                    color: colors.textPrimary,
+                    fontSize: isSmallPhone ? 20 : isTablet || isDesktop ? 28 : 24,
+                  },
+                ]}
+                numberOfLines={1}
+              >
                 {user.name}
               </Text>
             </View>
@@ -71,6 +93,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             {
               backgroundColor: isDark ? '#111827' : '#1b3569',
               borderColor: isDark ? 'rgba(56, 189, 248, 0.25)' : '#172554',
+              padding: isSmallPhone ? 14 : isTablet || isDesktop ? 24 : 18,
             },
           ]}
         >
@@ -79,7 +102,14 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
               <View style={styles.onlineDot} />
               <Text style={styles.bannerBadgeText}>🟢 ENTERPRISE WORKSPACE ACTIVE</Text>
             </View>
-            <Text style={styles.bannerHeading}>🔒 Secure Document Vault</Text>
+            <Text
+              style={[
+                styles.bannerHeading,
+                { fontSize: isSmallPhone ? 16 : isTablet || isDesktop ? 22 : 18 },
+              ]}
+            >
+              🔒 Secure Document Vault
+            </Text>
             <Text style={styles.bannerDesc}>
               {user.department} • {user.role}
             </Text>
@@ -87,7 +117,14 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
 
           <Image
             source={{ uri: user.avatar }}
-            style={styles.bannerAvatar}
+            style={[
+              styles.bannerAvatar,
+              {
+                width: isSmallPhone ? 46 : isTablet || isDesktop ? 64 : 54,
+                height: isSmallPhone ? 46 : isTablet || isDesktop ? 64 : 54,
+                borderRadius: isSmallPhone ? 23 : isTablet || isDesktop ? 32 : 27,
+              },
+            ]}
             resizeMode="cover"
           />
         </View>
@@ -101,6 +138,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
               {
                 backgroundColor: isDark ? '#111827' : '#ffffff',
                 borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
               },
             ]}
           >
@@ -109,11 +147,59 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             </Text>
             <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>📁 Total Documents</Text>
           </View>
+
+          <View
+            style={[
+              styles.metricCard,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
+              },
+            ]}
+          >
+            <Text style={[styles.metricNumber, { color: '#10b981' }]}>
+              {verifiedDocs}
+            </Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>✅ Verified & Active</Text>
+          </View>
+
+          <View
+            style={[
+              styles.metricCard,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
+              },
+            ]}
+          >
+            <Text style={[styles.metricNumber, { color: '#f59e0b' }]}>
+              {pendingDocs}
+            </Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>⏳ Action Required</Text>
+          </View>
+
+          <View
+            style={[
+              styles.metricCard,
+              {
+                backgroundColor: isDark ? '#111827' : '#ffffff',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                flexBasis: isDesktop ? '23.5%' : isTablet ? '48.5%' : isSmallPhone ? '100%' : '48%',
+              },
+            ]}
+          >
+            <Text style={[styles.metricNumber, { color: isDark ? '#c084fc' : '#8b5cf6' }]}>
+              {storageMB} MB
+            </Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>💾 Vault Encrypted</Text>
+          </View>
         </View>
 
         {/* Quick Actions Bar */}
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>⚡ Quick Actions</Text>
-        <View style={styles.actionsRow}>
+        <View style={[styles.actionsRow, { flexDirection: isSmallPhone ? 'column' : 'row' }]}>
           <TouchableOpacity
             style={[
               styles.actionTile,
@@ -159,6 +245,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
             {
               backgroundColor: isDark ? '#16233b' : '#f8fafc',
               borderColor: isDark ? '#273854' : '#e2e8f0',
+              padding: isSmallPhone ? 12 : 16,
             },
           ]}
         >
@@ -196,7 +283,6 @@ const styles = StyleSheet.create({
   },
   maxWidthWrapper: {
     width: '100%',
-    maxWidth: 440,
     alignSelf: 'center',
   },
   topHeaderRow: {

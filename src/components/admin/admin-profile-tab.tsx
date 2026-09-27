@@ -16,6 +16,7 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
+import { useResponsive } from '@/hooks/use-responsive';
 
 interface AdminProfileTabProps {
   onBack: () => void;
@@ -134,6 +135,7 @@ const POLY_BG_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
   const { isDark, toggleTheme, colors } = useDocuVaultTheme();
   const { user, logout, updateUser } = useAuth();
+  const { adminContainerMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
 
   const adminName = user.name || 'System Administrator';
   const adminEmail = user.email || 'admin@enterprise.com';
@@ -287,7 +289,7 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
       )}
 
       {/* Top Header with Back Arrow */}
-      <View style={styles.topHeader}>
+      <View style={[styles.topHeader, { maxWidth: adminContainerMaxWidth }]}>
         <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
           <Image
             source={{ uri: BACK_ARROW_SVG(isDark ? '#f8fafc' : '#0f172a') }}
@@ -308,7 +310,14 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
       )}
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            maxWidth: adminContainerMaxWidth,
+            paddingHorizontal: paddingHorizontal,
+            paddingTop: isSmallPhone ? 12 : 16,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Geometric Polygon Crystal Banner */}
@@ -848,7 +857,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
     zIndex: 10,
@@ -865,7 +873,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
-    maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
   },

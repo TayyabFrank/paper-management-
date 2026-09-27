@@ -1838,7 +1838,7 @@ const styles = StyleSheet.create({
   },
   containerMaxWidth: {
     width: '100%',
-    maxWidth: 680,
+    maxWidth: 960,
   },
   // ARTICLE STYLES
   articleCard: {

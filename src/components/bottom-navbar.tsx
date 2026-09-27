@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { useResponsive } from '@/hooks/use-responsive';
 
 export type TabKey = 'home' | 'docs' | 'new-doc' | 'profile';
 
@@ -152,6 +153,7 @@ function NavbarTabIcon({
 export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useDocuVaultTheme();
+  const { navbarMaxWidth, isSmallPhone } = useResponsive();
 
   const activePillBg = isDark ? '#2563eb' : '#1b3569';
   const inactiveColor = isDark ? '#94a3b8' : '#64748b';
@@ -179,7 +181,7 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
         } as any),
       ]}
     >
-      <View style={styles.tabBarInner}>
+      <View style={[styles.tabBarInner, { maxWidth: navbarMaxWidth }]}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.key;
           const iconColor = isActive ? '#ffffff' : inactiveColor;
@@ -200,8 +202,14 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
                 style={[
                   styles.iconSlot,
                   isActive
-                    ? [styles.activeCapsulePill, { backgroundColor: activePillBg }]
-                    : styles.inactiveIconSlot,
+                    ? [
+                        styles.activeCapsulePill,
+                        {
+                          backgroundColor: activePillBg,
+                          width: isSmallPhone ? 50 : 60,
+                        },
+                      ]
+                    : [styles.inactiveIconSlot, { width: isSmallPhone ? 50 : 60 }],
                 ]}
               >
                 <NavbarTabIcon
@@ -215,7 +223,10 @@ export function BottomNavbar({ activeTab, onTabChange }: BottomNavbarProps) {
               <Text
                 style={[
                   styles.tabLabel,
-                  { color: labelColor },
+                  {
+                    color: labelColor,
+                    fontSize: isSmallPhone ? 10 : 11.5,
+                  },
                   isActive && styles.activeTabLabel,
                 ]}
                 numberOfLines={1}
@@ -257,7 +268,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    maxWidth: 480,
     alignSelf: 'center',
     width: '100%',
     paddingHorizontal: 8,

@@ -15,6 +15,7 @@ import { useDocuVaultTheme } from '@/context/theme-context';
 import { useDocuments } from '@/context/documents-context';
 import { useAuth, StoredAccount } from '@/context/auth-context';
 import { DocumentReaderItem } from '@/components/document-reader';
+import { useResponsive } from '@/hooks/use-responsive';
 
 interface AdminDocsTabProps {
   selectedEmployee: StoredAccount | null;
@@ -111,6 +112,7 @@ export function AdminDocsTab({
   const { isDark, colors } = useDocuVaultTheme();
   const { documents, refreshDocuments, deleteDocument } = useDocuments();
   const { registeredAccounts, syncWithBackend } = useAuth();
+  const { adminContainerMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory || 'all');
   const [otherSubFilter, setOtherSubFilter] = useState<'all' | 'links' | 'misc'>('all');
@@ -219,7 +221,7 @@ export function AdminDocsTab({
   return (
     <View style={[styles.container, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>
       {/* Top Header with Back Arrow and Title */}
-      <View style={[styles.topHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0' }]}>
+      <View style={[styles.topHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0', maxWidth: adminContainerMaxWidth }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={onBackToUsers}
@@ -254,7 +256,14 @@ export function AdminDocsTab({
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            maxWidth: adminContainerMaxWidth,
+            paddingHorizontal: paddingHorizontal,
+            paddingTop: isSmallPhone ? 12 : 16,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -916,7 +925,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
   },
@@ -943,10 +951,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   scrollContent: {
-    paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 40,
-    maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
   },

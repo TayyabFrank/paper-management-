@@ -3,6 +3,7 @@ import { APP_LOGO } from '@/components/docuvault-logo';
 import { useAuth } from '@/context/auth-context';
 import { useDocuments } from '@/context/documents-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { useResponsive } from '@/hooks/use-responsive';
 import { apiFetchDocumentStats, DocumentStatsData } from '@/services/api-client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -93,6 +94,7 @@ export function AdminDashboardTab({
   const { isDark, colors } = useDocuVaultTheme();
   const { registeredAccounts, syncWithBackend } = useAuth();
   const { documents, refreshDocuments } = useDocuments();
+  const { adminContainerMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
 
   // Dynamic backend stats state
   const [backendStats, setBackendStats] = useState<DocumentStatsData | null>(null);
@@ -457,7 +459,7 @@ export function AdminDashboardTab({
           } as any),
         ]}
       >
-        <View style={styles.topHeaderContent}>
+        <View style={[styles.topHeaderContent, { maxWidth: adminContainerMaxWidth }]}>
           <View style={styles.brandRow}>
             <View style={styles.logoBadgeContainer}>
               <Image
@@ -578,7 +580,14 @@ export function AdminDashboardTab({
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollBody}
+        contentContainerStyle={[
+          styles.scrollBody,
+          {
+            maxWidth: adminContainerMaxWidth,
+            paddingHorizontal: paddingHorizontal,
+            paddingTop: isSmallPhone ? 14 : 24,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -1241,7 +1250,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    maxWidth: 720,
     width: '100%',
     alignSelf: 'center',
   },
@@ -1334,10 +1342,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   scrollBody: {
-    paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 60,
-    maxWidth: 720,
     width: '100%',
     alignSelf: 'center',
   },

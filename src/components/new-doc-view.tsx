@@ -20,6 +20,7 @@ import { TabKey } from './bottom-navbar';
 import { DocumentReaderItem } from './document-reader';
 import { detectFileType, getDocumentTypeIcon } from './documents-dashboard';
 import { ThemeToggleButton } from './theme-toggle-button';
+import { useResponsive } from '@/hooks/use-responsive';
 
 interface NewDocViewProps {
   onDocumentAdded?: () => void;
@@ -81,6 +82,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
   const { isDark, colors } = useDocuVaultTheme();
   const { user } = useAuth();
   const { addDocument } = useDocuments();
+  const { formMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
   const [driveLink, setDriveLink] = useState('');
   const [documentTitle, setDocumentTitle] = useState('');
   const [documentDescription, setDocumentDescription] = useState('');
@@ -312,7 +314,11 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
       <ScrollView
         contentContainerStyle={[
           styles.container,
-          { backgroundColor: isDark ? colors.background : '#f0f4fa' },
+          {
+            backgroundColor: isDark ? colors.background : '#f0f4fa',
+            paddingHorizontal: paddingHorizontal,
+            paddingTop: isSmallPhone ? 12 : 16,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -338,7 +344,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
         />
       </View>
 
-      <View style={styles.maxWidthWrapper}>
+      <View style={[styles.maxWidthWrapper, { maxWidth: formMaxWidth }]}>
         {/* Top Header Row with Folder Badge & Theme Toggle */}
         <View style={styles.topHeaderRow}>
           <View style={styles.topFolderBadge}>
@@ -684,7 +690,6 @@ const styles = StyleSheet.create({
   },
   maxWidthWrapper: {
     width: '100%',
-    maxWidth: 440,
     alignSelf: 'center',
     position: 'relative',
     zIndex: 1,

@@ -18,6 +18,7 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import { TabKey } from './bottom-navbar';
 import { ThemeToggleButton } from './theme-toggle-button';
+import { useResponsive } from '@/hooks/use-responsive';
 
 interface EmployeeProfileViewProps {
   onNavigateTab?: (tab: TabKey) => void;
@@ -69,6 +70,7 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
   const { isDark, colors } = useDocuVaultTheme();
   const { user, logout, updateUser } = useAuth();
   const { documents } = useDocuments();
+  const { formMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
 
   const userDocuments = documents.filter((d) => {
     const docEmail = (d.employeeEmail || '').trim().toLowerCase();
@@ -205,7 +207,14 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { backgroundColor: isDark ? colors.background : '#f1f5f9' }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          backgroundColor: isDark ? colors.background : '#f1f5f9',
+          paddingHorizontal: paddingHorizontal,
+          paddingTop: isSmallPhone ? 12 : 16,
+        },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       {/* Hidden file input for web avatar upload */}
@@ -219,7 +228,7 @@ export function EmployeeProfileView({ onNavigateTab }: EmployeeProfileViewProps)
         />
       )}
 
-      <View style={styles.maxWidthWrapper}>
+      <View style={[styles.maxWidthWrapper, { maxWidth: formMaxWidth }]}>
         {/* Header with Title, Status & Theme Toggle */}
         <View style={styles.headerRow}>
           <View>
@@ -923,7 +932,6 @@ const styles = StyleSheet.create({
   },
   maxWidthWrapper: {
     width: '100%',
-    maxWidth: 440,
     alignSelf: 'center',
   },
   headerRow: {

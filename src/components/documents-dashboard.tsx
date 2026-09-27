@@ -16,6 +16,7 @@ import { ThemeToggleButton } from './theme-toggle-button';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useDocuments } from '@/context/documents-context';
 import { useAuth } from '@/context/auth-context';
+import { useResponsive } from '@/hooks/use-responsive';
 import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
 
 // Vector icons as crisp SVG URIs
@@ -601,9 +602,10 @@ export function DocumentsDashboard({
   const linkCount = employeeOwnedDocs.filter((d) => d.type === 'link').length;
   const imageCount = employeeOwnedDocs.filter((d) => d.type === 'image').length;
   const otherCount = employeeOwnedDocs.filter((d) => d.type === 'other').length;
+  const { containerMaxWidth, paddingHorizontal, isPhone, isTablet, isDesktop, isSmallPhone } = useResponsive();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, maxWidth: containerMaxWidth, paddingHorizontal }]}>
       {/* Hidden file input for web document/image upload */}
       {Platform.OS === 'web' && (
         <input
@@ -844,7 +846,7 @@ export function DocumentsDashboard({
       </ScrollView>
 
       {/* Document Items List */}
-      <View style={styles.docList}>
+      <View style={[styles.docList, { flexDirection: isPhone ? 'column' : 'row', flexWrap: isPhone ? 'nowrap' : 'wrap', gap: 12 }]}>
         {filteredDocs.length === 0 ? (
           <View
             style={[
@@ -852,6 +854,7 @@ export function DocumentsDashboard({
               {
                 backgroundColor: isDark ? '#111827' : '#ffffff',
                 borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                width: '100%',
               },
             ]}
           >
@@ -882,6 +885,8 @@ export function DocumentsDashboard({
                   backgroundColor: isDark ? '#111827' : '#ffffff',
                   borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e8edf4',
                   shadowColor: isDark ? '#000000' : '#64748b',
+                  width: isPhone ? '100%' : isDesktop ? '31.8%' : '48.8%',
+                  flexGrow: isPhone ? 0 : 1,
                 },
               ]}
               onPress={() => setReadingDoc(doc)}
@@ -1022,9 +1027,7 @@ export function DocumentsDashboard({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    maxWidth: 440,
     alignSelf: 'center',
-    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 95,
   },

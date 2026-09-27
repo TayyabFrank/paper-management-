@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { useResponsive } from '@/hooks/use-responsive';
 
 export type AdminTabKey = 'dashboard' | 'users' | 'docs' | 'approvals' | 'profile';
 
@@ -198,6 +199,7 @@ export function AdminBottomNavbar({
 }: AdminBottomNavbarProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useDocuVaultTheme();
+  const { navbarMaxWidth, isSmallPhone } = useResponsive();
 
   // High contrast luxury design tokens
   const isDarkTheme = isDark;
@@ -230,7 +232,7 @@ export function AdminBottomNavbar({
       accessibilityRole="tablist"
       accessibilityLabel="Admin Navigation Bar"
     >
-      <View style={styles.navRow}>
+      <View style={[styles.navRow, { maxWidth: navbarMaxWidth }]}>
         {ADMIN_TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           const iconColor = isActive ? activeIconColor : inactiveIconColor;
@@ -332,7 +334,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    maxWidth: 600,
     alignSelf: 'center',
     width: '100%',
   },
