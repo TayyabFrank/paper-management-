@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/auth-context';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { useResponsive } from '@/hooks/use-responsive';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -85,6 +86,7 @@ export function EmployeeRegistrationCard({
   const router = useRouter();
   const { isDark, colors } = useDocuVaultTheme();
   const { login, register } = useAuth();
+  const { isSmallPhone, isTablet, isDesktop, width } = useResponsive();
   const [mode, setMode] = useState<'register' | 'login'>(initialMode);
   const [fullName, setFullName] = useState('');
   const [workEmail, setWorkEmail] = useState('');
@@ -551,7 +553,18 @@ export function EmployeeRegistrationCard({
   const linkThemeStyle = { color: isDark ? '#38bdf8' : '#1e40af' };
 
   return (
-    <View style={[styles.cardContainer, cardThemeStyle]}>
+    <View
+      style={[
+        styles.cardContainer,
+        cardThemeStyle,
+        {
+          paddingHorizontal: isSmallPhone ? 14 : isTablet || isDesktop ? 28 : 22,
+          paddingTop: isSmallPhone ? 18 : isTablet || isDesktop ? 28 : 24,
+          paddingBottom: isSmallPhone ? 20 : isTablet || isDesktop ? 32 : 28,
+          borderRadius: isSmallPhone ? 18 : 28,
+        },
+      ]}
+    >
       {/* Hidden file inputs for web upload and fallback camera */}
       {Platform.OS === 'web' && (
         <>
@@ -619,13 +632,22 @@ export function EmployeeRegistrationCard({
       </View>
 
       {/* Card Header Title */}
-      <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+      <Text
+        style={[
+          styles.cardTitle,
+          {
+            color: colors.textPrimary,
+            fontSize: isSmallPhone ? 18 : isTablet || isDesktop ? 22 : 20,
+            marginBottom: isSmallPhone ? 14 : 20,
+          },
+        ]}
+      >
         {mode === 'register' ? '📝 Employee Registration' : '🔐 Sign In to Workspace'}
       </Text>
 
       {mode === 'register' ? (
         /* REGISTRATION FORM */
-        <View style={styles.formContent}>
+        <View style={[styles.formContent, { gap: isSmallPhone ? 12 : 16 }]}>
           {/* Full Name */}
           {/* Full Name */}
           <View style={styles.fieldGroup}>
@@ -784,6 +806,12 @@ export function EmployeeRegistrationCard({
                 styles.photoSectionCard,
                 inputThemeStyle,
                 errors.faceImage ? styles.inputError : null,
+                isSmallPhone && {
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  paddingVertical: 14,
+                  gap: 12,
+                },
               ]}
             >
               {/* Avatar Preview */}
@@ -796,15 +824,20 @@ export function EmployeeRegistrationCard({
               </View>
 
               {/* Photo Controls Area */}
-              <View style={styles.photoControlsContainer}>
+              <View style={[styles.photoControlsContainer, isSmallPhone && { width: '100%', alignItems: 'center' }]}>
                 {faceImage ? (
-                  <View style={{ gap: 8 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={{ gap: 8, width: '100%' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: isSmallPhone ? 'center' : 'flex-start', gap: 6 }}>
                       <Text style={[styles.photoStatusText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
                         {imageSource === 'camera' ? '📸 Captured via Camera' : '📁 Uploaded from Device'}
                       </Text>
                     </View>
-                    <View style={styles.photoActionButtonsRow}>
+                    <View
+                      style={[
+                        styles.photoActionButtonsRow,
+                        isSmallPhone && { flexDirection: 'column', width: '100%', gap: 8 },
+                      ]}
+                    >
                       <TouchableOpacity
                         style={[
                           styles.photoMiniBtn,
@@ -812,6 +845,7 @@ export function EmployeeRegistrationCard({
                             backgroundColor: isDark ? '#1e293b' : '#ffffff',
                             borderColor: isDark ? '#38bdf8' : '#1b3569',
                           },
+                          isSmallPhone && { width: '100%', height: 38 },
                         ]}
                         onPress={handleOpenCamera}
                         disabled={isCapturingNative}
@@ -829,6 +863,7 @@ export function EmployeeRegistrationCard({
                             backgroundColor: isDark ? '#1e293b' : '#ffffff',
                             borderColor: isDark ? '#38bdf8' : '#1b3569',
                           },
+                          isSmallPhone && { width: '100%', height: 38 },
                         ]}
                         onPress={handleUploadPhoto}
                         activeOpacity={0.8}
@@ -840,11 +875,16 @@ export function EmployeeRegistrationCard({
                     </View>
                   </View>
                 ) : (
-                  <View style={{ gap: 8 }}>
-                    <Text style={[styles.photoChoiceHint, { color: isDark ? '#cbd5e1' : '#475569' }]}>
+                  <View style={{ gap: 8, width: '100%' }}>
+                    <Text style={[styles.photoChoiceHint, { color: isDark ? '#cbd5e1' : '#475569', textAlign: isSmallPhone ? 'center' : 'left' }]}>
                       Select one option below to attach photo <Text style={styles.requiredMark}>*</Text>
                     </Text>
-                    <View style={styles.photoActionButtonsRow}>
+                    <View
+                      style={[
+                        styles.photoActionButtonsRow,
+                        isSmallPhone && { flexDirection: 'column', width: '100%', gap: 8 },
+                      ]}
+                    >
                       {/* Option 1: Open Camera */}
                       <TouchableOpacity
                         style={[
@@ -853,6 +893,7 @@ export function EmployeeRegistrationCard({
                             backgroundColor: isDark ? '#1e293b' : '#ffffff',
                             borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569'),
                           },
+                          isSmallPhone && { width: '100%', flex: undefined, height: 40 },
                         ]}
                         onPress={handleOpenCamera}
                         disabled={isCapturingNative}
@@ -880,6 +921,7 @@ export function EmployeeRegistrationCard({
                             backgroundColor: isDark ? '#1e293b' : '#ffffff',
                             borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569'),
                           },
+                          isSmallPhone && { width: '100%', flex: undefined, height: 40 },
                         ]}
                         onPress={handleUploadPhoto}
                         activeOpacity={0.8}
@@ -939,7 +981,7 @@ export function EmployeeRegistrationCard({
         </View>
       ) : (
         /* SIGN IN TO WORKSPACE FORM */
-        <View style={styles.formContent}>
+        <View style={[styles.formContent, { gap: isSmallPhone ? 12 : 16 }]}>
           {/* Work Email */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, labelThemeStyle]}>✉️ Work Email</Text>
@@ -1037,6 +1079,8 @@ export function EmployeeRegistrationCard({
               {
                 backgroundColor: isDark ? '#0f172a' : '#ffffff',
                 borderColor: isDark ? '#334155' : '#e2e8f0',
+                maxWidth: isDesktop ? 540 : isTablet ? 480 : Math.min(width - 32, 440),
+                padding: isSmallPhone ? 14 : 18,
               },
             ]}
           >

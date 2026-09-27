@@ -20,10 +20,12 @@ import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { AdminPortalView } from '@/components/admin/admin-portal-view';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
+import { useResponsive } from '@/hooks/use-responsive';
 
 export default function HomeScreen() {
   const { isDark, colors } = useDocuVaultTheme();
   const { isLoggedIn, isLoading, user, isAdminMode } = useAuth();
+  const { isSmallPhone, isTablet, isDesktop } = useResponsive();
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [activeTab, setActiveTab] = useState<TabKey>('home');
 
@@ -113,13 +115,33 @@ export default function HomeScreen() {
         </View>
 
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingHorizontal: isSmallPhone ? 10 : isTablet ? 24 : 16 },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={true}
         >
-          <View style={styles.innerContainer}>
+          <View
+            style={[
+              styles.innerContainer,
+              {
+                maxWidth:
+                  authMode === 'register'
+                    ? isDesktop
+                      ? 580
+                      : isTablet
+                      ? 520
+                      : 440
+                    : isDesktop
+                    ? 460
+                    : 420,
+              },
+            ]}
+          >
             <DocuVaultLogo
+              size={isSmallPhone ? 'small' : 'medium'}
               subtitle={authMode === 'login' ? 'Enterprise Document Management System' : undefined}
             />
             <EmployeeRegistrationCard
@@ -172,7 +194,7 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     width: '100%',
-    maxWidth: 420,
+    alignSelf: 'center',
     alignItems: 'center',
   },
 });

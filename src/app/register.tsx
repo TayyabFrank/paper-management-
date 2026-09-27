@@ -13,10 +13,14 @@ import { DocuVaultLogo } from '@/components/docuvault-logo';
 import { EmployeeRegistrationCard } from '@/components/employee-registration-card';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { useResponsive } from '@/hooks/use-responsive';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { isDark, colors } = useDocuVaultTheme();
+  const { isSmallPhone, isTablet, isDesktop } = useResponsive();
+
+  const registerMaxWidth = isDesktop ? 580 : isTablet ? 520 : 440;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -29,18 +33,24 @@ export default function RegisterScreen() {
         style={styles.keyboardContainer}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
-        <View style={styles.topThemeBar}>
+        <View style={[styles.topThemeBar, { paddingHorizontal: isSmallPhone ? 12 : 20 }]}>
           <ThemeToggleButton />
         </View>
 
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingHorizontal: isSmallPhone ? 10 : isTablet ? 24 : 16 },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={true}
         >
-          <View style={styles.innerContainer}>
-            <DocuVaultLogo subtitle="Create your enterprise account" />
+          <View style={[styles.innerContainer, { maxWidth: registerMaxWidth }]}>
+            <DocuVaultLogo
+              size={isSmallPhone ? 'small' : 'medium'}
+              subtitle="Create your enterprise account"
+            />
             <EmployeeRegistrationCard
               initialMode="register"
               onModeChange={(mode) => {
@@ -84,7 +94,7 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     width: '100%',
-    maxWidth: 420,
+    alignSelf: 'center',
     alignItems: 'center',
   },
 });
