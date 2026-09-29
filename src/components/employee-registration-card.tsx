@@ -38,7 +38,7 @@ function PasswordEyeIcon({ visible, color }: { visible: boolean; color: string }
           viewBox="0 0 24 24"
           fill="none"
           stroke={color}
-          strokeWidth="2"
+          strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
           style={{ display: 'block' } as any}
@@ -56,7 +56,7 @@ function PasswordEyeIcon({ visible, color }: { visible: boolean; color: string }
         viewBox="0 0 24 24"
         fill="none"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
         style={{ display: 'block' } as any}
@@ -70,8 +70,6 @@ function PasswordEyeIcon({ visible, color }: { visible: boolean; color: string }
   // Native iOS / Android fallback
   return <Text style={{ fontSize: 16 }}>{visible ? '👁️' : '🙈'}</Text>;
 }
-
-
 
 interface EmployeeRegistrationCardProps {
   initialMode?: 'register' | 'login';
@@ -107,6 +105,9 @@ export function EmployeeRegistrationCard({
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Active focus tracking for crisp input borders
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const [prevInitialMode, setPrevInitialMode] = useState(initialMode);
   if (prevInitialMode !== initialMode) {
@@ -145,7 +146,7 @@ export function EmployeeRegistrationCard({
     if (score <= 1) return '#ef4444';
     if (score <= 3) return '#f59e0b';
     if (score === 4) return '#3b82f6';
-    return '#16a34a';
+    return '#10b981';
   };
 
   const getScoreLabel = (score: number) => {
@@ -481,7 +482,7 @@ export function EmployeeRegistrationCard({
         const result = await login(cleanLoginEmail, password);
         setIsSubmitting(false);
         if (!result.success) {
-          setErrors({ form: result.error || 'Authentication failed' });
+          setErrors({ form: result.error || 'Authentication failed. Check your email & password.' });
           return;
         }
         if (onLoginSuccess) {
@@ -534,24 +535,49 @@ export function EmployeeRegistrationCard({
     }, 2000);
   };
 
-  // Dynamic theme styles
+  // High-Contrast Theme Styles
   const cardThemeStyle = {
-    backgroundColor: isDark ? '#111827' : '#ebf1f8',
-    borderColor: isDark ? 'rgba(255, 255, 255, 0.09)' : '#d7e1ee',
-    shadowColor: isDark ? '#000000' : '#1e3a8a',
+    backgroundColor: isDark ? '#0f172a' : '#ffffff',
+    borderColor: isDark ? 'rgba(56, 189, 248, 0.28)' : '#cbd5e1',
+    shadowColor: isDark ? '#38bdf8' : '#0f172a',
   };
-  const labelThemeStyle = { color: isDark ? '#94a3b8' : '#556882' };
-  const inputThemeStyle = {
-    backgroundColor: isDark ? '#162033' : '#f1f5fa',
-    borderColor: isDark ? '#27354f' : '#c6d4e4',
-    color: isDark ? '#f8fafc' : '#1e293b',
+
+  const labelThemeStyle = {
+    color: isDark ? '#f8fafc' : '#0f172a',
   };
+
+  const getInputStyle = (fieldName: string, isError: boolean) => {
+    const isFocused = focusedField === fieldName;
+    if (isError) {
+      return {
+        backgroundColor: isDark ? '#1a1016' : '#fff5f5',
+        borderColor: '#ef4444',
+        borderWidth: 2,
+        color: isDark ? '#ffffff' : '#0f172a',
+      };
+    }
+    if (isFocused) {
+      return {
+        backgroundColor: isDark ? '#162033' : '#ffffff',
+        borderColor: isDark ? '#38bdf8' : '#2563eb',
+        borderWidth: 2,
+        color: isDark ? '#ffffff' : '#0f172a',
+      };
+    }
+    return {
+      backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+      borderColor: isDark ? '#334155' : '#cbd5e1',
+      borderWidth: 1.5,
+      color: isDark ? '#ffffff' : '#0f172a',
+    };
+  };
+
   const placeholderColor = isDark ? '#64748b' : '#94a3b8';
   const primaryBtnStyle = {
     backgroundColor: isDark ? '#2563eb' : '#1b3569',
     shadowColor: isDark ? '#38bdf8' : '#1b3569',
   };
-  const linkThemeStyle = { color: isDark ? '#38bdf8' : '#1e40af' };
+  const linkThemeStyle = { color: isDark ? '#38bdf8' : '#2563eb' };
 
   return (
     <View
@@ -559,10 +585,10 @@ export function EmployeeRegistrationCard({
         styles.cardContainer,
         cardThemeStyle,
         {
-          paddingHorizontal: isSmallPhone ? 14 : isTablet || isDesktop ? 28 : 22,
-          paddingTop: isSmallPhone ? 18 : isTablet || isDesktop ? 28 : 24,
-          paddingBottom: isSmallPhone ? 20 : isTablet || isDesktop ? 32 : 28,
-          borderRadius: isSmallPhone ? 18 : 28,
+          paddingHorizontal: isSmallPhone ? 16 : isTablet || isDesktop ? 32 : 26,
+          paddingTop: isSmallPhone ? 20 : isTablet || isDesktop ? 30 : 26,
+          paddingBottom: isSmallPhone ? 24 : isTablet || isDesktop ? 34 : 30,
+          borderRadius: isSmallPhone ? 20 : 28,
         },
       ]}
     >
@@ -588,11 +614,22 @@ export function EmployeeRegistrationCard({
       )}
 
       {/* Interactive Switcher Tabs: Sign In vs Register */}
-      <View style={[styles.modeTabsContainer, { backgroundColor: isDark ? '#162033' : '#dbe5f1' }]}>
+      <View
+        style={[
+          styles.modeTabsContainer,
+          {
+            backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+            borderColor: isDark ? '#334155' : '#cbd5e1',
+          },
+        ]}
+      >
         <ScalePressable
           style={[
             styles.modeTab,
-            mode === 'login' && [styles.modeTabActive, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }],
+            mode === 'login' && [
+              styles.modeTabActive,
+              { backgroundColor: isDark ? '#2563eb' : '#1b3569' },
+            ],
           ]}
           onPress={() => switchMode('login')}
           accessibilityRole="tab"
@@ -602,7 +639,7 @@ export function EmployeeRegistrationCard({
             style={[
               styles.modeTabText,
               mode === 'login' && styles.modeTabTextActive,
-              { color: mode === 'login' ? '#ffffff' : (isDark ? '#94a3b8' : '#556882') },
+              { color: mode === 'login' ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569') },
             ]}
           >
             🔐 Sign In
@@ -612,7 +649,10 @@ export function EmployeeRegistrationCard({
         <ScalePressable
           style={[
             styles.modeTab,
-            mode === 'register' && [styles.modeTabActive, { backgroundColor: isDark ? '#2563eb' : '#1b3569' }],
+            mode === 'register' && [
+              styles.modeTabActive,
+              { backgroundColor: isDark ? '#2563eb' : '#1b3569' },
+            ],
           ]}
           onPress={() => switchMode('register')}
           accessibilityRole="tab"
@@ -622,7 +662,7 @@ export function EmployeeRegistrationCard({
             style={[
               styles.modeTabText,
               mode === 'register' && styles.modeTabTextActive,
-              { color: mode === 'register' ? '#ffffff' : (isDark ? '#94a3b8' : '#556882') },
+              { color: mode === 'register' ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569') },
             ]}
           >
             📝 Register
@@ -630,369 +670,74 @@ export function EmployeeRegistrationCard({
         </ScalePressable>
       </View>
 
-      {/* Card Header Title */}
-      <Text
-        style={[
-          styles.cardTitle,
-          {
-            color: colors.textPrimary,
-            fontSize: isSmallPhone ? 18 : isTablet || isDesktop ? 22 : 20,
-            marginBottom: isSmallPhone ? 14 : 20,
-          },
-        ]}
-      >
-        {mode === 'register' ? '📝 Employee Registration' : '🔐 Sign In to Workspace'}
-      </Text>
+      {/* Card Header Title and Subtitle */}
+      <View style={styles.cardHeaderBox}>
+        <Text
+          style={[
+            styles.cardTitle,
+            {
+              color: isDark ? '#ffffff' : '#0f172a',
+              fontSize: isSmallPhone ? 19 : isTablet || isDesktop ? 23 : 21,
+            },
+          ]}
+        >
+          {mode === 'register' ? 'Employee Registration' : 'Sign In to Workspace'}
+        </Text>
+        <Text
+          style={[
+            styles.cardSubtitle,
+            { color: isDark ? '#94a3b8' : '#64748b' },
+          ]}
+        >
+          {mode === 'register'
+            ? 'Complete your profile for verified workplace access'
+            : 'Access enterprise documents, forms, and workflows'}
+        </Text>
+      </View>
 
       {mode === 'register' ? (
-        /* REGISTRATION FORM */
+        /* ================= REGISTRATION FORM ================= */
         <FadeInView key="register-mode" delay={0} duration={240}>
-          <View style={[styles.formContent, { gap: isSmallPhone ? 12 : 16 }]}>
-          {/* Full Name */}
-          {/* Full Name */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>
-              👤 Full Name <Text style={styles.requiredMark}>*</Text>
-            </Text>
-            <TextInput
-              style={[styles.input, inputThemeStyle, errors.fullName ? styles.inputError : null]}
-              placeholder="John Doe"
-              placeholderTextColor={placeholderColor}
-              value={fullName}
-              onChangeText={(text) => {
-                setFullName(text);
-                if (errors.fullName) setErrors({ ...errors, fullName: '' });
-              }}
-              autoCapitalize="words"
-            />
-            {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
-          </View>
-
-          {/* Work Email */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>
-              ✉️ Work Email <Text style={styles.requiredMark}>*</Text>
-            </Text>
-            <TextInput
-              style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
-              placeholder="name@company.com"
-              placeholderTextColor={placeholderColor}
-              value={workEmail}
-              onChangeText={(text) => {
-                setWorkEmail(text);
-                if (errors.workEmail) setErrors({ ...errors, workEmail: '' });
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {errors.workEmail ? <Text style={styles.errorText}>{errors.workEmail}</Text> : null}
-          </View>
-
-          {/* Password */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, labelThemeStyle]}>
-              🔒 Password <Text style={styles.requiredMark}></Text>
-            </Text>
-            <View style={[styles.passwordInputContainer, inputThemeStyle, errors.password ? styles.inputError : null]}>
-              <TextInput
-                style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }]}
-                placeholder="Enter strong password"
-                placeholderTextColor={placeholderColor}
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (errors.password) setErrors({ ...errors, password: '' });
-                }}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
-                activeOpacity={0.7}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                accessibilityRole="button"
-              >
-                <PasswordEyeIcon
-                  visible={showPassword}
-                  color={showPassword ? (isDark ? '#38bdf8' : '#1b3569') : (isDark ? '#94a3b8' : '#64748b')}
-                />
-              </TouchableOpacity>
-            </View>
-            {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
-
-            {/* Real-time Password Strength Meter in Register Mode */}
-            {password.length > 0 && (
-              <View style={styles.pwdStrengthWrapper}>
-                <View style={styles.pwdProgressBar}>
-                  <View
-                    style={[
-                      styles.pwdProgressFill,
-                      {
-                        width: `${(passwordScore / 5) * 100}%`,
-                        backgroundColor: getScoreColor(passwordScore),
-                      },
-                    ]}
-                  />
-                </View>
-                <View style={styles.pwdStatusRow}>
-                  <Text style={[styles.pwdStrengthLabel, { color: getScoreColor(passwordScore) }]}>
-                    {getScoreLabel(passwordScore)}
-                  </Text>
-                  <Text style={[styles.pwdHintText, { color: colors.textSecondary }]}>
-                    {passwordScore === 5 ? '✓ All requirements met' : `${passwordScore}/5 met`}
-                  </Text>
-                </View>
-                <View style={styles.pwdRulesGrid}>
-                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasMinLength ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
-                    {pwdRules.hasMinLength ? '✓' : '•'} 8+ characters
-                  </Text>
-                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasUpper ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
-                    {pwdRules.hasUpper ? '✓' : '•'} Uppercase (A-Z)
-                  </Text>
-                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasLower ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
-                    {pwdRules.hasLower ? '✓' : '•'} Lowercase (a-z)
-                  </Text>
-                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasNumber ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
-                    {pwdRules.hasNumber ? '✓' : '•'} Number (0-9)
-                  </Text>
-                  <Text style={[styles.pwdRuleText, { color: pwdRules.hasSpecial ? '#16a34a' : (isDark ? '#94a3b8' : '#64748b') }]}>
-                    {pwdRules.hasSpecial ? '✓' : '•'} Symbol (!@#$%...)
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-
-          {/* Face Image: Dual Camera / Upload Option (One option is mandatory) */}
-          <View style={styles.fieldGroup}>
-            <View style={styles.faceLabelRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={[styles.label, labelThemeStyle]}>
-                  👤 Profile Photo <Text style={styles.requiredMark}>*</Text>
-                </Text>
-                <View
-                  style={[
-                    styles.mandatoryBadge,
-                    {
-                      backgroundColor: faceImage
-                        ? (isDark ? 'rgba(34, 197, 94, 0.15)' : '#dcfce7')
-                        : (isDark ? 'rgba(239, 68, 68, 0.15)' : '#fee2e2'),
-                      borderColor: faceImage ? '#22c55e' : '#ef4444',
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.mandatoryBadgeText,
-                      { color: faceImage ? (isDark ? '#4ade80' : '#16a34a') : (isDark ? '#f87171' : '#dc2626') },
-                    ]}
-                  >
-                    {faceImage ? '✓ Photo Attached' : 'Mandatory Option *'}
-                  </Text>
-                </View>
-              </View>
-
-              {faceImage && (
-                <TouchableOpacity onPress={handleRemovePhoto} activeOpacity={0.7}>
-                  <Text style={styles.removePhotoText}>🗑️ Remove</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <View
-              style={[
-                styles.photoSectionCard,
-                inputThemeStyle,
-                errors.faceImage ? styles.inputError : null,
-                isSmallPhone && {
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  paddingVertical: 14,
-                  gap: 12,
-                },
-              ]}
-            >
-              {/* Avatar Preview */}
-              <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#28364e' : '#cbd5e1' }]}>
-                <Image
-                  source={faceImage ? { uri: faceImage } : { uri: DEFAULT_AVATAR_SVG }}
-                  style={styles.avatarImage}
-                  resizeMode="cover"
-                />
-              </View>
-
-              {/* Photo Controls Area */}
-              <View style={[styles.photoControlsContainer, isSmallPhone && { width: '100%', alignItems: 'center' }]}>
-                {faceImage ? (
-                  <View style={{ gap: 8, width: '100%' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: isSmallPhone ? 'center' : 'flex-start', gap: 6 }}>
-                      <Text style={[styles.photoStatusText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
-                        {imageSource === 'camera' ? '📸 Captured via Camera' : '📁 Uploaded from Device'}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.photoActionButtonsRow,
-                        isSmallPhone && { flexDirection: 'column', width: '100%', gap: 8 },
-                      ]}
-                    >
-                      <TouchableOpacity
-                        style={[
-                          styles.photoMiniBtn,
-                          {
-                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                            borderColor: isDark ? '#38bdf8' : '#1b3569',
-                          },
-                          isSmallPhone && { width: '100%', height: 38 },
-                        ]}
-                        onPress={handleOpenCamera}
-                        disabled={isCapturingNative}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[styles.photoMiniBtnText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
-                          📸 Retake Camera
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.photoMiniBtn,
-                          {
-                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                            borderColor: isDark ? '#38bdf8' : '#1b3569',
-                          },
-                          isSmallPhone && { width: '100%', height: 38 },
-                        ]}
-                        onPress={handleUploadPhoto}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[styles.photoMiniBtnText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
-                          📁 Change File
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={{ gap: 8, width: '100%' }}>
-                    <Text style={[styles.photoChoiceHint, { color: isDark ? '#cbd5e1' : '#475569', textAlign: isSmallPhone ? 'center' : 'left' }]}>
-                      Select one option below to attach photo <Text style={styles.requiredMark}>*</Text>
-                    </Text>
-                    <View
-                      style={[
-                        styles.photoActionButtonsRow,
-                        isSmallPhone && { flexDirection: 'column', width: '100%', gap: 8 },
-                      ]}
-                    >
-                      {/* Option 1: Open Camera */}
-                      <TouchableOpacity
-                        style={[
-                          styles.photoOptionBtn,
-                          {
-                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                            borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569'),
-                          },
-                          isSmallPhone && { width: '100%', flex: undefined, height: 40 },
-                        ]}
-                        onPress={handleOpenCamera}
-                        disabled={isCapturingNative}
-                        activeOpacity={0.8}
-                      >
-                        {isCapturingNative ? (
-                          <ActivityIndicator size="small" color={isDark ? '#38bdf8' : '#1b3569'} />
-                        ) : (
-                          <Text
-                            style={[
-                              styles.photoOptionBtnText,
-                              { color: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569') },
-                            ]}
-                          >
-                            📸 Open Camera
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-
-                      {/* Option 2: Upload Photo */}
-                      <TouchableOpacity
-                        style={[
-                          styles.photoOptionBtn,
-                          {
-                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                            borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569'),
-                          },
-                          isSmallPhone && { width: '100%', flex: undefined, height: 40 },
-                        ]}
-                        onPress={handleUploadPhoto}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.photoOptionBtnText,
-                            { color: errors.faceImage ? '#ef4444' : (isDark ? '#38bdf8' : '#1b3569') },
-                          ]}
-                        >
-                          📁 Upload Photo
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {errors.faceImage ? (
-              <Text style={styles.errorText}>⚠️ {errors.faceImage}</Text>
-            ) : (
-              <Text style={[styles.photoHelperNote, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                * Required: Either capture your live photo with Camera or upload a photo file.
+          <View style={[styles.formContent, { gap: isSmallPhone ? 14 : 18 }]}>
+            {/* Full Name */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, labelThemeStyle]}>
+                👤 Full Name <Text style={styles.requiredMark}>*</Text>
               </Text>
-            )}
-          </View>
+              <TextInput
+                style={[
+                  styles.input,
+                  getInputStyle('fullName', !!errors.fullName),
+                ]}
+                placeholder="e.g. John Doe"
+                placeholderTextColor={placeholderColor}
+                value={fullName}
+                onFocus={() => setFocusedField('fullName')}
+                onBlur={() => setFocusedField(null)}
+                onChangeText={(text) => {
+                  setFullName(text);
+                  if (errors.fullName) setErrors({ ...errors, fullName: '' });
+                }}
+                autoCapitalize="words"
+              />
+              {errors.fullName ? <Text style={styles.errorText}>⚠️ {errors.fullName}</Text> : null}
+            </View>
 
-          {/* Global Form Error Banner */}
-          {errors.form ? (
-            <FadeInView delay={0} scale>
-              <View style={styles.formErrorBanner}>
-                <Text style={styles.formErrorText}>⚠️ {errors.form}</Text>
-              </View>
-            </FadeInView>
-          ) : null}
-
-          {/* Submit Button */}
-          <ScalePressable
-            style={[styles.primaryButton, primaryBtnStyle]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#ffffff" size="small" />
-            ) : (
-              <Text style={styles.primaryButtonText}>📤 Submit Registration for Approval</Text>
-            )}
-          </ScalePressable>
-
-          {/* Footer toggle */}
-          <View style={styles.footerRow}>
-            <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already registered? </Text>
-            <TouchableOpacity onPress={() => switchMode('login')} activeOpacity={0.7}>
-              <Text style={[styles.loginLink, linkThemeStyle]}>🔐 Login</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        </FadeInView>
-      ) : (
-        /* SIGN IN TO WORKSPACE FORM */
-        <FadeInView key="login-mode" delay={0} duration={240}>
-          <View style={[styles.formContent, { gap: isSmallPhone ? 12 : 16 }]}>
             {/* Work Email */}
             <View style={styles.fieldGroup}>
-              <Text style={[styles.label, labelThemeStyle]}>✉️ Work Email</Text>
+              <Text style={[styles.label, labelThemeStyle]}>
+                ✉️ Work Email <Text style={styles.requiredMark}>*</Text>
+              </Text>
               <TextInput
-                style={[styles.input, inputThemeStyle, errors.workEmail ? styles.inputError : null]}
+                style={[
+                  styles.input,
+                  getInputStyle('workEmail', !!errors.workEmail),
+                ]}
                 placeholder="name@company.com"
                 placeholderTextColor={placeholderColor}
                 value={workEmail}
+                onFocus={() => setFocusedField('workEmail')}
+                onBlur={() => setFocusedField(null)}
                 onChangeText={(text) => {
                   setWorkEmail(text);
                   if (errors.workEmail) setErrors({ ...errors, workEmail: '' });
@@ -1001,19 +746,30 @@ export function EmployeeRegistrationCard({
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              {errors.workEmail ? <Text style={styles.errorText}>{errors.workEmail}</Text> : null}
+              {errors.workEmail ? <Text style={styles.errorText}>⚠️ {errors.workEmail}</Text> : null}
             </View>
 
             {/* Password */}
             <View style={styles.fieldGroup}>
-              <Text style={[styles.label, labelThemeStyle]}>🔒 Password</Text>
-
-              <View style={[styles.passwordInputContainer, inputThemeStyle]}>
+              <Text style={[styles.label, labelThemeStyle]}>
+                🔒 Password <Text style={styles.requiredMark}>*</Text>
+              </Text>
+              <View
+                style={[
+                  styles.passwordInputContainer,
+                  getInputStyle('password', !!errors.password),
+                ]}
+              >
                 <TextInput
-                  style={[styles.passwordInput, { color: isDark ? '#f8fafc' : '#1e293b' }, errors.password ? styles.inputError : null]}
-                  placeholder="••••••••••"
+                  style={[
+                    styles.passwordInput,
+                    { color: isDark ? '#ffffff' : '#0f172a' },
+                  ]}
+                  placeholder="Enter strong password"
                   placeholderTextColor={placeholderColor}
                   value={password}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
                   onChangeText={(text) => {
                     setPassword(text);
                     if (errors.password) setErrors({ ...errors, password: '' });
@@ -1022,7 +778,12 @@ export function EmployeeRegistrationCard({
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}
+                  style={[
+                    styles.eyeButton,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                    },
+                  ]}
                   activeOpacity={0.7}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
@@ -1030,11 +791,509 @@ export function EmployeeRegistrationCard({
                 >
                   <PasswordEyeIcon
                     visible={showPassword}
-                    color={showPassword ? (isDark ? '#38bdf8' : '#1b3569') : (isDark ? '#94a3b8' : '#64748b')}
+                    color={showPassword ? (isDark ? '#38bdf8' : '#2563eb') : (isDark ? '#94a3b8' : '#64748b')}
                   />
                 </TouchableOpacity>
               </View>
-              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+              {errors.password ? <Text style={styles.errorText}>⚠️ {errors.password}</Text> : null}
+
+              {/* Real-time Password Strength Meter */}
+              {password.length > 0 && (
+                <View
+                  style={[
+                    styles.pwdStrengthWrapper,
+                    {
+                      backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+                      borderColor: isDark ? '#334155' : '#e2e8f0',
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.pwdProgressBar,
+                      { backgroundColor: isDark ? '#334155' : '#e2e8f0' },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.pwdProgressFill,
+                        {
+                          width: `${(passwordScore / 5) * 100}%`,
+                          backgroundColor: getScoreColor(passwordScore),
+                        },
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.pwdStatusRow}>
+                    <Text style={[styles.pwdStrengthLabel, { color: getScoreColor(passwordScore) }]}>
+                      {getScoreLabel(passwordScore)}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.pwdHintText,
+                        { color: isDark ? '#cbd5e1' : '#475569' },
+                      ]}
+                    >
+                      {passwordScore === 5 ? '✓ All requirements met' : `${passwordScore}/5 met`}
+                    </Text>
+                  </View>
+                  <View style={styles.pwdRulesGrid}>
+                    <View
+                      style={[
+                        styles.ruleBadge,
+                        pwdRules.hasMinLength
+                          ? { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#dcfce7', borderColor: '#10b981' }
+                          : { backgroundColor: isDark ? '#0f172a' : '#f1f5f9', borderColor: isDark ? '#334155' : '#cbd5e1' },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.pwdRuleText,
+                          { color: pwdRules.hasMinLength ? '#10b981' : (isDark ? '#94a3b8' : '#64748b') },
+                        ]}
+                      >
+                        {pwdRules.hasMinLength ? '✓' : '•'} 8+ chars
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.ruleBadge,
+                        pwdRules.hasUpper
+                          ? { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#dcfce7', borderColor: '#10b981' }
+                          : { backgroundColor: isDark ? '#0f172a' : '#f1f5f9', borderColor: isDark ? '#334155' : '#cbd5e1' },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.pwdRuleText,
+                          { color: pwdRules.hasUpper ? '#10b981' : (isDark ? '#94a3b8' : '#64748b') },
+                        ]}
+                      >
+                        {pwdRules.hasUpper ? '✓' : '•'} Uppercase
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.ruleBadge,
+                        pwdRules.hasLower
+                          ? { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#dcfce7', borderColor: '#10b981' }
+                          : { backgroundColor: isDark ? '#0f172a' : '#f1f5f9', borderColor: isDark ? '#334155' : '#cbd5e1' },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.pwdRuleText,
+                          { color: pwdRules.hasLower ? '#10b981' : (isDark ? '#94a3b8' : '#64748b') },
+                        ]}
+                      >
+                        {pwdRules.hasLower ? '✓' : '•'} Lowercase
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.ruleBadge,
+                        pwdRules.hasNumber
+                          ? { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#dcfce7', borderColor: '#10b981' }
+                          : { backgroundColor: isDark ? '#0f172a' : '#f1f5f9', borderColor: isDark ? '#334155' : '#cbd5e1' },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.pwdRuleText,
+                          { color: pwdRules.hasNumber ? '#10b981' : (isDark ? '#94a3b8' : '#64748b') },
+                        ]}
+                      >
+                        {pwdRules.hasNumber ? '✓' : '•'} Number
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.ruleBadge,
+                        pwdRules.hasSpecial
+                          ? { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#dcfce7', borderColor: '#10b981' }
+                          : { backgroundColor: isDark ? '#0f172a' : '#f1f5f9', borderColor: isDark ? '#334155' : '#cbd5e1' },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.pwdRuleText,
+                          { color: pwdRules.hasSpecial ? '#10b981' : (isDark ? '#94a3b8' : '#64748b') },
+                        ]}
+                      >
+                        {pwdRules.hasSpecial ? '✓' : '•'} Symbol
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Profile Photo: High-Visibility Section */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.faceLabelRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.label, labelThemeStyle]}>
+                    👤 Profile Photo <Text style={styles.requiredMark}>*</Text>
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.mandatoryBadge,
+                    {
+                      backgroundColor: faceImage
+                        ? (isDark ? 'rgba(16, 185, 129, 0.15)' : '#dcfce7')
+                        : (isDark ? 'rgba(239, 68, 68, 0.15)' : '#fee2e2'),
+                      borderColor: faceImage ? '#10b981' : '#ef4444',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.mandatoryBadgeText,
+                      { color: faceImage ? (isDark ? '#34d399' : '#15803d') : (isDark ? '#f87171' : '#b91c1c') },
+                    ]}
+                  >
+                    {faceImage ? '✓ Verified Photo' : 'Mandatory *'}
+                  </Text>
+                </View>
+              </View>
+
+              <View
+                style={[
+                  styles.photoSectionCard,
+                  {
+                    backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+                    borderColor: errors.faceImage ? '#ef4444' : (isDark ? '#334155' : '#cbd5e1'),
+                    borderWidth: errors.faceImage ? 2 : 1.5,
+                  },
+                  isSmallPhone && {
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    paddingVertical: 16,
+                    gap: 14,
+                  },
+                ]}
+              >
+                {/* Avatar Preview */}
+                <View
+                  style={[
+                    styles.avatarCircle,
+                    {
+                      backgroundColor: isDark ? '#0f172a' : '#cbd5e1',
+                      borderColor: faceImage ? '#10b981' : (isDark ? '#38bdf8' : '#2563eb'),
+                      borderWidth: faceImage ? 2.5 : 1,
+                    },
+                  ]}
+                >
+                  <Image
+                    source={faceImage ? { uri: faceImage } : { uri: DEFAULT_AVATAR_SVG }}
+                    style={styles.avatarImage}
+                    resizeMode="cover"
+                  />
+                  {faceImage && (
+                    <View style={styles.avatarVerifiedDot}>
+                      <Text style={{ fontSize: 9, color: '#ffffff', fontWeight: '900' }}>✓</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Photo Controls Area */}
+                <View style={[styles.photoControlsContainer, isSmallPhone && { width: '100%', alignItems: 'center' }]}>
+                  {faceImage ? (
+                    <View style={{ gap: 8, width: '100%' }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 6,
+                        }}
+                      >
+                        <Text style={[styles.photoStatusText, { color: isDark ? '#38bdf8' : '#1b3569' }]}>
+                          {imageSource === 'camera' ? '📸 Captured via Camera' : '📁 Uploaded from Device'}
+                        </Text>
+                        <TouchableOpacity onPress={handleRemovePhoto} activeOpacity={0.7}>
+                          <Text style={styles.removePhotoText}>🗑️ Remove</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View
+                        style={[
+                          styles.photoActionButtonsRow,
+                          isSmallPhone && { flexDirection: 'column', width: '100%', gap: 8 },
+                        ]}
+                      >
+                        <TouchableOpacity
+                          style={[
+                            styles.photoMiniBtn,
+                            {
+                              backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : '#eff6ff',
+                              borderColor: isDark ? '#38bdf8' : '#2563eb',
+                            },
+                            isSmallPhone && { width: '100%', height: 40 },
+                          ]}
+                          onPress={handleOpenCamera}
+                          disabled={isCapturingNative}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.photoMiniBtnText, { color: isDark ? '#38bdf8' : '#1d4ed8' }]}>
+                            📸 Retake Camera
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.photoMiniBtn,
+                            {
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                              borderColor: isDark ? '#64748b' : '#94a3b8',
+                            },
+                            isSmallPhone && { width: '100%', height: 40 },
+                          ]}
+                          onPress={handleUploadPhoto}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.photoMiniBtnText, { color: isDark ? '#f8fafc' : '#334155' }]}>
+                            📁 Change File
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={{ gap: 8, width: '100%' }}>
+                      <Text
+                        style={[
+                          styles.photoChoiceHint,
+                          {
+                            color: isDark ? '#f1f5f9' : '#1e293b',
+                            textAlign: isSmallPhone ? 'center' : 'left',
+                          },
+                        ]}
+                      >
+                        Choose an option to attach your photo <Text style={styles.requiredMark}>*</Text>
+                      </Text>
+                      <View
+                        style={[
+                          styles.photoActionButtonsRow,
+                          isSmallPhone && { flexDirection: 'column', width: '100%', gap: 8 },
+                        ]}
+                      >
+                        {/* Option 1: Open Camera */}
+                        <TouchableOpacity
+                          style={[
+                            styles.photoOptionBtn,
+                            {
+                              backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : '#eff6ff',
+                              borderColor: isDark ? '#38bdf8' : '#2563eb',
+                            },
+                            isSmallPhone && { width: '100%', flex: undefined, height: 42 },
+                          ]}
+                          onPress={handleOpenCamera}
+                          disabled={isCapturingNative}
+                          activeOpacity={0.8}
+                        >
+                          {isCapturingNative ? (
+                            <ActivityIndicator size="small" color={isDark ? '#38bdf8' : '#1b3569'} />
+                          ) : (
+                            <Text
+                              style={[
+                                styles.photoOptionBtnText,
+                                { color: isDark ? '#38bdf8' : '#1d4ed8' },
+                              ]}
+                            >
+                              📸 Open Camera
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+
+                        {/* Option 2: Upload Photo */}
+                        <TouchableOpacity
+                          style={[
+                            styles.photoOptionBtn,
+                            {
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                              borderColor: isDark ? '#64748b' : '#94a3b8',
+                            },
+                            isSmallPhone && { width: '100%', flex: undefined, height: 42 },
+                          ]}
+                          onPress={handleUploadPhoto}
+                          activeOpacity={0.8}
+                        >
+                          <Text
+                            style={[
+                              styles.photoOptionBtnText,
+                              { color: isDark ? '#f8fafc' : '#334155' },
+                            ]}
+                          >
+                            📁 Upload Photo
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {errors.faceImage ? (
+                <Text style={styles.errorText}>⚠️ {errors.faceImage}</Text>
+              ) : (
+                <Text
+                  style={[
+                    styles.photoHelperNote,
+                    { color: isDark ? '#94a3b8' : '#64748b' },
+                  ]}
+                >
+                  🔒 Your portrait photo is required for enterprise security verification.
+                </Text>
+              )}
+            </View>
+
+            {/* Global Form Error Banner */}
+            {errors.form ? (
+              <FadeInView delay={0} scale>
+                <View style={styles.formErrorBanner}>
+                  <Text style={styles.formErrorText}>⚠️ {errors.form}</Text>
+                </View>
+              </FadeInView>
+            ) : null}
+
+            {/* Submit Button */}
+            <ScalePressable
+              style={[styles.primaryButton, primaryBtnStyle]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <Text style={styles.primaryButtonText}>🚀 Submit Registration for Approval</Text>
+              )}
+            </ScalePressable>
+
+            {/* Footer toggle */}
+            <View style={styles.footerRow}>
+              <Text style={[styles.footerText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                Already registered?{' '}
+              </Text>
+              <TouchableOpacity onPress={() => switchMode('login')} activeOpacity={0.7}>
+                <Text style={[styles.loginLink, linkThemeStyle]}>Sign In Here →</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Security Guarantee Strip */}
+            <View
+              style={[
+                styles.trustBadgeRow,
+                { borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0' },
+              ]}
+            >
+              <Text style={[styles.trustBadgeItem, { color: isDark ? '#64748b' : '#94a3b8' }]}>
+                🔒 256-Bit SSL
+              </Text>
+              <Text style={[styles.trustBadgeDot, { color: isDark ? '#475569' : '#cbd5e1' }]}>•</Text>
+              <Text style={[styles.trustBadgeItem, { color: isDark ? '#64748b' : '#94a3b8' }]}>
+                🛡️ ISO 27001
+              </Text>
+              <Text style={[styles.trustBadgeDot, { color: isDark ? '#475569' : '#cbd5e1' }]}>•</Text>
+              <Text style={[styles.trustBadgeItem, { color: isDark ? '#64748b' : '#94a3b8' }]}>
+                ⚡ Zero-Trust
+              </Text>
+            </View>
+          </View>
+        </FadeInView>
+      ) : (
+        /* ================= SIGN IN TO WORKSPACE FORM ================= */
+        <FadeInView key="login-mode" delay={0} duration={240}>
+          <View style={[styles.formContent, { gap: isSmallPhone ? 16 : 20 }]}>
+            {/* Work Email */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, labelThemeStyle]}>
+                ✉️ Work Email <Text style={styles.requiredMark}>*</Text>
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  getInputStyle('workEmail', !!errors.workEmail),
+                ]}
+                placeholder="name@company.com"
+                placeholderTextColor={placeholderColor}
+                value={workEmail}
+                onFocus={() => setFocusedField('workEmail')}
+                onBlur={() => setFocusedField(null)}
+                onChangeText={(text) => {
+                  setWorkEmail(text);
+                  if (errors.workEmail) setErrors({ ...errors, workEmail: '' });
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {errors.workEmail ? <Text style={styles.errorText}>⚠️ {errors.workEmail}</Text> : null}
+            </View>
+
+            {/* Password with Prominent Forgot Password Trigger */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.passwordHeaderRow}>
+                <Text style={[styles.label, labelThemeStyle]}>
+                  🔒 Password <Text style={styles.requiredMark}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setForgotModalVisible(true)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={[styles.forgotPasswordLink, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
+                    Forgot Password?
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View
+                style={[
+                  styles.passwordInputContainer,
+                  getInputStyle('password', !!errors.password),
+                ]}
+              >
+                <TextInput
+                  style={[
+                    styles.passwordInput,
+                    { color: isDark ? '#ffffff' : '#0f172a' },
+                  ]}
+                  placeholder="Enter your password"
+                  placeholderTextColor={placeholderColor}
+                  value={password}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (errors.password) setErrors({ ...errors, password: '' });
+                  }}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={[
+                    styles.eyeButton,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                    },
+                  ]}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  accessibilityRole="button"
+                >
+                  <PasswordEyeIcon
+                    visible={showPassword}
+                    color={showPassword ? (isDark ? '#38bdf8' : '#2563eb') : (isDark ? '#94a3b8' : '#64748b')}
+                  />
+                </TouchableOpacity>
+              </View>
+              {errors.password ? <Text style={styles.errorText}>⚠️ {errors.password}</Text> : null}
             </View>
 
             {/* Global Form Error Banner */}
@@ -1055,16 +1314,38 @@ export function EmployeeRegistrationCard({
               {isSubmitting ? (
                 <ActivityIndicator color="#ffffff" size="small" />
               ) : (
-                <Text style={styles.primaryButtonText}>🔑 Login</Text>
+                <Text style={styles.primaryButtonText}>🔑 Sign In to Workspace</Text>
               )}
             </ScalePressable>
 
             {/* Footer: New to the company? Register as Employee */}
             <View style={styles.footerRow}>
-              <Text style={[styles.footerText, { color: colors.textSecondary }]}>New to the company? </Text>
+              <Text style={[styles.footerText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                New to DocuVault?{' '}
+              </Text>
               <TouchableOpacity onPress={() => switchMode('register')} activeOpacity={0.7}>
-                <Text style={[styles.loginLink, linkThemeStyle]}>📝 Register as Employee</Text>
+                <Text style={[styles.loginLink, linkThemeStyle]}>Register as Employee →</Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Security Guarantee Strip */}
+            <View
+              style={[
+                styles.trustBadgeRow,
+                { borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0' },
+              ]}
+            >
+              <Text style={[styles.trustBadgeItem, { color: isDark ? '#64748b' : '#94a3b8' }]}>
+                🔒 256-Bit SSL
+              </Text>
+              <Text style={[styles.trustBadgeDot, { color: isDark ? '#475569' : '#cbd5e1' }]}>•</Text>
+              <Text style={[styles.trustBadgeItem, { color: isDark ? '#64748b' : '#94a3b8' }]}>
+                🛡️ ISO 27001
+              </Text>
+              <Text style={[styles.trustBadgeDot, { color: isDark ? '#475569' : '#cbd5e1' }]}>•</Text>
+              <Text style={[styles.trustBadgeItem, { color: isDark ? '#64748b' : '#94a3b8' }]}>
+                ⚡ Zero-Trust
+              </Text>
             </View>
           </View>
         </FadeInView>
@@ -1085,29 +1366,39 @@ export function EmployeeRegistrationCard({
                 backgroundColor: isDark ? '#0f172a' : '#ffffff',
                 borderColor: isDark ? '#334155' : '#e2e8f0',
                 maxWidth: isDesktop ? 540 : isTablet ? 480 : Math.min(width - 32, 440),
-                padding: isSmallPhone ? 14 : 18,
+                padding: isSmallPhone ? 16 : 22,
               },
             ]}
           >
             {/* Modal Header */}
             <View style={styles.cameraModalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 22 }}>📸</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View
+                  style={[
+                    styles.modalIconBadge,
+                    { backgroundColor: isDark ? 'rgba(56, 189, 248, 0.15)' : '#eff6ff' },
+                  ]}
+                >
+                  <Text style={{ fontSize: 20 }}>📸</Text>
+                </View>
                 <View>
-                  <Text style={[styles.cameraModalTitle, { color: colors.textPrimary }]}>
-                    {capturedPhotoDraft ? 'Preview Photo' : 'Capture Live Photo'}
+                  <Text style={[styles.cameraModalTitle, { color: isDark ? '#ffffff' : '#0f172a' }]}>
+                    {capturedPhotoDraft ? 'Review Photo' : 'Capture Live Photo'}
                   </Text>
-                  <Text style={[styles.cameraModalSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+                  <Text style={[styles.cameraModalSubtitle, { color: isDark ? '#cbd5e1' : '#64748b' }]}>
                     {capturedPhotoDraft ? 'Look good? Confirm or retake' : 'Center your face in the camera frame'}
                   </Text>
                 </View>
               </View>
               <TouchableOpacity
                 onPress={closeCameraModal}
-                style={[styles.cameraCloseBtn, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}
+                style={[
+                  styles.cameraCloseBtn,
+                  { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' },
+                ]}
                 activeOpacity={0.7}
               >
-                <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#94a3b8' : '#64748b' }}>✕</Text>
+                <Text style={{ fontSize: 16, fontWeight: '800', color: isDark ? '#f8fafc' : '#475569' }}>✕</Text>
               </TouchableOpacity>
             </View>
 
@@ -1115,7 +1406,7 @@ export function EmployeeRegistrationCard({
             <View style={styles.viewfinderContainer}>
               {cameraError ? (
                 <View style={styles.cameraErrorBox}>
-                  <Text style={{ fontSize: 36, marginBottom: 8 }}>⚠️</Text>
+                  <Text style={{ fontSize: 40, marginBottom: 8 }}>⚠️</Text>
                   <Text style={styles.cameraErrorHeading}>Camera Unavailable</Text>
                   <Text style={[styles.cameraErrorText, { color: isDark ? '#cbd5e1' : '#64748b' }]}>
                     {cameraError}
@@ -1125,7 +1416,7 @@ export function EmployeeRegistrationCard({
                     onPress={handleFallbackCameraInput}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.cameraFallbackBtnText}>📱 Open Device Camera Picker</Text>
+                    <Text style={styles.cameraFallbackBtnText}>📱 Open Device File Picker</Text>
                   </TouchableOpacity>
                 </View>
               ) : capturedPhotoDraft ? (
@@ -1183,7 +1474,7 @@ export function EmployeeRegistrationCard({
                       style={[
                         styles.cameraConfirmBtn,
                         {
-                          backgroundColor: isDark ? '#16a34a' : '#15803d',
+                          backgroundColor: '#10b981',
                         },
                       ]}
                       onPress={handleConfirmWebSnapshot}
@@ -1235,7 +1526,7 @@ export function EmployeeRegistrationCard({
                       activeOpacity={0.7}
                     >
                       <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#cbd5e1' : '#475569' }}>
-                        📁 App
+                        📁 File
                       </Text>
                     </TouchableOpacity>
                   </>
@@ -1246,7 +1537,7 @@ export function EmployeeRegistrationCard({
         </View>
       </Modal>
 
-      {/* Device Storage Permission Modal (Yes / No) */}
+      {/* Device Storage Permission Modal */}
       <Modal
         visible={showPermissionDialog}
         transparent
@@ -1258,51 +1549,49 @@ export function EmployeeRegistrationCard({
             style={[
               styles.permCard,
               {
-                backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                borderColor: isDark ? '#334155' : '#e2e8f0',
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                borderColor: isDark ? '#334155' : '#cbd5e1',
               },
             ]}
           >
-            {/* Icon Header */}
             <View
               style={[
                 styles.permIconBadge,
                 {
-                  backgroundColor: isDark ? '#0f172a' : '#eff6ff',
-                  borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                  backgroundColor: isDark ? 'rgba(56, 189, 248, 0.15)' : '#eff6ff',
+                  borderColor: isDark ? '#38bdf8' : '#bfdbfe',
                 },
               ]}
             >
               <Text style={{ fontSize: 32 }}>📁</Text>
             </View>
 
-            <Text style={[styles.permHeading, { color: colors.textPrimary }]}>
+            <Text style={[styles.permHeading, { color: isDark ? '#ffffff' : '#0f172a' }]}>
               Device Storage Access
             </Text>
 
             <Text style={[styles.permDescription, { color: isDark ? '#cbd5e1' : '#475569' }]}>
-              Allow DocuVault to access files on this device so you can browse your file manager and select your profile photo?
+              Allow DocuVault to access files on this device so you can select your official profile photo?
             </Text>
 
             <Text style={[styles.permSecurityNote, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              🔒 Only the photo you choose will be uploaded.
+              🔒 Only the photo you select will be uploaded.
             </Text>
 
-            {/* Yes / No Action Buttons */}
             <View style={styles.permBtnRow}>
               <TouchableOpacity
                 style={[
                   styles.permDenyBtn,
                   {
-                    backgroundColor: isDark ? '#334155' : '#f1f5f9',
-                    borderColor: isDark ? '#475569' : '#cbd5e1',
+                    backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                    borderColor: isDark ? '#334155' : '#cbd5e1',
                   },
                 ]}
                 onPress={() => handlePermissionDecision(false)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.permDenyBtnText, { color: isDark ? '#f1f5f9' : '#475569' }]}>
-                  ✕ No / Deny
+                <Text style={[styles.permDenyBtnText, { color: isDark ? '#cbd5e1' : '#475569' }]}>
+                  ✕ Deny
                 </Text>
               </TouchableOpacity>
 
@@ -1317,7 +1606,7 @@ export function EmployeeRegistrationCard({
                 activeOpacity={0.85}
               >
                 <Text style={styles.permAllowBtnText}>
-                  ✓ Yes / Allow
+                  ✓ Allow Access
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1337,25 +1626,37 @@ export function EmployeeRegistrationCard({
             style={[
               styles.modalDialog,
               {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'transparent',
-                borderWidth: isDark ? 1 : 0,
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#cbd5e1',
+                borderWidth: 1.5,
               },
             ]}
           >
             <PulseView minScale={0.9} maxScale={1.1}>
-              <View style={[styles.successIconCircle, mode === 'register' ? { backgroundColor: '#fef3c7' } : null]}>
-                <Text style={[styles.checkmarkText, mode === 'register' ? { color: '#d97706' } : null]}>
+              <View
+                style={[
+                  styles.successIconCircle,
+                  mode === 'register'
+                    ? { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.18)' : '#fef3c7' }
+                    : { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : '#dcfce7' },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.checkmarkText,
+                    mode === 'register' ? { color: '#f59e0b' } : { color: '#10b981' },
+                  ]}
+                >
                   {mode === 'register' ? '⏳' : '✓'}
                 </Text>
               </View>
             </PulseView>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {mode === 'register' ? 'Approval Request Sent!' : 'Welcome Back!'}
+            <Text style={[styles.modalTitle, { color: isDark ? '#ffffff' : '#0f172a' }]}>
+              {mode === 'register' ? 'Registration Submitted!' : 'Welcome Back!'}
             </Text>
-            <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
+            <Text style={[styles.modalBody, { color: isDark ? '#cbd5e1' : '#475569' }]}>
               {mode === 'register'
-                ? `Thank you, ${fullName || 'Employee'}! Your registration request has been submitted and sent to the Administrator for approval.\n\nOnce an admin reviews and approves your account, you will be able to log in with your work email and password.`
+                ? `Thank you, ${fullName || 'Employee'}! Your registration request has been submitted for administrator approval.\n\nOnce an admin reviews and approves your account, you will be able to log in with your credentials.`
                 : `Successfully authenticated as ${workEmail}. Redirecting to your workspace...`}
             </Text>
 
@@ -1383,32 +1684,48 @@ export function EmployeeRegistrationCard({
             style={[
               styles.modalDialog,
               {
-                backgroundColor: isDark ? '#111827' : '#ffffff',
-                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'transparent',
-                borderWidth: isDark ? 1 : 0,
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#cbd5e1',
+                borderWidth: 1.5,
               },
             ]}
           >
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Reset Password</Text>
-            <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
-              Enter your work email address and we&apos;ll send you instructions to reset your password.
+            <View
+              style={[
+                styles.modalIconBadge,
+                {
+                  backgroundColor: isDark ? 'rgba(56, 189, 248, 0.15)' : '#eff6ff',
+                  marginBottom: 12,
+                },
+              ]}
+            >
+              <Text style={{ fontSize: 26 }}>🔑</Text>
+            </View>
+
+            <Text style={[styles.modalTitle, { color: isDark ? '#ffffff' : '#0f172a' }]}>
+              Reset Your Password
+            </Text>
+            <Text style={[styles.modalBody, { color: isDark ? '#cbd5e1' : '#64748b' }]}>
+              Enter your registered work email and we&apos;ll send you instructions to reset your account password.
             </Text>
             <TextInput
               style={[
                 styles.input,
-                inputThemeStyle,
+                getInputStyle('forgotEmail', false),
                 { width: '100%', marginBottom: 16 },
               ]}
               placeholder="name@company.com"
               placeholderTextColor={placeholderColor}
               value={forgotEmail}
+              onFocus={() => setFocusedField('forgotEmail')}
+              onBlur={() => setFocusedField(null)}
               onChangeText={setForgotEmail}
               keyboardType="email-address"
               autoCapitalize="none"
             />
             {forgotSent ? (
-              <Text style={{ color: '#16a34a', fontSize: 13, marginBottom: 12, fontWeight: '500' }}>
-                Reset instructions sent to your email!
+              <Text style={{ color: '#10b981', fontSize: 13, marginBottom: 14, fontWeight: '700' }}>
+                ✓ Reset instructions sent to your email!
               </Text>
             ) : null}
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
@@ -1417,20 +1734,22 @@ export function EmployeeRegistrationCard({
                   styles.modalButton,
                   {
                     flex: 1,
-                    backgroundColor: isDark ? '#1f293d' : '#e2e8f0',
+                    backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                    borderWidth: 1,
+                    borderColor: isDark ? '#334155' : '#cbd5e1',
                   },
                 ]}
                 onPress={() => setForgotModalVisible(false)}
               >
-                <Text style={{ color: isDark ? '#94a3b8' : '#475569', fontWeight: '600', fontSize: 14 }}>
+                <Text style={{ color: isDark ? '#cbd5e1' : '#475569', fontWeight: '700', fontSize: 14 }}>
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, primaryBtnStyle, { flex: 1 }]}
+                style={[styles.modalButton, primaryBtnStyle, { flex: 1.3 }]}
                 onPress={handleSendResetLink}
               >
-                <Text style={styles.modalButtonText}>Send Link</Text>
+                <Text style={styles.modalButtonText}>Send Reset Link</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1443,69 +1762,68 @@ export function EmployeeRegistrationCard({
 const styles = StyleSheet.create({
   cardContainer: {
     width: '100%',
-    backgroundColor: '#ebf1f8',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    paddingHorizontal: 22,
-    paddingTop: 24,
-    paddingBottom: 28,
-    borderWidth: 1,
-    borderColor: '#d7e1ee',
-    shadowColor: '#1e3a8a',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 3,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 26,
+    elevation: 8,
   },
   modeTabsContainer: {
     flexDirection: 'row',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 4,
-    marginBottom: 18,
+    borderWidth: 1,
+    marginBottom: 20,
   },
   modeTab: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 9,
+    paddingVertical: 11,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modeTabActive: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
   },
   modeTabText: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '600',
     letterSpacing: -0.2,
   },
   modeTabTextActive: {
-    fontWeight: '700',
+    fontWeight: '800',
+  },
+  cardHeaderBox: {
+    alignItems: 'center',
+    marginBottom: 22,
   },
   cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1a2333',
+    fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 20,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 13.5,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 19,
   },
   formContent: {
-    gap: 16,
+    width: '100%',
   },
   fieldGroup: {
-    gap: 6,
+    gap: 7,
+    width: '100%',
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#556882',
-    letterSpacing: -0.1,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   passwordHeaderRow: {
     flexDirection: 'row',
@@ -1514,8 +1832,8 @@ const styles = StyleSheet.create({
   },
   forgotPasswordLink: {
     fontSize: 13,
-    color: '#3b82f6',
-    fontWeight: '500',
+    fontWeight: '700',
+    letterSpacing: -0.1,
   },
   faceLabelRow: {
     flexDirection: 'row',
@@ -1523,88 +1841,90 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   removePhotoText: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: '#ef4444',
-    fontWeight: '500',
+    fontWeight: '700',
   },
   input: {
-    height: 48,
-    backgroundColor: '#f1f5fa',
-    borderWidth: 1.5,
-    borderColor: '#c6d4e4',
-    borderRadius: 8,
-    paddingHorizontal: 14,
+    height: 50,
+    borderRadius: 12,
+    paddingHorizontal: 16,
     fontSize: 15,
-    color: '#1e293b',
+    fontWeight: '500',
   },
   passwordInputContainer: {
-    height: 48,
-    backgroundColor: '#f1f5fa',
-    borderWidth: 1.5,
-    borderColor: '#c6d4e4',
-    borderRadius: 8,
+    height: 50,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 14,
-    paddingRight: 10,
+    paddingLeft: 16,
+    paddingRight: 8,
   },
   passwordInput: {
     flex: 1,
     height: '100%',
     fontSize: 15,
-    color: '#1e293b',
+    fontWeight: '500',
   },
   eyeButton: {
-    padding: 6,
-  },
-  eyeIcon: {
-    width: 20,
-    height: 20,
-  },
-  inputError: {
-    borderColor: '#ef4444',
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorText: {
-    fontSize: 12,
-    color: '#dc2626',
+    fontSize: 12.5,
+    color: '#ef4444',
+    fontWeight: '600',
     marginTop: 2,
   },
   mandatoryBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 1,
   },
   mandatoryBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: -0.1,
   },
   photoSectionCard: {
-    minHeight: 74,
-    backgroundColor: '#f1f5fa',
-    borderWidth: 1.5,
-    borderColor: '#c6d4e4',
-    borderRadius: 12,
+    minHeight: 80,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 14,
   },
   avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     overflow: 'hidden',
-    backgroundColor: '#cbd5e1',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  avatarVerifiedDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
   },
   avatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   photoControlsContainer: {
     flex: 1,
@@ -1615,33 +1935,34 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
   },
   photoChoiceHint: {
-    fontSize: 12,
-    fontWeight: '500',
-    lineHeight: 16,
+    fontSize: 12.5,
+    fontWeight: '600',
+    lineHeight: 17,
   },
   photoActionButtonsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginTop: 2,
   },
   photoOptionBtn: {
     flex: 1,
-    height: 38,
-    borderRadius: 8,
+    height: 40,
+    borderRadius: 10,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
   },
   photoOptionBtnText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '700',
     letterSpacing: -0.2,
   },
   photoMiniBtn: {
-    height: 32,
-    paddingHorizontal: 10,
-    borderRadius: 7,
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     borderWidth: 1.2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1651,50 +1972,165 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   photoHelperNote: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '500',
     marginTop: 2,
-    lineHeight: 15,
+    lineHeight: 16,
+  },
+  primaryButton: {
+    height: 52,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    fontSize: 15.5,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  footerText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  loginLink: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  trustBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    paddingTop: 16,
+    marginTop: 8,
+    gap: 8,
+  },
+  trustBadgeItem: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  trustBadgeDot: {
+    fontSize: 10,
+  },
+  formErrorBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1.5,
+    borderColor: '#ef4444',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  formErrorText: {
+    color: '#ef4444',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  requiredMark: {
+    color: '#ef4444',
+    fontWeight: '800',
+  },
+  pwdStrengthWrapper: {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  pwdProgressBar: {
+    height: 5,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  pwdProgressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  pwdStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  pwdStrengthLabel: {
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  pwdHintText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  pwdRulesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  ruleBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  pwdRuleText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   cameraModalCard: {
     width: '100%',
-    maxWidth: 440,
-    borderRadius: 22,
-    padding: 18,
-    borderWidth: 1,
+    borderRadius: 24,
+    borderWidth: 1.5,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 22,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 28,
+    elevation: 16,
   },
   cameraModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
+  },
+  modalIconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cameraModalTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     letterSpacing: -0.2,
   },
   cameraModalSubtitle: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '500',
-    marginTop: 1,
+    marginTop: 2,
   },
   cameraCloseBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   viewfinderContainer: {
     width: '100%',
-    height: 280,
-    borderRadius: 14,
+    height: 290,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#000000',
     position: 'relative',
@@ -1710,195 +2146,156 @@ const styles = StyleSheet.create({
   },
   faceGuideOval: {
     position: 'absolute',
-    width: 150,
-    height: 195,
-    borderRadius: 75,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    width: 160,
+    height: 210,
+    borderRadius: 80,
+    borderWidth: 2.5,
+    borderColor: 'rgba(56, 189, 248, 0.7)',
     borderStyle: 'dashed',
   },
   capturedPreviewImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 14,
+    borderRadius: 16,
   },
   cameraErrorBox: {
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cameraErrorHeading: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#ef4444',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   cameraErrorText: {
-    fontSize: 12.5,
+    fontSize: 13,
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 14,
+    lineHeight: 19,
+    marginBottom: 16,
   },
   cameraFallbackBtn: {
-    paddingVertical: 9,
-    paddingHorizontal: 15,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
     alignItems: 'center',
   },
   cameraFallbackBtnText: {
     color: '#ffffff',
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '700',
   },
   cameraControlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginTop: 14,
+    gap: 10,
+    marginTop: 16,
   },
   cameraShutterBtn: {
     flex: 2,
-    height: 44,
-    borderRadius: 10,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cameraShutterBtnText: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 14.5,
+    fontWeight: '800',
   },
   cameraSecondaryBtn: {
-    height: 44,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1.2,
+    height: 48,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cameraRetakeBtn: {
     flex: 1,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1.2,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cameraRetakeBtnText: {
-    fontSize: 13.5,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
   },
   cameraConfirmBtn: {
     flex: 1.4,
-    height: 44,
-    borderRadius: 10,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cameraConfirmBtnText: {
     color: '#ffffff',
-    fontSize: 13.5,
-    fontWeight: '700',
-  },
-  primaryButton: {
-    height: 48,
-    backgroundColor: '#1b3569',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 6,
-    shadowColor: '#1b3569',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: -0.1,
-  },
-  footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  footerText: {
     fontSize: 14,
-    color: '#64748b',
-  },
-  loginLink: {
-    fontSize: 14,
-    color: '#1e40af',
-    fontWeight: '600',
+    fontWeight: '800',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   modalDialog: {
     width: '100%',
-    maxWidth: 380,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 26,
+    maxWidth: 400,
+    borderRadius: 24,
+    padding: 28,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 28,
+    elevation: 14,
   },
   successIconCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#dcfce7',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   checkmarkText: {
-    fontSize: 28,
-    color: '#16a34a',
+    fontSize: 32,
     fontWeight: 'bold',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontSize: 21,
+    fontWeight: '800',
     marginBottom: 10,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   modalBody: {
     fontSize: 14,
     lineHeight: 21,
-    color: '#475569',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 22,
   },
   modalButton: {
-    backgroundColor: '#1b3569',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalButtonText: {
     color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14.5,
+    fontWeight: '700',
   },
   permOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -1906,16 +2303,16 @@ const styles = StyleSheet.create({
   },
   permCard: {
     width: '100%',
-    maxWidth: 380,
+    maxWidth: 400,
     borderRadius: 24,
-    padding: 24,
+    padding: 26,
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 12,
   },
   permIconBadge: {
     width: 68,
@@ -1931,6 +2328,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
     marginBottom: 10,
+    letterSpacing: -0.2,
   },
   permDescription: {
     fontSize: 14,
@@ -1942,7 +2340,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 22,
   },
   permBtnRow: {
     flexDirection: 'row',
@@ -1953,8 +2351,8 @@ const styles = StyleSheet.create({
   permDenyBtn: {
     flex: 1,
     paddingVertical: 13,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1963,77 +2361,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   permAllowBtn: {
-    flex: 1.25,
+    flex: 1.3,
     paddingVertical: 13,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1b3569',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   permAllowBtnText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700',
-  },
-  formErrorBanner: {
-    backgroundColor: '#fee2e2',
-    borderWidth: 1,
-    borderColor: '#ef4444',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  formErrorText: {
-    color: '#b91c1c',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  requiredMark: {
-    color: '#ef4444',
-    fontWeight: '700',
-  },
-  pwdStrengthWrapper: {
-    marginTop: 6,
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.03)',
-  },
-  pwdProgressBar: {
-    height: 4,
-    backgroundColor: '#cbd5e1',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  pwdProgressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  pwdStatusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 6,
-    marginBottom: 6,
-  },
-  pwdStrengthLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  pwdHintText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  pwdRulesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  pwdRuleText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '800',
   },
 });

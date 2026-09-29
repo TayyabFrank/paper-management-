@@ -18,25 +18,57 @@ export function DocuVaultLogo({
   const { isDark, colors } = useDocuVaultTheme();
 
   const dims = {
-    small: { width: 140, height: 76, radius: 14 },
-    medium: { width: 210, height: 114, radius: 18 },
-    large: { width: 270, height: 147, radius: 22 },
+    small: { width: 140, height: 74, radius: 16, cardPadding: 8 },
+    medium: { width: 220, height: 116, radius: 20, cardPadding: 12 },
+    large: { width: 280, height: 148, radius: 24, cardPadding: 16 },
   }[size];
 
   return (
     <View style={styles.container}>
+      {/* Top Security Status Pill */}
+      <View
+        style={[
+          styles.badgePill,
+          {
+            backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(37, 99, 235, 0.08)',
+            borderColor: isDark ? 'rgba(56, 189, 248, 0.35)' : 'rgba(37, 99, 235, 0.22)',
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.statusDot,
+            {
+              backgroundColor: '#10b981',
+              shadowColor: '#10b981',
+            },
+          ]}
+        />
+        <Text
+          style={[
+            styles.badgePillText,
+            { color: isDark ? '#38bdf8' : '#1e40af' },
+          ]}
+        >
+          DOCUVAULT ENTERPRISE • SECURE GATEWAY
+        </Text>
+      </View>
+
+      {/* High-Gloss Logo Container */}
       <View
         style={[
           styles.logoCard,
           {
             backgroundColor: '#ffffff',
             borderRadius: dims.radius,
-            borderColor: isDark ? 'rgba(56, 189, 248, 0.45)' : 'rgba(226, 232, 240, 0.8)',
+            paddingHorizontal: dims.cardPadding + 6,
+            paddingVertical: dims.cardPadding,
+            borderColor: isDark ? 'rgba(56, 189, 248, 0.5)' : '#cbd5e1',
             borderWidth: isDark ? 1.5 : 1,
             shadowColor: isDark ? '#38bdf8' : '#0f172a',
-            shadowOpacity: isDark ? 0.25 : 0.08,
-            shadowRadius: isDark ? 14 : 8,
-            elevation: isDark ? 8 : 3,
+            shadowOpacity: isDark ? 0.3 : 0.1,
+            shadowRadius: isDark ? 18 : 12,
+            elevation: isDark ? 10 : 4,
           },
         ]}
       >
@@ -48,7 +80,16 @@ export function DocuVaultLogo({
       </View>
 
       {showSubtitle && subtitle ? (
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+        <Text
+          style={[
+            styles.subtitle,
+            {
+              color: isDark ? '#cbd5e1' : '#334155',
+            },
+          ]}
+        >
+          {subtitle}
+        </Text>
       ) : null}
     </View>
   );
@@ -59,20 +100,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
-    marginTop: 8,
+    marginTop: 6,
+  },
+  badgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 6,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  badgePillText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   logoCard: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
   },
   subtitle: {
     fontSize: 14,
-    marginTop: 10,
+    marginTop: 12,
     textAlign: 'center',
-    fontWeight: '500',
-    letterSpacing: -0.1,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
 });

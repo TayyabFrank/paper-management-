@@ -6,12 +6,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  Text,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { DocuVaultLogo } from '@/components/docuvault-logo';
 import { EmployeeRegistrationCard } from '@/components/employee-registration-card';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
+import { AuthAmbientBackground } from '@/components/auth-ambient-background';
 import { useDocuVaultTheme } from '@/context/theme-context';
 import { useResponsive } from '@/hooks/use-responsive';
 import { FadeInView } from '@/components/ui/animated-components';
@@ -21,7 +23,7 @@ export default function RegisterScreen() {
   const { isDark, colors } = useDocuVaultTheme();
   const { isSmallPhone, isTablet, isDesktop } = useResponsive();
 
-  const registerMaxWidth = isDesktop ? 580 : isTablet ? 520 : 440;
+  const registerMaxWidth = isDesktop ? 540 : isTablet ? 490 : 430;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -29,19 +31,30 @@ export default function RegisterScreen() {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background}
       />
+
+      {/* Modern Ambient Glow & Mesh Background */}
+      <AuthAmbientBackground />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardContainer}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
-        <View style={[styles.topThemeBar, { paddingHorizontal: isSmallPhone ? 12 : 20 }]}>
+        {/* Top Header Bar */}
+        <View style={[styles.topThemeBar, { paddingHorizontal: isSmallPhone ? 14 : 24 }]}>
+          <View style={styles.brandBadge}>
+            <View style={[styles.brandPulseDot, { backgroundColor: '#10b981' }]} />
+            <Text style={[styles.brandBadgeText, { color: isDark ? '#94a3b8' : '#475569' }]}>
+              DOCUVAULT ONBOARDING PORTAL
+            </Text>
+          </View>
           <ThemeToggleButton />
         </View>
 
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingHorizontal: isSmallPhone ? 10 : isTablet ? 24 : 16 },
+            { paddingHorizontal: isSmallPhone ? 12 : isTablet ? 24 : 16 },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -54,7 +67,7 @@ export default function RegisterScreen() {
           >
             <DocuVaultLogo
               size={isSmallPhone ? 'small' : 'medium'}
-              subtitle="Create your enterprise account"
+              subtitle="Create Your Enterprise Employee Identity"
             />
             <EmployeeRegistrationCard
               initialMode="register"
@@ -77,6 +90,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    position: 'relative',
   },
   keyboardContainer: {
     flex: 1,
@@ -84,22 +98,35 @@ const styles = StyleSheet.create({
   topThemeBar: {
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 6,
     zIndex: 10,
+  },
+  brandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  brandPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  brandBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    paddingVertical: 24,
   },
   innerContainer: {
     width: '100%',
-    alignSelf: 'center',
     alignItems: 'center',
   },
 });
