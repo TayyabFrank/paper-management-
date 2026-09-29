@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   StyleProp,
+  StyleSheet,
   ViewStyle,
 } from 'react-native';
 
@@ -150,6 +151,10 @@ export function ScalePressable({
     }).start();
   };
 
+  const flattenedStyle = StyleSheet.flatten(style);
+  const flexStyle = flattenedStyle?.flex !== undefined ? { flex: flattenedStyle.flex } : null;
+  const widthStyle = flattenedStyle?.width !== undefined ? { width: flattenedStyle.width } : null;
+
   return (
     <Pressable
       onPress={onPress}
@@ -159,6 +164,8 @@ export function ScalePressable({
       accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel}
       style={[
+        flexStyle,
+        widthStyle,
         Platform.OS === 'web' && (!disabled ? { cursor: 'pointer' } : { cursor: 'default' }),
       ] as any}
     >

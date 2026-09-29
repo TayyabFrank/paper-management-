@@ -613,7 +613,7 @@ export function EmployeeRegistrationCard({
         </>
       )}
 
-      {/* Interactive Switcher Tabs: Sign In vs Register */}
+      {/* Interactive Switcher Tabs: Sign In vs Register (Equally Balanced 50/50 Control) */}
       <View
         style={[
           styles.modeTabsContainer,
@@ -623,15 +623,19 @@ export function EmployeeRegistrationCard({
           },
         ]}
       >
-        <ScalePressable
+        <TouchableOpacity
           style={[
             styles.modeTab,
             mode === 'login' && [
               styles.modeTabActive,
-              { backgroundColor: isDark ? '#2563eb' : '#1b3569' },
+              {
+                backgroundColor: isDark ? '#2563eb' : '#1b3569',
+                shadowColor: isDark ? '#38bdf8' : '#1b3569',
+              },
             ],
           ]}
           onPress={() => switchMode('login')}
+          activeOpacity={0.8}
           accessibilityRole="tab"
           accessibilityLabel="Sign In Tab"
         >
@@ -639,22 +643,26 @@ export function EmployeeRegistrationCard({
             style={[
               styles.modeTabText,
               mode === 'login' && styles.modeTabTextActive,
-              { color: mode === 'login' ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569') },
+              { color: mode === 'login' ? '#ffffff' : (isDark ? '#94a3b8' : '#475569') },
             ]}
           >
             🔐 Sign In
           </Text>
-        </ScalePressable>
+        </TouchableOpacity>
 
-        <ScalePressable
+        <TouchableOpacity
           style={[
             styles.modeTab,
             mode === 'register' && [
               styles.modeTabActive,
-              { backgroundColor: isDark ? '#2563eb' : '#1b3569' },
+              {
+                backgroundColor: isDark ? '#2563eb' : '#1b3569',
+                shadowColor: isDark ? '#38bdf8' : '#1b3569',
+              },
             ],
           ]}
           onPress={() => switchMode('register')}
+          activeOpacity={0.8}
           accessibilityRole="tab"
           accessibilityLabel="Register Tab"
         >
@@ -662,12 +670,12 @@ export function EmployeeRegistrationCard({
             style={[
               styles.modeTabText,
               mode === 'register' && styles.modeTabTextActive,
-              { color: mode === 'register' ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569') },
+              { color: mode === 'register' ? '#ffffff' : (isDark ? '#94a3b8' : '#475569') },
             ]}
           >
             📝 Register
           </Text>
-        </ScalePressable>
+        </TouchableOpacity>
       </View>
 
       {/* Card Header Title and Subtitle */}
@@ -1770,14 +1778,16 @@ const styles = StyleSheet.create({
   },
   modeTabsContainer: {
     flexDirection: 'row',
+    width: '100%',
     borderRadius: 14,
     padding: 4,
-    borderWidth: 1,
-    marginBottom: 20,
+    borderWidth: 1.5,
+    marginBottom: 22,
+    alignItems: 'center',
   },
   modeTab: {
     flex: 1,
-    paddingVertical: 11,
+    height: 44,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
