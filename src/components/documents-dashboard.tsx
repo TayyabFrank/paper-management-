@@ -19,6 +19,7 @@ import { useAuth } from '@/context/auth-context';
 import { useResponsive } from '@/hooks/use-responsive';
 import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
 import { FadeInView, ScalePressable } from '@/components/ui/animated-components';
+import { DocumentBadge, getDocumentColor } from './ui/document-badge';
 
 // Vector icons as crisp SVG URIs
 const BACK_ARROW_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -894,6 +895,8 @@ export function DocumentsDashboard({
                   {
                     backgroundColor: isDark ? '#111827' : '#ffffff',
                     borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e8edf4',
+                    borderLeftColor: getDocumentColor(doc.type),
+                    borderLeftWidth: 4,
                     shadowColor: isDark ? '#000000' : '#64748b',
                     width: '100%',
                   },
@@ -901,10 +904,14 @@ export function DocumentsDashboard({
                 onPress={() => setReadingDoc(doc)}
               >
                 <View style={styles.docIconWrapper}>
-                  <Image
-                    source={{ uri: getDocumentTypeIcon(doc.type, doc.title) }}
-                    style={styles.docTypeImage}
-                    resizeMode="contain"
+                  <DocumentBadge
+                    type={doc.type}
+                    title={doc.title}
+                    fileUrl={doc.fileUrl}
+                    previewImage={doc.previewImage}
+                    subtitle={doc.subtitle}
+                    size={42}
+                    isDark={isDark}
                   />
                 </View>
 

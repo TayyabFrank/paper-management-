@@ -22,6 +22,7 @@ import { detectFileType, getDocumentTypeIcon } from './documents-dashboard';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { useResponsive } from '@/hooks/use-responsive';
 import { FadeInView, ScalePressable, PulseView } from '@/components/ui/animated-components';
+import { DocumentBadge } from './ui/document-badge';
 
 interface NewDocViewProps {
   onDocumentAdded?: () => void;
@@ -438,7 +439,13 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
                 ]}
               >
                 <View style={styles.selectedFileInfo}>
-                  <Text style={styles.selectedFileIcon}>📄</Text>
+                  <DocumentBadge
+                    type={detectFileType(selectedFile.name)}
+                    title={selectedFile.name}
+                    fileUrl={selectedFile.fileUrl}
+                    size={38}
+                    isDark={isDark}
+                  />
                   <View style={{ flex: 1 }}>
                     <Text
                       style={[styles.selectedFileName, { color: colors.textPrimary }]}

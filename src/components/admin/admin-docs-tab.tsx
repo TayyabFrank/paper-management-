@@ -16,6 +16,7 @@ import { useDocuments } from '@/context/documents-context';
 import { useAuth, StoredAccount } from '@/context/auth-context';
 import { DocumentReaderItem } from '@/components/document-reader';
 import { useResponsive } from '@/hooks/use-responsive';
+import { DocumentBadge } from '../ui/document-badge';
 
 interface AdminDocsTabProps {
   selectedEmployee: StoredAccount | null;
@@ -746,18 +747,16 @@ export function AdminDocsTab({
                 activeOpacity={0.8}
               >
                 {/* File Icon Badge */}
-                <View style={[styles.badgeContainer, { backgroundColor: isDark ? 'rgba(30, 41, 59, 0.5)' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0' }]}>
-                  {Platform.OS === 'web' ? (
-                    <Image
-                      source={{ uri: getMiniFileBadge(doc) }}
-                      style={{ width: 38, height: 38 }}
-                      resizeMode="contain"
-                    />
-                  ) : (
-                    <Text style={{ fontSize: 24, textAlign: 'center' }}>
-                      {doc.type === 'image' ? '🖼️' : doc.type === 'docx' ? '📝' : isLinkDoc(doc) ? '🔗' : doc.type === 'video' ? '🎬' : '📄'}
-                    </Text>
-                  )}
+                <View style={styles.badgeContainer}>
+                  <DocumentBadge
+                    type={doc.type}
+                    title={doc.title}
+                    fileUrl={doc.fileUrl}
+                    previewImage={doc.previewImage}
+                    subtitle={doc.subtitle}
+                    size={38}
+                    isDark={isDark}
+                  />
                 </View>
 
                 {/* Document Information */}
