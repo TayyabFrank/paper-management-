@@ -625,6 +625,7 @@ export interface DocumentReaderItem {
   type: 'pdf' | 'docx' | 'image' | 'video' | 'article' | 'link' | 'other';
   icon: string;
   fileSize?: string;
+  fileSizeBytes?: number;
   fileUrl?: string;
   fileName?: string;
   isSigned?: boolean;

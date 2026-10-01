@@ -49,6 +49,10 @@ const documentSchema = new mongoose.Schema(
       type: String,
       default: '1.2 MB',
     },
+    fileSizeBytes: {
+      type: Number,
+      default: 0,
+    },
     fileUrl: {
       type: String,
     },

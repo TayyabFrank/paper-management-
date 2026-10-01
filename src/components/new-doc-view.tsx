@@ -92,6 +92,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
   const [selectedFile, setSelectedFile] = useState<{
     name: string;
     size: string;
+    sizeBytes?: number;
     fileUrl?: string;
   } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -135,6 +136,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
           setSelectedFile({
             name: asset.name,
             size: formattedSize,
+            sizeBytes: rawSize,
             fileUrl: asset.uri,
           });
 
@@ -171,6 +173,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
       setSelectedFile({
         name: f.name,
         size: formattedSize,
+        sizeBytes: rawSize,
         fileUrl: blobUrl,
       });
       if (!documentTitle) {
@@ -221,6 +224,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
       type: detectedType,
       icon: getDocumentTypeIcon(detectedType, finalTitle),
       fileSize: isDrive ? 'Drive Link' : selectedFile?.size || '1.5 MB',
+      fileSizeBytes: isDrive ? 0 : selectedFile?.sizeBytes || (1.5 * 1024 * 1024),
       fileUrl: selectedFile?.fileUrl || (isDrive ? driveLink : undefined),
       fileName: selectedFile?.name || finalTitle,
       previewImage: detectedType === 'image' ? selectedFile?.fileUrl : undefined,

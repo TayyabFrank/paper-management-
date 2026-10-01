@@ -20,6 +20,11 @@ import { useResponsive } from '@/hooks/use-responsive';
 import { UploadPermissionModal, UploadedItemResult } from './upload-permission-modal';
 import { FadeInView, ScalePressable } from '@/components/ui/animated-components';
 import { DocumentBadge, getDocumentColor } from './ui/document-badge';
+import {
+  calculateTotalStorageBytes,
+  formatStorageSize,
+  formatStorageUsed,
+} from '@/utils/storage-calculator';
 
 // Vector icons as crisp SVG URIs
 const BACK_ARROW_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -441,6 +446,7 @@ export function DocumentsDashboard({
       type: item.type,
       icon: getDocumentTypeIcon(item.type, item.name),
       fileSize: item.size,
+      fileSizeBytes: item.sizeBytes,
       fileUrl: item.url,
       fileName: item.name,
       previewImage: item.previewImage,
@@ -505,6 +511,7 @@ export function DocumentsDashboard({
           type: detectedType,
           icon: getDocumentTypeIcon(detectedType, file.name),
           fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          fileSizeBytes: file.size,
           fileUrl: blobUrl,
           fileName: file.name,
           previewImage: isImg && uploadEvent.target?.result ? (uploadEvent.target.result as string) : undefined,
@@ -558,6 +565,7 @@ export function DocumentsDashboard({
       type: type,
       icon: getDocumentTypeIcon(type, name),
       fileSize: '2.5 MB',
+      fileSizeBytes: 2.5 * 1024 * 1024,
       previewImage: type === 'image' ? 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80' : undefined,
       employeeEmail: employeeEmail || 'employee@enterprise.com',
       employeeName: employeeName || 'Employee',
@@ -604,6 +612,9 @@ export function DocumentsDashboard({
   const linkCount = employeeOwnedDocs.filter((d) => d.type === 'link').length;
   const imageCount = employeeOwnedDocs.filter((d) => d.type === 'image').length;
   const otherCount = employeeOwnedDocs.filter((d) => d.type === 'other').length;
+  const totalStorageBytes = calculateTotalStorageBytes(employeeOwnedDocs);
+  const formattedTotalStorage = formatStorageSize(totalStorageBytes);
+  const storageUsedText = formatStorageUsed(employeeOwnedDocs);
   const { containerMaxWidth, paddingHorizontal, isPhone, isTablet, isDesktop, isSmallPhone } = useResponsive();
 
   return (
@@ -673,22 +684,80 @@ export function DocumentsDashboard({
           <Text style={[styles.profileName, { color: colors.textPrimary }]}>{employeeName || user.name || 'Employee'}</Text>
           <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{employeeEmail || user.email}</Text>
         </View>
-        <View
-          style={[
-            styles.activeBadge,
-            {
-              backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#eff6ff',
-            },
-          ]}
-        >
-          <Text
+        <View style={styles.profileBadgeCol}>
+          <View
             style={[
-              styles.activeBadgeText,
-              { color: isDark ? '#4ade80' : '#2563eb' },
+              styles.activeBadge,
+              {
+                backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#eff6ff',
+              },
             ]}
           >
-            🟢 Active
-          </Text>
+            <Text
+              style={[
+                styles.activeBadgeText,
+                { color: isDark ? '#4ade80' : '#2563eb' },
+              ]}
+            >
+              🟢 Active
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.storageBadge,
+              {
+                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.14)' : '#eff6ff',
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#bfdbfe',
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.storageBadgeText,
+                { color: isDark ? '#38bdf8' : '#1d4ed8' },
+              ]}
+            >
+              💾 {storageUsedText}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Storage Overview Banner */}
+      <View
+        style={[
+          styles.storageOverviewCard,
+          {
+            backgroundColor: isDark ? '#111827' : '#ffffff',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+            shadowColor: isDark ? '#000000' : '#0f172a',
+          },
+        ]}
+      >
+        <View style={styles.storageOverviewTopRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+            <View
+              style={[
+                styles.storageIconWrapper,
+                { backgroundColor: isDark ? '#1e293b' : '#eff6ff' },
+              ]}
+            >
+              <Text style={{ fontSize: 20 }}>💾</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.storageOverviewTitle, { color: colors.textPrimary }]}>
+                Vault Storage Used
+              </Text>
+              <Text style={[styles.storageOverviewSubtitle, { color: colors.textSecondary }]}>
+                Total size of all documents uploaded to your vault ({employeeOwnedDocs.length} {employeeOwnedDocs.length === 1 ? 'file' : 'files'})
+              </Text>
+            </View>
+          </View>
+          <View style={styles.storageValueContainer}>
+            <Text style={[styles.storageValueHighlight, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
+              {storageUsedText}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -730,6 +799,28 @@ export function DocumentsDashboard({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.statsContainer}
       >
+        {/* Dedicated Storage Stat Item */}
+        <View
+          style={[
+            styles.statItem,
+            styles.storageStatItem,
+            {
+              backgroundColor: isDark ? '#1a2436' : '#eff6ff',
+              borderColor: isDark ? 'rgba(56, 189, 248, 0.35)' : '#bfdbfe',
+            },
+          ]}
+        >
+          <View style={styles.statTopRow}>
+            <Text style={{ fontSize: 13, marginRight: 2 }}>💾</Text>
+            <Text style={[styles.statCount, { color: isDark ? '#38bdf8' : '#1d4ed8' }]}>
+              {formattedTotalStorage}
+            </Text>
+          </View>
+          <Text style={[styles.statLabel, { color: isDark ? '#93c5fd' : '#1e40af', fontWeight: '700' }]}>
+            Used
+          </Text>
+        </View>
+
         <TouchableOpacity
           style={[
             styles.statItem,
@@ -740,7 +831,7 @@ export function DocumentsDashboard({
           onPress={() => setActiveCategory('all')}
           activeOpacity={0.7}
         >
-          <Text style={[styles.statCount, { color: colors.textPrimary }]}>{documents.length}</Text>
+          <Text style={[styles.statCount, { color: colors.textPrimary }]}>{employeeOwnedDocs.length}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>📊 All Docs</Text>
         </TouchableOpacity>
 
@@ -1137,6 +1228,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#7c3aed',
+  },
+  profileBadgeCol: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  storageBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  storageBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  storageOverviewCard: {
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    marginBottom: 16,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  storageOverviewTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  storageIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  storageOverviewTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  storageOverviewSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  storageValueContainer: {
+    alignItems: 'flex-end',
+    paddingLeft: 8,
+  },
+  storageValueHighlight: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  storageStatItem: {
+    borderWidth: 1,
   },
   searchContainer: {
     backgroundColor: '#ffffff',

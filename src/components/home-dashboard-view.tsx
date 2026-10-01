@@ -14,6 +14,7 @@ import { useResponsive } from '@/hooks/use-responsive';
 import { TabKey } from './bottom-navbar';
 import { ThemeToggleButton } from './theme-toggle-button';
 import { APP_LOGO } from '@/components/docuvault-logo';
+import { formatStorageUsed } from '@/utils/storage-calculator';
 
 import { FadeInView, ScalePressable, PulseView } from '@/components/ui/animated-components';
 
@@ -37,7 +38,7 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
 
   const verifiedDocs = userDocuments.filter((d) => d.subtitle !== 'Not Uploaded').length;
   const pendingDocs = userDocuments.filter((d) => d.subtitle === 'Not Uploaded').length;
-  const storageMB = ((userDocuments.length * 1.5) || 2.4).toFixed(1);
+  const storageUsedText = formatStorageUsed(userDocuments);
 
   return (
     <ScrollView
@@ -233,9 +234,9 @@ export function HomeDashboardView({ onNavigateTab }: HomeDashboardViewProps) {
               ]}
             >
               <Text style={[styles.metricNumber, { color: isDark ? '#c084fc' : '#8b5cf6' }]}>
-                {storageMB} MB
+                {storageUsedText}
               </Text>
-              <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>💾 Vault Encrypted</Text>
+              <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>💾 Storage Used</Text>
             </ScalePressable>
           </FadeInView>
         </View>

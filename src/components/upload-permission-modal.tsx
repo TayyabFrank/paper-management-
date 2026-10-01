@@ -15,6 +15,7 @@ export interface UploadedItemResult {
   name: string;
   type: 'pdf' | 'docx' | 'image' | 'video' | 'article' | 'link' | 'other';
   size: string;
+  sizeBytes?: number;
   url?: string;
   previewImage?: string;
 }
@@ -121,6 +122,7 @@ export function UploadPermissionModal({
           name: f.name.replace(/\.[^/.]+$/, ''),
           type: detectedType,
           size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
+          sizeBytes: f.size,
           previewImage: isImg && loadEvent.target?.result ? (loadEvent.target.result as string) : undefined,
         });
         onClose();
