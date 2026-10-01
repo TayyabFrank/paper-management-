@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,9 +26,13 @@ const LOGO_BADGE_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 
 export function AdminApprovalsTab({ onOpenMenu }: AdminApprovalsTabProps) {
   const { isDark, colors } = useDocuVaultTheme();
-  const { registeredAccounts, approveAccount, rejectAccount } = useAuth();
+  const { registeredAccounts, approveAccount, rejectAccount, syncWithBackend } = useAuth();
   const { adminContainerMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    syncWithBackend();
+  }, [syncWithBackend]);
 
   const pendingStaff = registeredAccounts.filter((a) => a.status === 'pending');
 
