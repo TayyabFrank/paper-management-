@@ -100,10 +100,7 @@ export function EmployeeRegistrationCard({
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedModalVisible, setSubmittedModalVisible] = useState(false);
-  const [forgotModalVisible, setForgotModalVisible] = useState(false);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotSent, setForgotSent] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Active focus tracking for crisp input borders
@@ -525,15 +522,6 @@ export function EmployeeRegistrationCard({
     }
   };
 
-  const handleSendResetLink = () => {
-    if (!forgotEmail.trim()) return;
-    setForgotSent(true);
-    setTimeout(() => {
-      setForgotSent(false);
-      setForgotModalVisible(false);
-      setForgotEmail('');
-    }, 2000);
-  };
 
   // High-Contrast Theme Styles
   const cardThemeStyle = {
@@ -1243,22 +1231,11 @@ export function EmployeeRegistrationCard({
               {errors.workEmail ? <Text style={styles.errorText}>⚠️ {errors.workEmail}</Text> : null}
             </View>
 
-            {/* Password with Prominent Forgot Password Trigger */}
+            {/* Password */}
             <View style={styles.fieldGroup}>
-              <View style={styles.passwordHeaderRow}>
-                <Text style={[styles.label, labelThemeStyle]}>
-                  🔒 Password <Text style={styles.requiredMark}>*</Text>
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setForgotModalVisible(true)}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={[styles.forgotPasswordLink, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
-                    Forgot Password?
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={[styles.label, labelThemeStyle]}>
+                🔒 Password <Text style={styles.requiredMark}>*</Text>
+              </Text>
 
               <View
                 style={[
@@ -1678,89 +1655,7 @@ export function EmployeeRegistrationCard({
         </View>
       </Modal>
 
-      {/* Forgot Password Modal */}
-      <Modal
-        visible={forgotModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setForgotModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalDialog,
-              {
-                backgroundColor: isDark ? '#0f172a' : '#ffffff',
-                borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#cbd5e1',
-                borderWidth: 1.5,
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.modalIconBadge,
-                {
-                  backgroundColor: isDark ? 'rgba(56, 189, 248, 0.15)' : '#eff6ff',
-                  marginBottom: 12,
-                },
-              ]}
-            >
-              <Text style={{ fontSize: 26 }}>🔑</Text>
-            </View>
 
-            <Text style={[styles.modalTitle, { color: isDark ? '#ffffff' : '#0f172a' }]}>
-              Reset Your Password
-            </Text>
-            <Text style={[styles.modalBody, { color: isDark ? '#cbd5e1' : '#64748b' }]}>
-              Enter your registered work email and we&apos;ll send you instructions to reset your account password.
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                getInputStyle('forgotEmail', false),
-                { width: '100%', marginBottom: 16 },
-              ]}
-              placeholder="name@company.com"
-              placeholderTextColor={placeholderColor}
-              value={forgotEmail}
-              onFocus={() => setFocusedField('forgotEmail')}
-              onBlur={() => setFocusedField(null)}
-              onChangeText={setForgotEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            {forgotSent ? (
-              <Text style={{ color: '#10b981', fontSize: 13, marginBottom: 14, fontWeight: '700' }}>
-                ✓ Reset instructions sent to your email!
-              </Text>
-            ) : null}
-            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  {
-                    flex: 1,
-                    backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
-                    borderWidth: 1,
-                    borderColor: isDark ? '#334155' : '#cbd5e1',
-                  },
-                ]}
-                onPress={() => setForgotModalVisible(false)}
-              >
-                <Text style={{ color: isDark ? '#cbd5e1' : '#475569', fontWeight: '700', fontSize: 14 }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, primaryBtnStyle, { flex: 1.3 }]}
-                onPress={handleSendResetLink}
-              >
-                <Text style={styles.modalButtonText}>Send Reset Link</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }

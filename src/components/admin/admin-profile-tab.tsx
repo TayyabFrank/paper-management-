@@ -144,7 +144,6 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editAvatar, setEditAvatar] = useState(adminAvatar);
   const [editName, setEditName] = useState(adminName);
-  const [editEmail, setEditEmail] = useState(adminEmail);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -158,7 +157,6 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
   const handleOpenEdit = () => {
     setEditAvatar(user.avatar || DEFAULT_ADMIN_AVATAR);
     setEditName(user.name || adminName);
-    setEditEmail(user.email || adminEmail);
     setNewPassword('');
     setConfirmPassword('');
     setShowPassword(false);
@@ -208,17 +206,8 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
 
   const handleSaveEdit = async () => {
     setEditError(null);
-    const cleanEmail = editEmail.trim().toLowerCase();
     const cleanName = editName.trim();
 
-    if (!cleanEmail) {
-      setEditError('Admin email cannot be empty.');
-      return;
-    }
-    if (!/\S+@\S+\.\S+/.test(cleanEmail)) {
-      setEditError('Please enter a valid work email (e.g. name@company.com).');
-      return;
-    }
     if (!cleanName) {
       setEditError('Admin name cannot be empty.');
       return;
@@ -256,7 +245,6 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
     const result = await updateUser(
       {
         name: cleanName,
-        email: cleanEmail,
         avatar: editAvatar,
       },
       newPassword.trim() ? newPassword.trim() : undefined
@@ -269,7 +257,7 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
     }
 
     setEditModalVisible(false);
-    setFeedbackToast('✓ Admin profile, photo & credentials updated successfully!');
+    setFeedbackToast('✓ Admin profile, photo & password updated successfully!');
     setTimeout(() => {
       setFeedbackToast(null);
     }, 3500);
@@ -394,22 +382,11 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
 
           <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }]} />
 
-          {/* Section 2: Admin Email (with direct Edit button) */}
+          {/* Section 2: Admin Email (Read-only) */}
           <View style={styles.cardField}>
-            <View style={styles.fieldLabelRow}>
-              <Text style={[styles.fieldLabel, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                Admin Email
-              </Text>
-              <TouchableOpacity
-                style={[styles.editPill, { backgroundColor: isDark ? '#1e293b' : '#eff6ff' }]}
-                onPress={handleOpenEdit}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.editPillText, { color: isDark ? '#38bdf8' : '#2563eb' }]}>
-                  ✏️ Edit Email
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={[styles.fieldLabel, { color: isDark ? '#94a3b8' : '#64748b', marginBottom: 6 }]}>
+              Admin Email
+            </Text>
             <Text style={[styles.fieldValueEmail, { color: isDark ? colors.textPrimary : '#0f172a' }]}>
               {adminEmail}
             </Text>
@@ -576,7 +553,7 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
                 ✏️ Update Admin Profile
               </Text>
               <Text style={[styles.modalSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-                Update your admin avatar, full name, login email, or account password.
+                Update your admin avatar, full name, or account password.
               </Text>
 
               {editError && (
@@ -683,32 +660,7 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
                 />
               </View>
 
-              {/* 3. Admin Work Email */}
-              <View style={styles.modalInputGroup}>
-                <Text style={[styles.modalInputLabel, { color: colors.textPrimary }]}>
-                  ✉️ Admin Work Email *
-                </Text>
-                <TextInput
-                  style={[
-                    styles.modalTextInput,
-                    {
-                      backgroundColor: isDark ? '#0f172a' : '#f8fafc',
-                      borderColor: isDark ? '#334155' : '#cbd5e1',
-                      color: colors.textPrimary,
-                    },
-                  ]}
-                  value={editEmail}
-                  onChangeText={(text) => {
-                    setEditEmail(text);
-                    if (editError) setEditError(null);
-                  }}
-                  placeholder="tayyab@admin.com"
-                  placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
+
 
               {/* 4. Change Password (Optional) */}
               <View
