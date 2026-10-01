@@ -28,7 +28,26 @@ export default function HomeScreen() {
   const { isLoggedIn, isLoading, user, isAdminMode } = useAuth();
   const { isSmallPhone, isTablet, isDesktop } = useResponsive();
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [activeTab, setActiveTab] = useState<TabKey>('home');
+  const [activeTab, setActiveTabState] = useState<TabKey>(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const savedTab = window.localStorage.getItem('@docuvault_active_tab') as TabKey;
+        if (savedTab && ['home', 'docs', 'new-doc', 'profile'].includes(savedTab)) {
+          return savedTab;
+        }
+      } catch {}
+    }
+    return 'home';
+  });
+
+  const setActiveTab = (tab: TabKey) => {
+    setActiveTabState(tab);
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem('@docuvault_active_tab', tab);
+      } catch {}
+    }
+  };
 
   // Loading indicator while checking stored session
   if (isLoading) {

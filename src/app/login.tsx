@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,7 @@ import {
   Platform,
   StatusBar,
   Text,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -15,13 +16,31 @@ import { EmployeeRegistrationCard } from '@/components/employee-registration-car
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { AuthAmbientBackground } from '@/components/auth-ambient-background';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { useAuth } from '@/context/auth-context';
 import { useResponsive } from '@/hooks/use-responsive';
 import { FadeInView } from '@/components/ui/animated-components';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { isDark, colors } = useDocuVaultTheme();
+  const { isLoggedIn, isLoading } = useAuth();
   const { isSmallPhone, isTablet, isDesktop } = useResponsive();
+
+  useEffect(() => {
+    if (!isLoading && isLoggedIn) {
+      router.replace('/');
+    }
+  }, [isLoading, isLoggedIn, router]);
+
+  if (isLoading || isLoggedIn) {
+    return (
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}
+      >
+        <ActivityIndicator size="large" color={isDark ? '#38bdf8' : '#1b3569'} />
+      </SafeAreaView>
+    );
+  }
 
   const loginMaxWidth = isDesktop ? 480 : isTablet ? 450 : 410;
 

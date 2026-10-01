@@ -143,7 +143,26 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
   const { isDark, colors, toggleTheme } = useDocuVaultTheme();
   const { registeredAccounts, logout, user, syncWithBackend } = useAuth();
   const { refreshDocuments } = useDocuments();
-  const [activeTab, setActiveTab] = useState<AdminTabKey>('dashboard');
+  const [activeTab, setActiveTabState] = useState<AdminTabKey>(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const saved = window.localStorage.getItem('@docuvault_admin_tab') as AdminTabKey;
+        if (saved && ['dashboard', 'users', 'docs', 'approvals', 'profile'].includes(saved)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'dashboard';
+  });
+
+  const setActiveTab = (tab: AdminTabKey) => {
+    setActiveTabState(tab);
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem('@docuvault_admin_tab', tab);
+      } catch {}
+    }
+  };
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<StoredAccount | null>(null);
   const [readingDoc, setReadingDoc] = useState<DocumentReaderItem | null>(null);

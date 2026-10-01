@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   apiLogin,
@@ -100,17 +101,69 @@ const AuthContext = createContext<AuthContextValue>({
   syncWithBackend: async () => {},
 });
 
+function getStoredWebSession(): { user: EmployeeUser | null; isAdminMode: boolean } {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const rawSession = window.localStorage.getItem(STORAGE_KEY_SESSION);
+      const rawAdmin = window.localStorage.getItem(STORAGE_KEY_ADMIN_MODE);
+      if (rawSession) {
+        const parsed = JSON.parse(rawSession);
+        if (parsed && parsed.email) {
+          return {
+            user: parsed,
+            isAdminMode: parsed.role === 'Admin' || rawAdmin === 'true',
+          };
+        }
+      }
+    } catch {}
+  }
+  return { user: null, isAdminMode: false };
+}
+
+async function persistSession(sessionUser: EmployeeUser | null, adminModeVal: boolean) {
+  try {
+    if (sessionUser) {
+      const userJson = JSON.stringify(sessionUser);
+      const adminJson = JSON.stringify(adminModeVal);
+      await AsyncStorage.setItem(STORAGE_KEY_SESSION, userJson).catch(() => {});
+      await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, adminJson).catch(() => {});
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.setItem(STORAGE_KEY_SESSION, userJson);
+          window.localStorage.setItem(STORAGE_KEY_ADMIN_MODE, adminJson);
+        } catch {}
+      }
+    } else {
+      await AsyncStorage.removeItem(STORAGE_KEY_SESSION).catch(() => {});
+      await AsyncStorage.removeItem(STORAGE_KEY_ADMIN_MODE).catch(() => {});
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.removeItem(STORAGE_KEY_SESSION);
+          window.localStorage.removeItem(STORAGE_KEY_ADMIN_MODE);
+        } catch {}
+      }
+    }
+  } catch (e) {
+    console.warn('Session persistence error:', e);
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [user, setUser] = useState<EmployeeUser>(EMPTY_USER);
+  const initialWeb = getStoredWebSession();
+
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(!!initialWeb.user);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialWeb.user);
+  const [user, setUser] = useState<EmployeeUser>(initialWeb.user || EMPTY_USER);
   const [accounts, setAccounts] = useState<StoredAccount[]>(INITIAL_STAFF_ACCOUNTS);
-  const [isAdminMode, setIsAdminModeState] = useState<boolean>(false);
+  const [isAdminMode, setIsAdminModeState] = useState<boolean>(initialWeb.isAdminMode);
 
   const setIsAdminMode = async (val: boolean) => {
     setIsAdminModeState(val);
     try {
       await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(val));
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(val));
+      }
     } catch (e) {
       console.warn('Failed to save admin mode flag:', e);
     }
@@ -178,12 +231,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Hydrate accounts and active session on startup
   useEffect(() => {
-    let isMounted = true;
+    let canceled = false;
 
     async function hydrateAuth() {
       try {
-        // Step 1: Load from local cache for instant UI rendering
-        const rawAccounts = await AsyncStorage.getItem(STORAGE_KEY_ACCOUNTS);
+        // Step 1: Read session from storage
+        let rawSession: string | null = null;
+        let rawAdminMode: string | null = null;
+        let rawAccounts: string | null = null;
+
+        if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+          try {
+            rawSession = window.localStorage.getItem(STORAGE_KEY_SESSION);
+            rawAdminMode = window.localStorage.getItem(STORAGE_KEY_ADMIN_MODE);
+            rawAccounts = window.localStorage.getItem(STORAGE_KEY_ACCOUNTS);
+          } catch {}
+        }
+
+        if (!rawSession) {
+          rawSession = await AsyncStorage.getItem(STORAGE_KEY_SESSION).catch(() => null);
+        }
+        if (!rawAdminMode) {
+          rawAdminMode = await AsyncStorage.getItem(STORAGE_KEY_ADMIN_MODE).catch(() => null);
+        }
+        if (!rawAccounts) {
+          rawAccounts = await AsyncStorage.getItem(STORAGE_KEY_ACCOUNTS).catch(() => null);
+        }
+
         let loadedAccounts: StoredAccount[] = [];
         if (rawAccounts) {
           try {
@@ -193,61 +267,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 (a: StoredAccount) => a.email.toLowerCase() !== 'admin@enterprise.com'
               );
             }
-          } catch {
-            loadedAccounts = [];
-          }
+          } catch {}
         }
 
-        // Ensure an admin account exists in loadedAccounts
         const hasLoadedAdmin = loadedAccounts.some((a) => a.role === 'Admin');
         if (!hasLoadedAdmin) {
           loadedAccounts.push(INITIAL_DEFAULT_ADMIN_ACCOUNT);
         }
 
-        if (isMounted) {
+        if (!canceled) {
           setAccounts(loadedAccounts);
         }
 
-        // Restore admin mode preference
-        const rawAdminMode = await AsyncStorage.getItem(STORAGE_KEY_ADMIN_MODE);
-        if (rawAdminMode && isMounted) {
-          try {
-            setIsAdminModeState(JSON.parse(rawAdminMode));
-          } catch {
-            // ignore
-          }
-        }
-
-        // Check active session
-        const rawSession = await AsyncStorage.getItem(STORAGE_KEY_SESSION);
-        if (rawSession && isMounted) {
+        // Restore active user session if exists - NEVER clear unless user manually logs out
+        if (rawSession) {
           try {
             const sessionUser = JSON.parse(rawSession) as EmployeeUser;
-            if (sessionUser && sessionUser.email && sessionUser.email.toLowerCase() !== 'admin@enterprise.com') {
+            if (sessionUser && sessionUser.email && sessionUser.email.trim()) {
               const matchedAcc = loadedAccounts.find(
                 (acc) => acc.email.toLowerCase() === sessionUser.email.toLowerCase()
               );
-              if (matchedAcc) {
-                setUser({ ...matchedAcc });
+              const effectiveUser: EmployeeUser = matchedAcc ? { ...sessionUser, ...matchedAcc } : sessionUser;
+              const isUserAdmin = effectiveUser.role === 'Admin' || rawAdminMode === 'true';
+
+              if (!canceled) {
+                setUser(effectiveUser);
                 setIsLoggedIn(true);
-                setIsAdminModeState(matchedAcc.role === 'Admin');
-              } else {
-                setUser(sessionUser);
-                setIsLoggedIn(true);
-                setIsAdminModeState(sessionUser.role === 'Admin');
+                setIsAdminModeState(isUserAdmin);
               }
-            } else {
-              await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
             }
-          } catch {
-            await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
+          } catch (e) {
+            console.warn('Failed to parse active session:', e);
           }
         }
 
         // Step 2: Fetch latest users from MongoDB backend if reachable
         try {
           const res = await apiFetchUsers();
-          if (res.success && Array.isArray(res.users) && isMounted) {
+          if (res.success && Array.isArray(res.users) && !canceled) {
             const localPasswordMap = new Map<string, string>();
             loadedAccounts.forEach((acc) => {
               if (acc.password) {
@@ -284,14 +341,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const merged = Array.from(accMap.values());
             setAccounts(merged);
             await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(merged)).catch(() => {});
+
+            // Refresh currently logged-in user profile from backend data without logging out
+            if (rawSession) {
+              try {
+                const sUser = JSON.parse(rawSession) as EmployeeUser;
+                const freshUser = res.users.find(
+                  (u) => u.email.toLowerCase() === sUser.email.toLowerCase()
+                );
+                if (freshUser && !canceled) {
+                  setUser((prev) => ({
+                    ...prev,
+                    ...freshUser,
+                    role: prev.role === 'Admin' ? 'Admin' : (freshUser.role || prev.role),
+                  }));
+                }
+              } catch {}
+            }
           }
         } catch {
-          // ignore offline
+          // Backend offline - cached session continues undisturbed
         }
       } catch (err) {
-        console.warn('Error loading auth state from storage:', err);
+        console.warn('Error hydrating auth state:', err);
       } finally {
-        if (isMounted) {
+        if (!canceled) {
           setIsLoading(false);
         }
       }
@@ -300,7 +374,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hydrateAuth();
 
     return () => {
-      isMounted = false;
+      canceled = true;
     };
   }, []);
 
@@ -358,8 +432,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(authUser);
         setIsLoggedIn(true);
         setIsAdminModeState(isUserAdmin);
-        await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(isUserAdmin)).catch(() => {});
-        await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(authUser)).catch(() => {});
+        await persistSession(authUser, isUserAdmin);
 
         // Save the successful password into local accounts cache
         setAccounts((prev) => {
@@ -436,8 +509,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(authUser);
     setIsLoggedIn(true);
     setIsAdminModeState(isUserAdmin);
-    await AsyncStorage.setItem(STORAGE_KEY_ADMIN_MODE, JSON.stringify(isUserAdmin)).catch(() => {});
-    await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(authUser)).catch(() => {});
+    await persistSession(authUser, isUserAdmin);
 
     return { success: true };
   };
@@ -532,12 +604,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoggedIn(false);
     setUser(EMPTY_USER);
     setIsAdminModeState(false);
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
-      await AsyncStorage.removeItem(STORAGE_KEY_ADMIN_MODE);
-    } catch (e) {
-      console.warn('Failed to clear session:', e);
-    }
+    await persistSession(null, false);
   };
 
   const updateUser = async (
@@ -612,7 +679,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     setUser(updatedUser);
-    await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(updatedUser)).catch(() => {});
+    await persistSession(updatedUser, isTargetAdmin);
 
     // Update in local accounts list:
     // Remove both previousEmail and effectiveEmail to ensure no stale/duplicate accounts remain
