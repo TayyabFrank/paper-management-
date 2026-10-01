@@ -215,7 +215,7 @@ export function NewDocView({ onNavigateTab }: NewDocViewProps) {
       .replace(/_cv$/i, '')
       .replace(/_resume$/i, '')
       .replace(/[-_]/g, ' ')
-      .trim() || (user.name || 'Admin');
+      .trim() || 'Tayyab';
 
     const newDoc: DocumentReaderItem = {
       id: Date.now().toString(),

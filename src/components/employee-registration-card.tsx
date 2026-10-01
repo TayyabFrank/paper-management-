@@ -478,7 +478,8 @@ export function EmployeeRegistrationCard({
 
     try {
       if (mode === 'login') {
-        const result = await login(workEmail.trim(), password);
+        const cleanLoginEmail = workEmail.trim().toLowerCase() === 'admin' ? 'tayyab@admin.com' : workEmail.trim();
+        const result = await login(cleanLoginEmail, password);
         setIsSubmitting(false);
         if (!result.success) {
           setErrors({ form: result.error || 'Authentication failed. Check your email & password.' });
