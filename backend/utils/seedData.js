@@ -12,10 +12,10 @@ async function ensureSingleAdmin() {
     // Remove legacy placeholder admin account
     await User.deleteMany({ email: 'admin@enterprise.com' });
 
-    // Find existing admin (either fixed email or current admin)
-    let admin = await User.findOne({ email: FIXED_ADMIN_EMAIL });
+    // Find existing admin (role: Admin first, to preserve updated admin email & credentials)
+    let admin = await User.findOne({ role: 'Admin' });
     if (!admin) {
-      admin = await User.findOne({ role: 'Admin' });
+      admin = await User.findOne({ email: FIXED_ADMIN_EMAIL });
     }
 
     if (!admin) {

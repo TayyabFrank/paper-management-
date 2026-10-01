@@ -158,8 +158,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         });
 
-        // Ensure fixed admin exists in accMap
-        if (!accMap.has(FIXED_ADMIN_EMAIL)) {
+        // Ensure at least one admin exists in accMap
+        const hasAdminInMap = Array.from(accMap.values()).some((u) => u.role === 'Admin');
+        if (!hasAdminInMap) {
           accMap.set(FIXED_ADMIN_EMAIL, {
             ...DEFAULT_ADMIN_ACCOUNT,
             password: localPasswordMap.get(FIXED_ADMIN_EMAIL) || DEFAULT_ADMIN_ACCOUNT.password,
@@ -197,20 +198,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Ensure the fixed admin account exists in loadedAccounts
-        const adminAccountIndex = loadedAccounts.findIndex(
-          (a) => a.email.toLowerCase() === FIXED_ADMIN_EMAIL
-        );
-        if (adminAccountIndex === -1) {
-          loadedAccounts.push(DEFAULT_ADMIN_ACCOUNT);
-        } else {
-          // Admin account exists! Preserve whatever password was saved, only ensure Admin role & active status
-          loadedAccounts[adminAccountIndex] = {
-            ...DEFAULT_ADMIN_ACCOUNT,
-            ...loadedAccounts[adminAccountIndex],
-            role: 'Admin',
-            status: 'active',
-          };
+        // Ensure an admin account exists in loadedAccounts
+        const hasLoadedAdmin = loadedAccounts.some((a) => a.role === 'Admin');
+        if (!hasLoadedAdmin) {
+          const adminAccountIndex = loadedAccounts.findIndex(
+            (a) => a.email.toLowerCase() === FIXED_ADMIN_EMAIL
+          );
+          if (adminAccountIndex === -1) {
+            loadedAccounts.push(DEFAULT_ADMIN_ACCOUNT);
+          } else {
+            // Admin account exists! Preserve whatever password was saved, only ensure Admin role & active status
+            loadedAccounts[adminAccountIndex] = {
+              ...DEFAULT_ADMIN_ACCOUNT,
+              ...loadedAccounts[adminAccountIndex],
+              role: 'Admin',
+              status: 'active',
+            };
+          }
         }
 
         if (isMounted) {
@@ -281,7 +285,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
             });
 
-            if (!accMap.has(FIXED_ADMIN_EMAIL)) {
+            const hasAdminInMap = Array.from(accMap.values()).some((u) => u.role === 'Admin');
+            if (!hasAdminInMap) {
               accMap.set(FIXED_ADMIN_EMAIL, {
                 ...DEFAULT_ADMIN_ACCOUNT,
                 password: localPasswordMap.get(FIXED_ADMIN_EMAIL) || DEFAULT_ADMIN_ACCOUNT.password,
@@ -315,8 +320,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password?.trim();
 
+    const activeAdmin = accounts.find((a) => a.role === 'Admin');
     if (cleanEmail === 'admin') {
-      cleanEmail = FIXED_ADMIN_EMAIL;
+      cleanEmail = activeAdmin ? activeAdmin.email.toLowerCase() : FIXED_ADMIN_EMAIL;
     }
 
     if (!cleanEmail) {
@@ -331,7 +337,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const apiRes = await apiLogin(cleanEmail, cleanPassword);
       if (apiRes.success && apiRes.user) {
-        const isUserAdmin = apiRes.user.role === 'Admin' || cleanEmail === FIXED_ADMIN_EMAIL;
+        const isUserAdmin = apiRes.user.role === 'Admin' || (activeAdmin ? cleanEmail === activeAdmin.email.toLowerCase() : cleanEmail === FIXED_ADMIN_EMAIL);
 
         // Block login if employee is not approved by administrator
         if (!isUserAdmin && apiRes.user.status === 'pending') {
@@ -387,7 +393,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (acc) => acc.email.trim().toLowerCase() === cleanEmail
     );
 
-    if (!matchedAccount && cleanEmail === FIXED_ADMIN_EMAIL) {
+    const hasAnyAdminInCache = accounts.some((a) => a.role === 'Admin');
+    if (!matchedAccount && cleanEmail === FIXED_ADMIN_EMAIL && !hasAnyAdminInCache) {
       matchedAccount = DEFAULT_ADMIN_ACCOUNT;
     }
 
@@ -575,45 +582,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const previousEmail = (user.email || '').toLowerCase();
-    const updatedUser: EmployeeUser = {
-      ...user,
-      ...data,
-      ...(cleanNewEmail ? { email: cleanNewEmail } : {}),
-      ...(user.role === 'Admin' || previousEmail === FIXED_ADMIN_EMAIL ? { role: 'Admin' } : {}),
-    };
 
-    setUser(updatedUser);
-    await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(updatedUser)).catch(() => {});
-
-    // Update in local accounts list
-    let accountMatched = false;
-    const updatedAccounts = accounts.map((acc) => {
-      if (acc.email.toLowerCase() === previousEmail) {
-        accountMatched = true;
-        return {
-          ...acc,
-          ...data,
-          ...(cleanNewEmail ? { email: cleanNewEmail } : {}),
-          ...(newPassword && newPassword.trim() ? { password: newPassword.trim() } : {}),
-          ...(user.role === 'Admin' || previousEmail === FIXED_ADMIN_EMAIL ? { role: 'Admin' } : {}),
-        };
+    // Check local email collision
+    if (cleanNewEmail && cleanNewEmail !== previousEmail) {
+      const emailCollision = accounts.some(
+        (acc) => acc.email.toLowerCase() === cleanNewEmail && acc.email.toLowerCase() !== previousEmail
+      );
+      if (emailCollision) {
+        return { success: false, error: 'An account with this email address already exists.' };
       }
-      return acc;
-    });
-
-    if (!accountMatched) {
-      updatedAccounts.push({
-        ...updatedUser,
-        password: newPassword && newPassword.trim() ? newPassword.trim() : (previousEmail === FIXED_ADMIN_EMAIL ? 'Tayyab@123' : 'password123'),
-      });
     }
 
-    setAccounts(updatedAccounts);
-    await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccounts)).catch(() => {});
-
-    // Persist to backend
+    // Persist to backend first and validate response
     try {
-      await apiUpdateProfile(
+      const apiRes = await apiUpdateProfile(
         {
           email: previousEmail,
           ...data,
@@ -621,9 +603,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         newPassword && newPassword.trim() ? newPassword.trim() : undefined
       );
-    } catch (err) {
+
+      if (!apiRes.success && !apiRes.offline) {
+        return { success: false, error: apiRes.message || 'Failed to update profile.' };
+      }
+    } catch (err: any) {
       console.warn('Failed to update profile on backend:', err);
     }
+
+    const effectiveEmail = cleanNewEmail || previousEmail;
+    const isTargetAdmin = user.role === 'Admin' || previousEmail === FIXED_ADMIN_EMAIL;
+
+    const updatedUser: EmployeeUser = {
+      ...user,
+      ...data,
+      email: effectiveEmail,
+      ...(isTargetAdmin ? { role: 'Admin' } : {}),
+    };
+
+    setUser(updatedUser);
+    await AsyncStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(updatedUser)).catch(() => {});
+
+    // Update in local accounts list:
+    // Remove both previousEmail and effectiveEmail to ensure no stale/duplicate accounts remain
+    const cleanOtherAccounts = accounts.filter(
+      (acc) => acc.email.toLowerCase() !== previousEmail && acc.email.toLowerCase() !== effectiveEmail
+    );
+
+    const oldAcc = accounts.find((acc) => acc.email.toLowerCase() === previousEmail);
+    const existingPassword = oldAcc?.password || (isTargetAdmin ? 'Tayyab@123' : 'password123');
+    const finalPassword = newPassword && newPassword.trim() ? newPassword.trim() : existingPassword;
+
+    const updatedAccount: StoredAccount = {
+      ...(oldAcc || {}),
+      ...updatedUser,
+      password: finalPassword,
+    };
+
+    const finalAccounts = [...cleanOtherAccounts, updatedAccount];
+    setAccounts(finalAccounts);
+    await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(finalAccounts)).catch(() => {});
 
     return { success: true };
   };
