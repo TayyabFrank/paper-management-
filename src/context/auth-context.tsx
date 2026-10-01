@@ -332,6 +332,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const apiRes = await apiLogin(cleanEmail, cleanPassword);
       if (apiRes.success && apiRes.user) {
         const isUserAdmin = apiRes.user.role === 'Admin' || cleanEmail === FIXED_ADMIN_EMAIL;
+
+        // Block login if employee is not approved by administrator
+        if (!isUserAdmin && apiRes.user.status === 'pending') {
+          return {
+            success: false,
+            error: 'Your account is pending administrator approval. You cannot log in until the admin approves your account.',
+          };
+        }
+
+        if (!isUserAdmin && apiRes.user.status === 'rejected') {
+          return {
+            success: false,
+            error: 'Your account registration was rejected. Please contact an administrator.',
+          };
+        }
+
         const authUser: EmployeeUser = {
           name: apiRes.user.name,
           email: apiRes.user.email,
@@ -352,7 +368,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Save the successful password into local accounts cache
         setAccounts((prev) => {
           const updated = prev.map((acc) =>
-            acc.email.toLowerCase() === cleanEmail ? { ...acc, password: cleanPassword } : acc
+            acc.email.toLowerCase() === cleanEmail ? { ...acc, password: cleanPassword, status: apiRes.user.status } : acc
           );
           AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updated)).catch(() => {});
           return updated;
@@ -393,6 +409,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const isUserAdmin = matchedAccount.role === 'Admin' || cleanEmail === FIXED_ADMIN_EMAIL;
+
+    // Strict approval check: non-admin employees CANNOT log in until approved by admin!
+    if (!isUserAdmin && matchedAccount.status === 'pending') {
+      return {
+        success: false,
+        error: 'Your account is pending administrator approval. You cannot log in until the admin approves your account.',
+      };
+    }
+
+    if (!isUserAdmin && matchedAccount.status === 'rejected') {
+      return {
+        success: false,
+        error: 'Your account registration was rejected. Please contact an administrator.',
+      };
+    }
 
     const authUser: EmployeeUser = {
       name: matchedAccount.name,
@@ -479,7 +510,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Backend offline: continue with local registration
     }
 
-    // Local account cache
+    // Local account cache - status defaults to 'pending' until Admin approval!
     const newAccount: StoredAccount = {
       name: cleanName,
       email: cleanEmail,
@@ -488,7 +519,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: accountData.role || 'Employee',
       department: accountData.department || 'Operations',
       employeeId: `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
-      status: 'active',
+      status: 'pending',
       documentsCount: 0,
     };
 

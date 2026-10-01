@@ -1658,11 +1658,11 @@ export function EmployeeRegistrationCard({
               </View>
             </PulseView>
             <Text style={[styles.modalTitle, { color: isDark ? '#ffffff' : '#0f172a' }]}>
-              {mode === 'register' ? 'Registration Complete!' : 'Welcome Back!'}
+              {mode === 'register' ? 'Registration Submitted!' : 'Welcome Back!'}
             </Text>
             <Text style={[styles.modalBody, { color: isDark ? '#cbd5e1' : '#475569' }]}>
               {mode === 'register'
-                ? `Welcome, ${fullName || 'Employee'}! Your account has been registered successfully.\n\nYou can now sign in with your email and password to start uploading and managing your documents.`
+                ? `Welcome, ${fullName || 'Employee'}! Your account registration has been submitted and is currently pending administrator approval.\n\nOnce the administrator approves your request in the Personnel Portal, you will be able to log in with your credentials.`
                 : `Successfully authenticated as ${workEmail}. Redirecting to your workspace...`}
             </Text>
 
@@ -1671,7 +1671,7 @@ export function EmployeeRegistrationCard({
               onPress={handleReset}
             >
               <Text style={styles.modalButtonText}>
-                {mode === 'register' ? 'Proceed to Sign In 🔐' : 'Enter Workspace 🚀'}
+                {mode === 'register' ? 'Back to Sign In 🔐' : 'Enter Workspace 🚀'}
               </Text>
             </ScalePressable>
           </View>

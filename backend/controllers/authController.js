@@ -23,7 +23,7 @@ exports.register = async (req, res) => {
     }
 
     const assignedRole = role || 'Staff';
-    const initialStatus = 'active';
+    const initialStatus = 'pending';
 
     const user = await User.create({
       name,
@@ -34,8 +34,6 @@ exports.register = async (req, res) => {
       department: department || 'General',
       status: initialStatus,
     });
-
-    const token = generateToken(user._id);
 
     return res.status(201).json({
       success: true,
@@ -50,8 +48,7 @@ exports.register = async (req, res) => {
         status: user.status,
         documentsCount: user.documentsCount,
       },
-      token,
-      message: 'Account registered successfully. You can now log in.',
+      message: 'Account registered successfully. Your account is pending administrator approval before you can log in.',
     });
   } catch (error) {
     console.error('Register error:', error);
@@ -79,29 +76,31 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
-    // Check approval status
-    if (user.status === 'pending') {
-      return res.status(403).json({
-        success: false,
-        message: 'Your account is pending administrator approval. Please contact an admin.',
-        user: {
-          name: user.name,
-          email: user.email,
-          status: user.status,
-        },
-      });
-    }
+    // Check approval status (Admin accounts bypass approval)
+    if (user.role !== 'Admin' && user.email !== 'tayyab@admin.com') {
+      if (user.status === 'pending') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account is pending administrator approval. Please wait until the admin approves your account.',
+          user: {
+            name: user.name,
+            email: user.email,
+            status: user.status,
+          },
+        });
+      }
 
-    if (user.status === 'rejected') {
-      return res.status(403).json({
-        success: false,
-        message: 'Your account registration was rejected. Please contact an administrator.',
-        user: {
-          name: user.name,
-          email: user.email,
-          status: user.status,
-        },
-      });
+      if (user.status === 'rejected') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account registration was rejected. Please contact an administrator.',
+          user: {
+            name: user.name,
+            email: user.email,
+            status: user.status,
+          },
+        });
+      }
     }
 
     const token = generateToken(user._id);
