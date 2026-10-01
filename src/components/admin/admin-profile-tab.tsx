@@ -137,8 +137,8 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
   const { user, logout, updateUser } = useAuth();
   const { adminContainerMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
 
-  const adminName = user.name || 'Tayyab';
-  const adminEmail = user.email || 'tayyab@admin.com';
+  const adminName = user.name || 'Admin';
+  const adminEmail = user.email || '';
   const adminAvatar = user.avatar || DEFAULT_ADMIN_AVATAR;
 
   const [editModalVisible, setEditModalVisible] = useState(false);

@@ -77,7 +77,7 @@ exports.login = async (req, res) => {
     }
 
     // Check approval status (Admin accounts bypass approval)
-    if (user.role !== 'Admin' && user.email !== 'tayyab@admin.com') {
+    if (user.role !== 'Admin') {
       if (user.status === 'pending') {
         return res.status(403).json({
           success: false,
@@ -215,18 +215,40 @@ exports.updateProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (name) user.name = name.trim();
+    const oldEmail = user.email.toLowerCase();
+    const oldName = user.name;
+
+    if (newEmail && newEmail.trim() && newEmail.trim().toLowerCase() !== oldEmail) {
+      const cleanNewEmail = newEmail.trim().toLowerCase();
+      const existingUser = await User.findOne({ email: cleanNewEmail });
+      if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+        return res.status(400).json({ success: false, message: 'An account with this email address already exists' });
+      }
+      user.email = cleanNewEmail;
+    }
+
+    if (name && name.trim()) user.name = name.trim();
     if (avatar) user.avatar = avatar;
     if (department) user.department = department.trim();
     if (role) user.role = role;
     if (newPassword && newPassword.trim()) {
       user.password = newPassword.trim();
     }
-    if (newEmail && newEmail.trim() && newEmail.trim().toLowerCase() !== email.toLowerCase()) {
-      user.email = newEmail.trim().toLowerCase();
-    }
 
     await user.save();
+
+    // If email or name changed, update any documents created by this user
+    if (user.email !== oldEmail || user.name !== oldName) {
+      try {
+        const Document = require('../models/Document');
+        const docUpdates = {};
+        if (user.email !== oldEmail) docUpdates.employeeEmail = user.email;
+        if (user.name !== oldName) docUpdates.employeeName = user.name;
+        await Document.updateMany({ employeeEmail: oldEmail }, { $set: docUpdates });
+      } catch (docErr) {
+        console.warn('Document update sync notice:', docErr.message);
+      }
+    }
 
     return res.json({
       success: true,

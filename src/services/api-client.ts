@@ -116,7 +116,7 @@ export async function apiDeleteUser(email: string): Promise<ApiResponse> {
   return request(`/api/auth/users/${encodeURIComponent(email)}`, 'DELETE');
 }
 
-export async function apiUpdateProfile(data: Partial<EmployeeUser>, newPassword?: string): Promise<ApiResponse<{ user: EmployeeUser }>> {
+export async function apiUpdateProfile(data: Partial<EmployeeUser> & { newEmail?: string }, newPassword?: string): Promise<ApiResponse<{ user: EmployeeUser }>> {
   return request('/api/auth/profile', 'PUT', { ...data, newPassword });
 }
 
