@@ -57,21 +57,20 @@ interface AuthContextValue {
 const STORAGE_KEY_SESSION = '@docuvault_auth_session';
 const STORAGE_KEY_ACCOUNTS = '@docuvault_accounts';
 const STORAGE_KEY_ADMIN_MODE = '@docuvault_admin_mode';
-export const FIXED_ADMIN_EMAIL = 'tayyab@admin.com';
-
-export const DEFAULT_ADMIN_ACCOUNT: StoredAccount = {
-  name: 'Tayyab',
-  email: 'tayyab@admin.com',
+export const INITIAL_DEFAULT_ADMIN_ACCOUNT: StoredAccount = {
+  name: 'Administrator',
+  email: 'admin@docuvault.io',
   avatar: '',
   role: 'Admin',
   department: 'Administration',
   employeeId: 'ADM-001',
   status: 'active',
-  password: 'Tayyab@123',
+  password: 'Admin@123',
   documentsCount: 0,
 };
 
-export const INITIAL_STAFF_ACCOUNTS: StoredAccount[] = [DEFAULT_ADMIN_ACCOUNT];
+export const DEFAULT_ADMIN_ACCOUNT = INITIAL_DEFAULT_ADMIN_ACCOUNT;
+export const INITIAL_STAFF_ACCOUNTS: StoredAccount[] = [INITIAL_DEFAULT_ADMIN_ACCOUNT];
 
 const EMPTY_USER: EmployeeUser = {
   name: '',
@@ -146,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const existingPassword = localPasswordMap.get(emailLower);
           accMap.set(emailLower, {
             ...u,
-            password: existingPassword || (emailLower === FIXED_ADMIN_EMAIL ? 'Tayyab@123' : undefined),
+            password: existingPassword,
           });
         });
 
@@ -161,9 +160,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Ensure at least one admin exists in accMap
         const hasAdminInMap = Array.from(accMap.values()).some((u) => u.role === 'Admin');
         if (!hasAdminInMap) {
-          accMap.set(FIXED_ADMIN_EMAIL, {
-            ...DEFAULT_ADMIN_ACCOUNT,
-            password: localPasswordMap.get(FIXED_ADMIN_EMAIL) || DEFAULT_ADMIN_ACCOUNT.password,
+          const defaultAdminEmail = INITIAL_DEFAULT_ADMIN_ACCOUNT.email.toLowerCase();
+          accMap.set(defaultAdminEmail, {
+            ...INITIAL_DEFAULT_ADMIN_ACCOUNT,
+            password: localPasswordMap.get(defaultAdminEmail) || INITIAL_DEFAULT_ADMIN_ACCOUNT.password,
           });
         }
 
@@ -201,20 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Ensure an admin account exists in loadedAccounts
         const hasLoadedAdmin = loadedAccounts.some((a) => a.role === 'Admin');
         if (!hasLoadedAdmin) {
-          const adminAccountIndex = loadedAccounts.findIndex(
-            (a) => a.email.toLowerCase() === FIXED_ADMIN_EMAIL
-          );
-          if (adminAccountIndex === -1) {
-            loadedAccounts.push(DEFAULT_ADMIN_ACCOUNT);
-          } else {
-            // Admin account exists! Preserve whatever password was saved, only ensure Admin role & active status
-            loadedAccounts[adminAccountIndex] = {
-              ...DEFAULT_ADMIN_ACCOUNT,
-              ...loadedAccounts[adminAccountIndex],
-              role: 'Admin',
-              status: 'active',
-            };
-          }
+          loadedAccounts.push(INITIAL_DEFAULT_ADMIN_ACCOUNT);
         }
 
         if (isMounted) {
@@ -274,7 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const existingPassword = localPasswordMap.get(emailLower);
               accMap.set(emailLower, {
                 ...u,
-                password: existingPassword || (emailLower === FIXED_ADMIN_EMAIL ? 'Tayyab@123' : undefined),
+                password: existingPassword,
               });
             });
 
@@ -287,9 +274,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const hasAdminInMap = Array.from(accMap.values()).some((u) => u.role === 'Admin');
             if (!hasAdminInMap) {
-              accMap.set(FIXED_ADMIN_EMAIL, {
-                ...DEFAULT_ADMIN_ACCOUNT,
-                password: localPasswordMap.get(FIXED_ADMIN_EMAIL) || DEFAULT_ADMIN_ACCOUNT.password,
+              const defaultAdminEmail = INITIAL_DEFAULT_ADMIN_ACCOUNT.email.toLowerCase();
+              accMap.set(defaultAdminEmail, {
+                ...INITIAL_DEFAULT_ADMIN_ACCOUNT,
+                password: localPasswordMap.get(defaultAdminEmail) || INITIAL_DEFAULT_ADMIN_ACCOUNT.password,
               });
             }
 
@@ -322,7 +310,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const activeAdmin = accounts.find((a) => a.role === 'Admin');
     if (cleanEmail === 'admin') {
-      cleanEmail = activeAdmin ? activeAdmin.email.toLowerCase() : FIXED_ADMIN_EMAIL;
+      if (activeAdmin) {
+        cleanEmail = activeAdmin.email.toLowerCase();
+      }
     }
 
     if (!cleanEmail) {
@@ -337,7 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const apiRes = await apiLogin(cleanEmail, cleanPassword);
       if (apiRes.success && apiRes.user) {
-        const isUserAdmin = apiRes.user.role === 'Admin' || (activeAdmin ? cleanEmail === activeAdmin.email.toLowerCase() : cleanEmail === FIXED_ADMIN_EMAIL);
+        const isUserAdmin = apiRes.user.role === 'Admin';
 
         // Block login if employee is not approved by administrator
         if (!isUserAdmin && apiRes.user.status === 'pending') {
@@ -394,8 +384,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     const hasAnyAdminInCache = accounts.some((a) => a.role === 'Admin');
-    if (!matchedAccount && cleanEmail === FIXED_ADMIN_EMAIL && !hasAnyAdminInCache) {
-      matchedAccount = DEFAULT_ADMIN_ACCOUNT;
+    if (!matchedAccount && !hasAnyAdminInCache) {
+      matchedAccount = INITIAL_DEFAULT_ADMIN_ACCOUNT;
     }
 
     if (!matchedAccount) {
@@ -415,7 +405,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    const isUserAdmin = matchedAccount.role === 'Admin' || cleanEmail === FIXED_ADMIN_EMAIL;
+    const isUserAdmin = matchedAccount.role === 'Admin';
 
     // Strict approval check: non-admin employees CANNOT log in until approved by admin!
     if (!isUserAdmin && matchedAccount.status === 'pending') {
@@ -612,7 +602,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const effectiveEmail = cleanNewEmail || previousEmail;
-    const isTargetAdmin = user.role === 'Admin' || previousEmail === FIXED_ADMIN_EMAIL;
+    const isTargetAdmin = user.role === 'Admin';
 
     const updatedUser: EmployeeUser = {
       ...user,
@@ -631,7 +621,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     const oldAcc = accounts.find((acc) => acc.email.toLowerCase() === previousEmail);
-    const existingPassword = oldAcc?.password || (isTargetAdmin ? 'Tayyab@123' : 'password123');
+    const existingPassword = oldAcc?.password || (isTargetAdmin ? 'Admin@123' : 'password123');
     const finalPassword = newPassword && newPassword.trim() ? newPassword.trim() : existingPassword;
 
     const updatedAccount: StoredAccount = {
