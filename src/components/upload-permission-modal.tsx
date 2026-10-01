@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { useDocuVaultTheme } from '@/context/theme-context';
+import { detectFileType } from './documents-dashboard';
 
 export interface UploadedItemResult {
   name: string;
@@ -108,13 +109,7 @@ export function UploadPermissionModal({
     if (e.target.files && e.target.files[0]) {
       const f = e.target.files[0];
       const isImg = fileKind === 'image' || f.type.startsWith('image/');
-      const detectedType: 'pdf' | 'docx' | 'image' | 'article' | 'other' = isImg
-        ? 'image'
-        : f.name.endsWith('.pdf')
-        ? 'pdf'
-        : f.name.endsWith('.docx')
-        ? 'docx'
-        : 'other';
+      const detectedType = isImg ? 'image' : detectFileType(f.name, f.type);
 
       const reader = new FileReader();
       reader.onload = (loadEvent) => {
@@ -171,7 +166,7 @@ export function UploadPermissionModal({
               type="file"
               ref={documentInputRef as any}
               onChange={(e) => handleWebFileSelected(e as any, 'doc')}
-              accept=".pdf,.docx,.doc,image/*"
+              accept="*/*"
               style={{ display: 'none' }}
             />
           </>

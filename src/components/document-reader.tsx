@@ -999,6 +999,39 @@ export function DocumentReader({ document, onClose }: DocumentReaderProps) {
     }
 
     if (Platform.OS === 'web') {
+      const isVideoFile =
+        document.type === 'video' ||
+        /\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv|wmv)$/i.test(
+          document.fileUrl || document.fileName || document.title || ''
+        );
+
+      if (isVideoFile && document.fileUrl) {
+        return (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#000000',
+              borderRadius: 8,
+              overflow: 'hidden',
+            }}
+          >
+            <video
+              src={document.fileUrl}
+              controls
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+              }}
+            />
+          </div>
+        );
+      }
+
       return (
         <iframe
           src={document.fileUrl}

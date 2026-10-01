@@ -65,6 +65,14 @@ const MINI_VIDEO_BADGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+const MINI_OTHER_BADGE = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 38 38" fill="none">
+  <rect width="38" height="38" rx="10" fill="#f8fafc"/>
+  <path d="M12 12C12 11.1716 12.6716 10.5 13.5 10.5H17.5L19.5 13H24.5C25.3284 13 26 13.6716 26 14.5V25.5C26 26.3284 25.3284 27 24.5 27H13.5C12.6716 27 12 26.3284 12 25.5V12Z" fill="#e2e8f0" stroke="#64748b" stroke-width="1.6" stroke-linejoin="round"/>
+  <text x="19" y="32" font-size="6" font-weight="900" fill="#64748b" text-anchor="middle" font-family="sans-serif">OTHER</text>
+</svg>
+`)}`;
+
 export function getDocumentColor(type: string = ''): string {
   const t = type.toLowerCase();
   if (t === 'pdf') return '#ef4444';
@@ -101,9 +109,9 @@ export function DocumentBadge({
 
   const isImg = lowerType === 'image' || /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic)$/i.test(lowerTitle);
   const isDocx = lowerType === 'docx' || lowerType === 'doc' || /\.(docx|doc)$/i.test(lowerTitle);
-  const isVideo = lowerType === 'video' || /\.(mp4|mov|avi|mkv|webm)$/i.test(lowerTitle);
+  const isVideo = lowerType === 'video' || /\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv|wmv)$/i.test(lowerTitle);
   const isPdf = lowerType === 'pdf' || lowerTitle.endsWith('.pdf') || lowerTitle.includes('w-2') || lowerTitle.includes('resume');
-  const isArticle = lowerType === 'article' || /\.(txt|md)$/i.test(lowerTitle);
+  const isArticle = lowerType === 'article' || /\.(txt|md|markdown)$/i.test(lowerTitle);
 
   // If user uploaded an image and preview URL is available
   if (isImg && previewImage) {
@@ -132,8 +140,9 @@ export function DocumentBadge({
 
   // On Web, use crisp SVG badges
   if (Platform.OS === 'web') {
-    let svgBadge = MINI_PDF_BADGE;
+    let svgBadge = MINI_OTHER_BADGE;
     if (isNotUploaded) svgBadge = MINI_RED_PDF_BADGE;
+    else if (isPdf) svgBadge = MINI_PDF_BADGE;
     else if (isLink) svgBadge = MINI_LINK_BADGE;
     else if (isImg) svgBadge = MINI_IMAGE_BADGE;
     else if (isDocx) svgBadge = MINI_DOCX_BADGE;

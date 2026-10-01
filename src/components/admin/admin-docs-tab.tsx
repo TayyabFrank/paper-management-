@@ -116,7 +116,7 @@ export function AdminDocsTab({
   const { adminContainerMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory || 'all');
-  const [otherSubFilter, setOtherSubFilter] = useState<'all' | 'links' | 'misc'>('all');
+  const [otherSubFilter, setOtherSubFilter] = useState<'all' | 'links' | 'videos' | 'misc'>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [docToDelete, setDocToDelete] = useState<DocumentReaderItem | null>(null);
 
@@ -127,6 +127,9 @@ export function AdminDocsTab({
       if (initialCategory === 'link') {
         setActiveCategory('other');
         setOtherSubFilter('links');
+      } else if (initialCategory === 'video') {
+        setActiveCategory('other');
+        setOtherSubFilter('videos');
       } else {
         setActiveCategory(initialCategory);
       }
@@ -185,11 +188,17 @@ export function AdminDocsTab({
           d.fileUrl.startsWith('http'))
     );
 
-  // Other folder contains Google Drive links and miscellaneous archives
+  const isVideoDoc = (d: DocumentReaderItem) =>
+    d.type === 'video' ||
+    Boolean(d.fileName && /\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv|wmv)$/i.test(d.fileName)) ||
+    Boolean(d.title && /\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv|wmv)$/i.test(d.title));
+
+  // Other folder contains Google Drive links, videos and miscellaneous archives
   const isOtherDoc = (d: DocumentReaderItem) =>
     isLinkDoc(d) ||
+    isVideoDoc(d) ||
     d.type === 'other' ||
-    !['pdf', 'docx', 'article', 'image', 'video'].includes(d.type || '');
+    !['pdf', 'docx', 'article', 'image'].includes(d.type || '');
 
   const filteredDocs = employeeDocs.filter((d) => {
     const matchesSearch =
@@ -201,11 +210,12 @@ export function AdminDocsTab({
     if (!matchesSearch) return false;
 
     if (activeCategory === 'all') return true;
-    if (activeCategory === 'video') return d.type === 'video';
+    if (activeCategory === 'video') return isVideoDoc(d);
     if (activeCategory === 'other' || activeCategory === 'link') {
       if (!isOtherDoc(d)) return false;
       if (otherSubFilter === 'links' || activeCategory === 'link') return isLinkDoc(d);
-      if (otherSubFilter === 'misc') return !isLinkDoc(d);
+      if (otherSubFilter === 'videos') return isVideoDoc(d);
+      if (otherSubFilter === 'misc') return !isLinkDoc(d) && !isVideoDoc(d);
       return true;
     }
     return d.type === activeCategory;
@@ -215,9 +225,10 @@ export function AdminDocsTab({
   const docxCount = employeeDocs.filter((d) => d.type === 'docx').length;
   const articleCount = employeeDocs.filter((d) => d.type === 'article').length;
   const imageCount = employeeDocs.filter((d) => d.type === 'image').length;
-  const videoCount = employeeDocs.filter((d) => d.type === 'video').length;
+  const videoCount = employeeDocs.filter(isVideoDoc).length;
   const linkDocsCount = employeeDocs.filter(isLinkDoc).length;
   const otherTotalCount = employeeDocs.filter(isOtherDoc).length;
+  const miscDocsCount = employeeDocs.filter((d) => isOtherDoc(d) && !isLinkDoc(d) && !isVideoDoc(d)).length;
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? colors.background : '#f8fafc' }]}>
@@ -646,6 +657,43 @@ export function AdminDocsTab({
               <TouchableOpacity
                 style={[
                   styles.otherSubTabBtn,
+                  otherSubFilter === 'videos' && styles.otherSubTabBtnActive,
+                  {
+                    backgroundColor:
+                      otherSubFilter === 'videos'
+                        ? '#e11d48'
+                        : isDark
+                        ? '#4c0519'
+                        : '#fff1f2',
+                    borderColor: isDark ? '#9f1239' : '#fecdd3',
+                    borderWidth: 1,
+                  },
+                ]}
+                onPress={() => setOtherSubFilter('videos')}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 13, marginRight: 2 }}>🎬</Text>
+                <Text
+                  style={[
+                    styles.otherSubTabText,
+                    {
+                      color:
+                        otherSubFilter === 'videos'
+                          ? '#ffffff'
+                          : isDark
+                          ? '#fb7185'
+                          : '#e11d48',
+                      fontWeight: '700',
+                    },
+                  ]}
+                >
+                  Videos ({videoCount})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.otherSubTabBtn,
                   otherSubFilter === 'misc' && styles.otherSubTabBtnActive,
                   {
                     backgroundColor:
@@ -672,7 +720,7 @@ export function AdminDocsTab({
                     },
                   ]}
                 >
-                  Other Files ({otherTotalCount - linkDocsCount})
+                  Misc Files ({miscDocsCount})
                 </Text>
               </TouchableOpacity>
             </View>

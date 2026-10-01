@@ -237,13 +237,33 @@ const MINI_LINK_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+const VIDEO_DOC_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46" fill="none">
+  <rect width="46" height="46" rx="12" fill="#fff1f2"/>
+  <rect x="12" y="13" width="22" height="20" rx="3.5" stroke="#e11d48" stroke-width="1.8" fill="#ffffff"/>
+  <polygon points="20,18 28,23 20,28" fill="#e11d48"/>
+</svg>
+`)}`;
+
+const OTHER_DOC_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46" fill="none">
+  <rect width="46" height="46" rx="12" fill="#f8fafc"/>
+  <path d="M14 15C14 13.8954 14.8954 13 16 13H21L23.5 16H30C31.1046 16 32 16.8954 32 18V31C32 32.1046 31.1046 33 30 33H16C14.8954 33 14 32.1046 14 31V15Z" fill="#ffffff" stroke="#64748b" stroke-width="1.8" stroke-linejoin="round"/>
+  <circle cx="19.5" cy="25" r="1.5" fill="#64748b"/>
+  <circle cx="23" cy="25" r="1.5" fill="#64748b"/>
+  <circle cx="26.5" cy="25" r="1.5" fill="#64748b"/>
+</svg>
+`)}`;
+
 /**
  * Returns the exact visual icon according to the document or content type.
  * Automatically handles:
- * - PDF: PDF_BLUE_SVG
+ * - PDF: PDF_BLUE_SVG or PDF_RED_SVG
  * - Image: IMAGE_DOC_SVG
  * - Article: ARTICLE_DOC_SVG
  * - Docx: DOCX_SVG
+ * - Video / Media: VIDEO_DOC_SVG
+ * - Other files: OTHER_DOC_SVG
  */
 export function getDocumentTypeIcon(type: string, title?: string): string {
   const lowerType = (type || '').toLowerCase();
@@ -261,9 +281,16 @@ export function getDocumentTypeIcon(type: string, title?: string): string {
 
   if (
     lowerType === 'image' ||
-    /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic)$/i.test(lowerTitle)
+    /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic|ico|tiff)$/i.test(lowerTitle)
   ) {
     return IMAGE_DOC_SVG;
+  }
+
+  if (
+    lowerType === 'video' ||
+    /\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv|wmv)$/i.test(lowerTitle)
+  ) {
+    return VIDEO_DOC_SVG;
   }
 
   if (
@@ -291,13 +318,28 @@ export function getDocumentTypeIcon(type: string, title?: string): string {
     return PDF_RED_SVG;
   }
 
-  return PDF_BLUE_SVG;
+  if (lowerType === 'pdf' || lowerTitle.endsWith('.pdf')) {
+    return PDF_BLUE_SVG;
+  }
+
+  return OTHER_DOC_SVG;
 }
 
+/**
+ * Detects file category.
+ * Per specification:
+ * - PDFs -> 'pdf'
+ * - Word documents -> 'docx'
+ * - Images -> 'image'
+ * - Text/Documentation -> 'article'
+ * - Web / Cloud links -> 'link'
+ * - ALL OTHER FILES (including videos: mp4, mov, avi, mkv, webm; audio; archives; etc.) -> 'other' folder!
+ */
 export function detectFileType(fileName: string, mimeType: string = ''): 'pdf' | 'docx' | 'image' | 'video' | 'article' | 'link' | 'other' {
   const lowerName = fileName.toLowerCase();
   const lowerMime = mimeType.toLowerCase();
 
+  // 1. Web links / Cloud URLs
   if (
     lowerName.startsWith('http://') ||
     lowerName.startsWith('https://') ||
@@ -307,22 +349,27 @@ export function detectFileType(fileName: string, mimeType: string = ''): 'pdf' |
     return 'link';
   }
 
-  if (lowerMime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic)$/i.test(lowerName)) {
+  // 2. Images
+  if (lowerMime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg|bmp|heic|ico|tiff)$/i.test(lowerName)) {
     return 'image';
   }
-  if (lowerMime.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm|m4v)$/i.test(lowerName)) {
-    return 'video';
-  }
+
+  // 3. PDF documents
   if (lowerMime.includes('pdf') || lowerName.endsWith('.pdf')) {
     return 'pdf';
   }
+
+  // 4. DOCX / Word documents
   if (lowerMime.includes('word') || /\.(docx|doc)$/i.test(lowerName)) {
     return 'docx';
   }
-  if (lowerName.endsWith('.txt') || lowerName.endsWith('.md')) {
+
+  // 5. Articles / Plain Text
+  if (lowerName.endsWith('.txt') || lowerName.endsWith('.md') || lowerName.endsWith('.markdown') || lowerName.endsWith('.rtf')) {
     return 'article';
   }
 
+  // Everything else (videos: mp4, mov, avi, mkv, webm; audio; archives; etc.) goes into the "other" folder!
   return 'other';
 }
 
@@ -338,6 +385,9 @@ export function getDetectedBadgeStyle(type: string) {
       return { backgroundColor: '#fefce8', borderColor: '#fef08a' };
     case 'docx':
       return { backgroundColor: '#f5f3ff', borderColor: '#ddd6fe' };
+    case 'link':
+      return { backgroundColor: '#ecfeff', borderColor: '#a5f3fc' };
+    case 'other':
     default:
       return { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' };
   }
@@ -355,6 +405,9 @@ export function getDetectedBadgeTextStyle(type: string) {
       return { color: '#a16207' };
     case 'docx':
       return { color: '#6d28d9' };
+    case 'link':
+      return { color: '#0891b2' };
+    case 'other':
     default:
       return { color: '#475569' };
   }
@@ -598,11 +651,17 @@ export function DocumentsDashboard({
     return (currentEmail && docEmail === currentEmail) || (currentName && docName === currentName);
   });
 
+  const isOtherItem = (doc: DocumentReaderItem) =>
+    doc.type === 'other' ||
+    doc.type === 'video' ||
+    !['pdf', 'docx', 'article', 'link', 'image'].includes(doc.type || '');
+
   const filteredDocs = employeeOwnedDocs.filter((doc) => {
     const matchesSearch =
       doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.subtitle.toLowerCase().includes(searchQuery.toLowerCase());
     if (activeCategory === 'all') return matchesSearch;
+    if (activeCategory === 'other') return matchesSearch && isOtherItem(doc);
     return matchesSearch && doc.type === activeCategory;
   });
 
@@ -611,7 +670,7 @@ export function DocumentsDashboard({
   const articleCount = employeeOwnedDocs.filter((d) => d.type === 'article').length;
   const linkCount = employeeOwnedDocs.filter((d) => d.type === 'link').length;
   const imageCount = employeeOwnedDocs.filter((d) => d.type === 'image').length;
-  const otherCount = employeeOwnedDocs.filter((d) => d.type === 'other').length;
+  const otherCount = employeeOwnedDocs.filter(isOtherItem).length;
   const totalStorageBytes = calculateTotalStorageBytes(employeeOwnedDocs);
   const formattedTotalStorage = formatStorageSize(totalStorageBytes);
   const storageUsedText = formatStorageUsed(employeeOwnedDocs);
@@ -619,13 +678,13 @@ export function DocumentsDashboard({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, maxWidth: containerMaxWidth, paddingHorizontal }]}>
-      {/* Hidden file input for web document/image upload */}
+      {/* Hidden file input for web document, image, video and all media uploads */}
       {Platform.OS === 'web' && (
         <input
           type="file"
           ref={fileInputRef as any}
           onChange={handleWebFileSelect as any}
-          accept="image/*,.pdf,.docx,.doc"
+          accept="*/*"
           style={{ display: 'none' }}
         />
       )}
