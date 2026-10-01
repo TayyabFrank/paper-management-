@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
+const { ensureSingleAdmin } = require('./utils/seedData');
 
 // Load environment variables from backend/.env
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -65,6 +66,7 @@ async function connectWithRetry() {
       serverSelectionTimeoutMS: 5000,
     });
     console.log('✓ Successfully connected to MongoDB!');
+    await ensureSingleAdmin();
   } catch (err) {
     console.warn('⚠ MongoDB connection failed (Server still running):', err.message);
     console.warn('👉 Retrying connection in 5 seconds...');

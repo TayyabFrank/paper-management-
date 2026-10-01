@@ -478,7 +478,7 @@ export function EmployeeRegistrationCard({
 
     try {
       if (mode === 'login') {
-        const cleanLoginEmail = workEmail.trim().toLowerCase() === 'admin' ? 'admin@enterprise.com' : workEmail.trim();
+        const cleanLoginEmail = workEmail.trim().toLowerCase() === 'admin' ? 'tayyab@admin.com' : workEmail.trim();
         const result = await login(cleanLoginEmail, password);
         setIsSubmitting(false);
         if (!result.success) {

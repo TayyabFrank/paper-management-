@@ -137,8 +137,8 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
   const { user, logout, updateUser } = useAuth();
   const { adminContainerMaxWidth, paddingHorizontal, isSmallPhone } = useResponsive();
 
-  const adminName = user.name || 'System Administrator';
-  const adminEmail = user.email || 'admin@enterprise.com';
+  const adminName = user.name || 'Tayyab';
+  const adminEmail = user.email || 'tayyab@admin.com';
   const adminAvatar = user.avatar || DEFAULT_ADMIN_AVATAR;
 
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -702,7 +702,7 @@ export function AdminProfileTab({ onBack }: AdminProfileTabProps) {
                     setEditEmail(text);
                     if (editError) setEditError(null);
                   }}
-                  placeholder="admin@enterprise.com"
+                  placeholder="tayyab@admin.com"
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   keyboardType="email-address"
                   autoCapitalize="none"

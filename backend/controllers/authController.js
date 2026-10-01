@@ -205,7 +205,7 @@ exports.deleteUser = async (req, res) => {
 // @route   PUT /api/auth/profile
 exports.updateProfile = async (req, res) => {
   try {
-    const { email, name, avatar, department, role, newPassword } = req.body;
+    const { email, name, avatar, department, role, newPassword, newEmail } = req.body;
 
     if (!email) {
       return res.status(400).json({ success: false, message: 'Email is required' });
@@ -216,11 +216,16 @@ exports.updateProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (name) user.name = name;
+    if (name) user.name = name.trim();
     if (avatar) user.avatar = avatar;
-    if (department) user.department = department;
+    if (department) user.department = department.trim();
     if (role) user.role = role;
-    if (newPassword) user.password = newPassword;
+    if (newPassword && newPassword.trim()) {
+      user.password = newPassword.trim();
+    }
+    if (newEmail && newEmail.trim() && newEmail.trim().toLowerCase() !== email.toLowerCase()) {
+      user.email = newEmail.trim().toLowerCase();
+    }
 
     await user.save();
 

@@ -339,10 +339,10 @@ export function AdminPortalView({ onSwitchToEmployeeMode }: AdminPortalViewProps
                 />
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={[styles.drawerUserName, { color: colors.textPrimary }]} numberOfLines={1}>
-                    {user.name || 'System Administrator'}
+                    {user.name || 'Tayyab'}
                   </Text>
                   <Text style={[styles.drawerUserEmail, { color: isDark ? '#94a3b8' : '#64748b' }]} numberOfLines={1}>
-                    {user.email || 'admin@enterprise.com'}
+                    {user.email || 'tayyab@admin.com'}
                   </Text>
                 </View>
                 <View style={[styles.drawerRoleBadge, { backgroundColor: isDark ? '#064e3b' : '#d1fae5' }]}>
