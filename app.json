@@ -7,12 +7,16 @@
     "icon": "./assets/images/icon.png",
     "scheme": "paper",
     "userInterfaceStyle": "automatic",
+    "jsEngine": "hermes",
     "ios": {
+      "jsEngine": "hermes",
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.docuvault.paper"
     },
     "android": {
+      "jsEngine": "hermes",
       "package": "com.docuvault.paper",
+      "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

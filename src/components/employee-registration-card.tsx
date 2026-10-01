@@ -229,7 +229,7 @@ export function EmployeeRegistrationCard({
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.85,
+        quality: 0.5,
         base64: true,
       });
 
@@ -331,7 +331,7 @@ export function EmployeeRegistrationCard({
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.85,
+        quality: 0.5,
         base64: true,
       });
 

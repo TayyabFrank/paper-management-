@@ -4,8 +4,8 @@
   "description": "Node.js, Express & MongoDB backend for DocuVault application",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node --max-old-space-size=96 server.js",
+    "dev": "nodemon --exec \"node --max-old-space-size=96\" server.js",
     "db": "\"C:\\Program Files\\MongoDB\\Server\\7.0\\bin\\mongod.exe\" --dbpath data/db --bind_ip 127.0.0.1 --port 27017"
   },
   "keywords": ["docuvault", "express", "mongodb", "mongoose"],
