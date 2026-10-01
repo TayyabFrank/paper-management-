@@ -58,19 +58,7 @@ const STORAGE_KEY_SESSION = '@docuvault_auth_session';
 const STORAGE_KEY_ACCOUNTS = '@docuvault_accounts';
 const STORAGE_KEY_ADMIN_MODE = '@docuvault_admin_mode';
 
-export const INITIAL_STAFF_ACCOUNTS: StoredAccount[] = [
-  {
-    name: 'System Administrator',
-    email: 'admin@enterprise.com',
-    avatar: '',
-    role: 'Admin',
-    department: 'IT Administration',
-    employeeId: 'ADM-001',
-    status: 'active',
-    password: 'password123',
-    documentsCount: 0,
-  },
-];
+export const INITIAL_STAFF_ACCOUNTS: StoredAccount[] = [];
 
 const EMPTY_USER: EmployeeUser = {
   name: '',
@@ -177,19 +165,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const parsed = JSON.parse(rawAccounts);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              const existingEmails = new Set(parsed.map((a: StoredAccount) => a.email.toLowerCase()));
-              const missingDefaults = INITIAL_STAFF_ACCOUNTS.filter(
-                (a) => !existingEmails.has(a.email.toLowerCase())
+              loadedAccounts = parsed.filter(
+                (a: StoredAccount) => a.email.toLowerCase() !== 'admin@enterprise.com'
               );
-              loadedAccounts = [...parsed, ...missingDefaults];
-            } else {
-              loadedAccounts = INITIAL_STAFF_ACCOUNTS;
             }
           } catch {
-            loadedAccounts = INITIAL_STAFF_ACCOUNTS;
+            loadedAccounts = [];
           }
-        } else {
-          loadedAccounts = INITIAL_STAFF_ACCOUNTS;
         }
 
         if (isMounted) {
@@ -211,7 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (rawSession && isMounted) {
           try {
             const sessionUser = JSON.parse(rawSession) as EmployeeUser;
-            if (sessionUser && sessionUser.email) {
+            if (sessionUser && sessionUser.email && sessionUser.email.toLowerCase() !== 'admin@enterprise.com') {
               const matchedAcc = loadedAccounts.find(
                 (acc) => acc.email.toLowerCase() === sessionUser.email.toLowerCase()
               );
@@ -224,6 +206,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setIsLoggedIn(true);
                 setIsAdminModeState(sessionUser.role === 'Admin');
               }
+            } else {
+              await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
             }
           } catch {
             await AsyncStorage.removeItem(STORAGE_KEY_SESSION);
@@ -460,7 +444,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: accountData.role || 'Employee',
       department: accountData.department || 'Operations',
       employeeId: `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
-      status: 'pending',
+      status: 'active',
       documentsCount: 0,
     };
 

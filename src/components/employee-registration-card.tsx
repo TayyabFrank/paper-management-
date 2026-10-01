@@ -1644,27 +1644,25 @@ export function EmployeeRegistrationCard({
               <View
                 style={[
                   styles.successIconCircle,
-                  mode === 'register'
-                    ? { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.18)' : '#fef3c7' }
-                    : { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : '#dcfce7' },
+                  { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : '#dcfce7' },
                 ]}
               >
                 <Text
                   style={[
                     styles.checkmarkText,
-                    mode === 'register' ? { color: '#f59e0b' } : { color: '#10b981' },
+                    { color: '#10b981' },
                   ]}
                 >
-                  {mode === 'register' ? '⏳' : '✓'}
+                  ✓
                 </Text>
               </View>
             </PulseView>
             <Text style={[styles.modalTitle, { color: isDark ? '#ffffff' : '#0f172a' }]}>
-              {mode === 'register' ? 'Registration Submitted!' : 'Welcome Back!'}
+              {mode === 'register' ? 'Registration Complete!' : 'Welcome Back!'}
             </Text>
             <Text style={[styles.modalBody, { color: isDark ? '#cbd5e1' : '#475569' }]}>
               {mode === 'register'
-                ? `Thank you, ${fullName || 'Employee'}! Your registration request has been submitted for administrator approval.\n\nOnce an admin reviews and approves your account, you will be able to log in with your credentials.`
+                ? `Welcome, ${fullName || 'Employee'}! Your account has been registered successfully.\n\nYou can now sign in with your email and password to start uploading and managing your documents.`
                 : `Successfully authenticated as ${workEmail}. Redirecting to your workspace...`}
             </Text>
 
@@ -1673,7 +1671,7 @@ export function EmployeeRegistrationCard({
               onPress={handleReset}
             >
               <Text style={styles.modalButtonText}>
-                {mode === 'register' ? 'Return to Sign In 🔐' : 'Enter Workspace 🚀'}
+                {mode === 'register' ? 'Proceed to Sign In 🔐' : 'Enter Workspace 🚀'}
               </Text>
             </ScalePressable>
           </View>

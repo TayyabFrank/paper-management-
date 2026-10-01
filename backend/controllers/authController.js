@@ -23,8 +23,7 @@ exports.register = async (req, res) => {
     }
 
     const assignedRole = role || 'Staff';
-    // Admin accounts are automatically approved; others are pending
-    const initialStatus = assignedRole.toLowerCase() === 'admin' ? 'active' : 'pending';
+    const initialStatus = 'active';
 
     const user = await User.create({
       name,
@@ -52,9 +51,7 @@ exports.register = async (req, res) => {
         documentsCount: user.documentsCount,
       },
       token,
-      message: initialStatus === 'pending'
-        ? 'Account registered successfully. Awaiting administrator approval.'
-        : 'Account created successfully.',
+      message: 'Account registered successfully. You can now log in.',
     });
   } catch (error) {
     console.error('Register error:', error);

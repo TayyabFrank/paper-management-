@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DocumentReaderItem } from '@/components/document-reader';
-import { INITIAL_DEMO_DOCUMENTS } from '@/constants/initial-documents';
 import { useAuth } from '@/context/auth-context';
 import {
   apiFetchDocuments,
@@ -39,43 +38,28 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         try {
           const parsed = JSON.parse(rawDocs);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            localDocs = parsed;
+            localDocs = parsed.filter((d) => !d.id.startsWith('doc-seed-'));
           }
         } catch {
           // ignore parse error
         }
       }
 
-      if (localDocs.length === 0) {
-        localDocs = INITIAL_DEMO_DOCUMENTS;
-        await AsyncStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(localDocs)).catch(() => {});
-      }
-
       // 2. Fetch from MongoDB: If Admin fetch all, if Employee fetch only their own
       const queryEmail = isUserAdmin ? undefined : (user.email ? user.email.toLowerCase() : undefined);
       const res = await apiFetchDocuments(queryEmail);
-      if (res.success && Array.isArray(res.documents) && res.documents.length > 0) {
-        // Merge backend documents with local documents by ID
+      if (res.success && Array.isArray(res.documents)) {
+        const backendDocs = res.documents.filter((d) => !d.id.startsWith('doc-seed-'));
         const docMap = new Map<string, DocumentReaderItem>();
         localDocs.forEach((d) => docMap.set(d.id, d));
-        res.documents.forEach((d) => docMap.set(d.id, d));
+        backendDocs.forEach((d) => docMap.set(d.id, d));
         const merged = Array.from(docMap.values());
         setDocuments(merged);
         await AsyncStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(merged)).catch(() => {});
-
-        // Auto-push any local documents missing from backend to MongoDB
-        const backendDocIds = new Set(res.documents.map((d) => d.id));
-        const unsyncedDocs = localDocs.filter((d) => !backendDocIds.has(d.id));
-        if (unsyncedDocs.length > 0) {
-          unsyncedDocs.forEach((d) => apiCreateDocument(d).catch(() => {}));
-        }
         return;
       }
 
-      // If backend is unreachable or returned empty, ensure localDocs are displayed
-      if (localDocs.length > 0) {
-        setDocuments(localDocs);
-      }
+      setDocuments(localDocs);
     } catch {
       // Backend offline or error - keep cached documents
     }
@@ -94,8 +78,8 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
           try {
             const parsed = JSON.parse(rawDocs);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              localDocs = parsed;
-              setDocuments(parsed);
+              localDocs = parsed.filter((d) => !d.id.startsWith('doc-seed-'));
+              setDocuments(localDocs);
             }
           } catch {
             // ignore
@@ -103,27 +87,21 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         }
 
         if (localDocs.length === 0 && isMounted) {
-          localDocs = INITIAL_DEMO_DOCUMENTS;
-          setDocuments(INITIAL_DEMO_DOCUMENTS);
-          await AsyncStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(INITIAL_DEMO_DOCUMENTS)).catch(() => {});
+          setDocuments([]);
+          await AsyncStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify([])).catch(() => {});
         }
 
         // Step 2: Fetch latest from MongoDB backend if reachable
         const queryEmail = isUserAdmin ? undefined : (user.email ? user.email.toLowerCase() : undefined);
         const res = await apiFetchDocuments(queryEmail);
-        if (res.success && Array.isArray(res.documents) && res.documents.length > 0 && isMounted) {
+        if (res.success && Array.isArray(res.documents) && isMounted) {
+          const backendDocs = res.documents.filter((d) => !d.id.startsWith('doc-seed-'));
           const docMap = new Map<string, DocumentReaderItem>();
           localDocs.forEach((d) => docMap.set(d.id, d));
-          res.documents.forEach((d) => docMap.set(d.id, d));
+          backendDocs.forEach((d) => docMap.set(d.id, d));
           const merged = Array.from(docMap.values());
           setDocuments(merged);
           await AsyncStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(merged)).catch(() => {});
-
-          const backendDocIds = new Set(res.documents.map((d) => d.id));
-          const unsyncedDocs = localDocs.filter((d) => !backendDocIds.has(d.id));
-          if (unsyncedDocs.length > 0) {
-            unsyncedDocs.forEach((d) => apiCreateDocument(d).catch(() => {}));
-          }
         }
       } catch (err) {
         console.warn('Failed to load documents:', err);
